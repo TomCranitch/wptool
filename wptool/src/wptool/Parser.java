@@ -1,4 +1,4 @@
-package wemelt;
+package wptool;
 
 import beaver.*;
 import java.util.ArrayList;

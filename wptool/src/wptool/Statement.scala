@@ -1,4 +1,4 @@
-package wemelt
+package wptool
 
 object Block {
   def empty = Block(Nil)

@@ -1,4 +1,4 @@
-package wemelt
+package wptool
 
 // remnant of handling break/continue/returns - might be useful in future
 sealed trait Cont {

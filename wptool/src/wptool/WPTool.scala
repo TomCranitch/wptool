@@ -1,9 +1,9 @@
-package wemelt
+package wptool
 
 import java.io.FileReader
-import wemelt.error._
+import wptool.error._
 
-object WeMeLT {
+object WPTool {
 
   def main(args: Array[String]): Unit = {
     var toLog: Boolean = false // whether to print P/Gamma/D state information for each rule application

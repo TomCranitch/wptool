@@ -1,4 +1,4 @@
-package wemelt
+package wptool
 
 // highest level parsed data structure
 case class Global(variables: Set[Definition], P_0: Option[List[Expression]], gamma_0: Option[List[GammaMapping]], statements: List[Statement]) extends beaver.Symbol {

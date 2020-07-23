@@ -1,15 +1,15 @@
-.PHONY: all test clean parser check-dependencies macos_sip_fix
+.PHONY: all test clean parser check-dependencies
 
 MILL = ./mill
 
-WEMELT_JAVA = wemelt/src/wemelt/Parser.java \
-            wemelt/src/wemelt/Scanner.java
+WEMELT_JAVA = wptool/src/wptool/Parser.java \
+            wptool/src/wptool/Scanner.java
 
-WEMELT_JAR = out/wemelt/jar/dest/out.jar
-WEMELT_LAUNCHER = ./out/wemelt/launcher/dest/run
-WEMELT_SH  = ./wemelt.sh
+WEMELT_JAR = out/wptool/jar/dest/out.jar
+WEMELT_LAUNCHER = ./out/wptool/launcher/dest/run
+WEMELT_SH  = ./wptool.sh
 
-all: parser $(WEMELT_JAR) $(WEMELT_SH)  macos_sip_fix
+all: parser $(WEMELT_JAR) $(WEMELT_SH)
 
 parser: $(WEMELT_JAVA)
 
@@ -23,14 +23,14 @@ check-dependencies:
 
 $(WEMELT_LAUNCHER):
 	@echo $@
-	$(MILL) wemelt.launcher
+	$(MILL) wptool.launcher
 
 $(WEMELT_JAR):
 	@echo $@
-	$(MILL) wemelt.jar
+	$(MILL) wptool.jar
 
 $(WEMELT_SH): $(WEMELT_LAUNCHER)
-	@echo "[echo]  $@"; echo "#!/usr/bin/env bash" > $@; echo "export LD_LIBRARY_PATH=$(PWD)/wemelt/lib" >> $@; echo "source $(WEMELT_LAUNCHER)" >> $@
+	@echo "[echo]  $@"; echo "#!/usr/bin/env bash" > $@; echo "export LD_LIBRARY_PATH=$(PWD)/wptool/lib" >> $@; echo "source $(WEMELT_LAUNCHER)" >> $@
 	@echo "[chmod] $@"; chmod +x $@
 
 %.java: %.grammar
@@ -42,10 +42,5 @@ $(WEMELT_SH): $(WEMELT_LAUNCHER)
 o: $(WEMELT_OBJ)
 	@echo $(WEMELT_OBJ)
 
-macos_sip_fix: wemelt/lib/libz3java.dylib wemelt/lib/libz3.dylib
-	@if [ $$(uname -s) = "Darwin" ];  then \
-	    make -s libz3java.dylib libz3.dylib; \
-	 fi
-
-lib%.dylib: wemelt/lib/lib%.dylib
+lib%.dylib: wptool/lib/lib%.dylib
 	ln -s $<

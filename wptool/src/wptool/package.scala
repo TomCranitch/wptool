@@ -1,4 +1,4 @@
-package object wemelt {
+package object wptool {
   object error {
 
     abstract class Error extends Exception {

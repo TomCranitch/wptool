@@ -1,4 +1,4 @@
-package wemelt
+package wptool
 
 case class State(
   gamma: Map[Id, Security],

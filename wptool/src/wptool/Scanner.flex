@@ -1,7 +1,7 @@
-package wemelt;
+package wptool;
 
 import beaver.Symbol;
-import wemelt.Parser.Terminals;
+import wptool.Parser.Terminals;
 
 %%
 
