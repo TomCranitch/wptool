@@ -38,33 +38,33 @@ public class Parser extends beaver.Parser {
 		static public final short AMP = 25;
 		static public final short CARET = 26;
 		static public final short COLON = 27;
-		static public final short SEMICOLON = 28;
-		static public final short PIPE = 29;
-		static public final short AND = 30;
-		static public final short WHILE = 31;
-		static public final short OR = 32;
+		static public final short PIPE = 28;
+		static public final short AND = 29;
+		static public final short SEMICOLON = 30;
+		static public final short OR = 31;
+		static public final short WHILE = 32;
 		static public final short DO = 33;
-		static public final short IF = 34;
-		static public final short LBRACE = 35;
+		static public final short COMMA = 34;
+		static public final short IF = 35;
 		static public final short FENCE = 36;
 		static public final short CFENCE = 37;
-		static public final short COMMA = 38;
-		static public final short RBRACK = 39;
-		static public final short LBRACK = 40;
-		static public final short RPAREN = 41;
-		static public final short LPRED = 42;
-		static public final short MODE = 43;
-		static public final short RBRACE = 44;
-		static public final short MAPSTO = 45;
-		static public final short LOW = 46;
-		static public final short HIGH = 47;
-		static public final short INVARIANT = 48;
-		static public final short GAMMA = 49;
-		static public final short STABLE = 50;
-		static public final short ASG = 51;
-		static public final short ARRAY = 52;
-		static public final short GAMMA_0 = 53;
-		static public final short VAR = 54;
+		static public final short RBRACK = 38;
+		static public final short LBRACK = 39;
+		static public final short RPAREN = 40;
+		static public final short LPRED = 41;
+		static public final short MODE = 42;
+		static public final short RBRACE = 43;
+		static public final short MAPSTO = 44;
+		static public final short LOW = 45;
+		static public final short HIGH = 46;
+		static public final short INVARIANT = 47;
+		static public final short GAMMA = 48;
+		static public final short STABLE = 49;
+		static public final short ASG = 50;
+		static public final short ARRAY = 51;
+		static public final short GAMMA_0 = 52;
+		static public final short VAR = 53;
+		static public final short LBRACE = 54;
 		static public final short CAS = 55;
 		static public final short P_0 = 56;
 		static public final short ELSE = 57;
@@ -101,17 +101,16 @@ public class Parser extends beaver.Parser {
 			"AMP",
 			"CARET",
 			"COLON",
-			"SEMICOLON",
 			"PIPE",
 			"AND",
-			"WHILE",
+			"SEMICOLON",
 			"OR",
+			"WHILE",
 			"DO",
+			"COMMA",
 			"IF",
-			"LBRACE",
 			"FENCE",
 			"CFENCE",
-			"COMMA",
 			"RBRACK",
 			"LBRACK",
 			"RPAREN",
@@ -128,6 +127,7 @@ public class Parser extends beaver.Parser {
 			"ARRAY",
 			"GAMMA_0",
 			"VAR",
+			"LBRACE",
 			"CAS",
 			"P_0",
 			"ELSE",
@@ -138,49 +138,49 @@ public class Parser extends beaver.Parser {
 	}
 
 	static final ParsingTables PARSING_TABLES = new ParsingTables(
-		"U9pjM6cKLCKL$dfv0uW1X23238v8w5aO51cDg3GDmpOu30Cpigc94OtHcBWH98eIN7294jn" +
-		"2OaH10H5Gm0KHaLK4L6HL41KNTaaY10KKnSfNzUvxKzqmFGyFdkCF#fpltLktxdTlRLtlTW" +
-		"FEbMYDDiX70Kx32lKLvYg5az0OZjZEn2$H5kUY7TgZ0uhG6LrHhBv77iv73noFdeRVr726e" +
-		"Jx#WI78nY0CJiV70uWQ$Wl2$nnX78Svw8DNCKgDmJHafENhR9fVL$WnrCR9c8eiQfSQRMXQ" +
-		"lkPeVenyxNqhVeOwk2ejfnpJ3USJoNa2tiLdQA2#n9suseneNLg#pg3vn$bhrX2rk6RN1bo" +
-		"p4t63uR$Zptc96VjVgJKoskWW#TKUdz$Ci9wWThFHdawxv$$bhkdy5S9tVT$2srYEs$0SVe" +
-		"kHWTRFc$yLrARXNlmE$y9Jr1x77zBohvFy7dyxLtyQNc7SN4nX$XsO66ZFwv5VZfP4A$m9F" +
-		"m$4kT5mJYVE80e3SMutdBE8iubp0d7kC9ppY3YH2CGfHqUY4z65w1Q0eyzgEReJ9KGf$bmj" +
-		"fodzodXMRmbqLZMZ71SG$OaBYOk9NrV9w8S1PaoNe2zweJSkmgym49STDNivVYDplXAN$#Z" +
-		"PVcfsTpT#Jrn3N4$SH0m$x6waZt6NwRDn936EsO$PBJjhZN8yQNgg$jvE9oRZZtY4tjwPQu" +
-		"g7y1BleXphBXfHPOoc#0jUflS8oxkcyTHd#cwZtMFq#uq#8kbCk$fwFCOuYp6FSTvFYkFLF" +
-		"GycMUypStlTz2t4Cgp0mvYByLY9JVYxp$cdnVcRiSNOruBluM5uD2dUE9$pYoJEfumz36Ci" +
-		"c$RQG2ldetPn31#pV#pXxsprXTpi4p29NizKSRDhdsVneZg8MLYaliDhcCyvBKZoYU43Kpy" +
-		"yZqLu0qiHGIR744CJiQx2crYD6hIkCLOznnZMIkyol4V#JFP#Y8$OEmCRiHbRq1nRSIhzJX" +
-		"4$FP9jc4q$hJNXx3TmDo0ZWQ#5M4lgMgSkHmUE3nnFb2pNLezrMtqqu7k$8IkgHcR5cj0dY" +
-		"ojnCj#cfnX#bk5aiq9enZ4qvxgtICkFypsl#Ms5hqzWd9LI3YlQ4fxDJdpBfUFhR9gVA$mu" +
-		"CoTubtQabYTQEhxcQ7wSVDVxD5OhiMh6tDvmYYHd3ck7Ogu0M27acH6LfUNh35vETyroECz" +
-		"iFeEjMIjPyo9$pjtyEVS8C6SlFtn#mH6jMG7zx3LtVSzbzTME$1B#0YeDj7vnFt$Sx7FCh9" +
-		"$MijBo2oM$nzUhhrawhivVLar#RyypoDSS3Pqn22VBucW4uRJ#0PpC7y2n$ODnz5cr6Kwrd" +
-		"2pZbysgFCXPTNUtVU2HQNyz9eTxKuFtTot#PgdDtyf7owvpUtC##qVFzbEq1zsDwcBeFXj7" +
-		"6kEO$PZTiyC$KUc#jngvjCC$S$hEFfztKQ5r5yMgZ955ordqZYLvUrdFa5f7wvb6Jwu1NBs" +
-		"8Vbw5KvmKnxFc9bdRM7FBHqlMLJcigzgOTexFQNt8YEBiq#$XR8x5xdDyJiyakuwTxEjbrF" +
-		"Cfa3ixkuexkq1kzapZurJXvVc0qCzUVERptMlxn3b$jtxGFaNeWguSGnpTnPfBQuQnvlZME" +
-		"6rkRqioSarl1lkxSuwPPiVBsRg0Vdt5pzqZxQUrxXn5FegLSaUYbATnZ3k7yq73QWfzScfI" +
-		"tstg7aGhA7Nzsc#uAO5DlTj7wnw0q0ry32Rd6ygxn6yqCObOakoBhubnoRRe0ZvMI$yEjbT" +
-		"PVNb0k8CUhTiEzn3PN#Jb8eVGPI$b7HmFvnGUHUvjb8y13kSGvbYS$fGlqZwKSZxbvvHlKt" +
-		"v7kPxzTIWt4xluvN684uWSjdCf2oaPDv9WVEQ9b51#IDcFSg4rFwvRv3BAx4fRv5gHGqNUB" +
-		"V9XaMFvIAIiQJRpNKV9jOzCfU4IobcKDz6M9xpN#NYKxMRKLrAVBTo18cyKoVb5E5R#da5e" +
-		"7x6HSzuiwtir#xPJuTw5RY6OA$8bxQMKYkq1rA#Wte1oY72kOhiXvHZAHcAxcM1j7xrFsWz" +
-		"OUtW$CPseJLnAl45UOyhR2Pwvw7AY4NCr5l#jH6$YPM8JyJtHdFtdIF$UbBKQPENQJvnEjE" +
-		"D#wZ5pNb7EApg5xHF5vrQH3n87YLrksz7Zwy1u8wdplesEe9Iu3iU7hNPUYV42#seHhGYU3" +
-		"uTx4UKPSnfA$xnANuTxwV3yEDnRXxyeemEPQvBu7H2VKuakH8muZsWZza8l3i$v7lflgOpB" +
-		"#zkV0uPQVcjInsjnAbBQem$Zqo9bhWTIslSajqFDBJqkCY5Ixe$G094NYRnUv22HWqNAEGg" +
-		"D53bAv7YH4qNA#eKcYvmdSe78HIBN7Jg$q1SfxTqYzuZyIkG#LuRFJ8tXsk7TJMr5papk3y" +
-		"#ozDc7Ys7rpv6O#I8xMdrpK$BAceRNMxPlYR5MM$#3CO5duM2wl2bnzrVg8VsONzcEfgxXI" +
-		"Nmijlhh1yyJhQU$srOilY#T#bR$qXJ$jPP#ZJLUlckYsuBcjNXzoPEzYvQb6UUCwcE5vFlk" +
-		"tJ7OoMEn0KaVzPHvFgcUK8$xjd4Ynwh$g7yRRQ$wHdrjj7NckLlj5v$tY0K4trrg7Z6NU8s" +
-		"OGxnAp2PU8VYUKBmxrKpY9OBtaU8zfPudPX2yYzKqzQPQffQQk4iKRsIrcE0RHIqY5XhxS#" +
-		"fPDHKf7$MkfQybrX2hVSigOkKXd0CYL$YMRMgdaNm7gntgdLI6U2rFQVDjhTvIszLuzQtwd" +
-		"zftYFzwzRxwW78BiTLOfaZFPlDyMarK4zIc5DPdnATgacMPh3xXynbfVKHyh3Og$GxL$pU7" +
-		"2KTGaxLrY8YOYakZ9z7LG5TT84AimaAippJ2hD50X7ZwGgpMN9GOH0rAgPSoNY$glSn$VOx" +
-		"eDGKrB3Yee7y5$VemRX$glOa4#Gbo4gpf4$HBiD#58srjhqCSJzGrVUt9gqHKP3W5aQCCDr" +
-		"ytwiMiFSkebp5F4TiUEjFMcRAJGOP13zeqElmVs48AG0==");
+		"U9pjM0kK5CKLlJFJlVn1H40PTXPNt5rO28e8AWmh2xYVMLZ05JTga6X8OeH4Gmn4aqXKagX" +
+		"9Y2PHKC4FAWY28eg2#4D5496FV0H1yHCK218JHECdbLlLRtghXztUvHmyXtYSSsxVgbTrwz" +
+		"MhxgvwFO1RZYueH0kqH5Er7yVYE8FvoC89E17vw8uUE1cdu5JqmUdeYoIAC017OI068nSbH" +
+		"dqCNaKsdiAlSIicupACnOz3rOkqMYbHcvxgtnWAr$SVflwhyTrAr3UZ6RBLVutlynhW#yz6" +
+		"tLpK5s4Nefpzavpz4inJT#2FeUhMHhrQr3bOZWJceYDBtpEb6qBLHnjr6r5ppRdYRV53A#8" +
+		"mTJkZlbJKxHdrlqpKZINgYb3rAAE#q9$vQ3FVMrWQRqepGjLZZFeINztKQEx7EFo6pyhr#4" +
+		"a3rhnfJTpKJ4SAn#CUpCFbk2zKFI6W$XdNR3wUC6is1ozZ5Lu9LLzXr1D4dOsV1zOiXSwXw" +
+		"ia1todaeGb#ONpdu7Vu5TSWJFrByvplzNrVRNp$oVTT4Ag#nlZ#lgWtC#uKkXhVhwCJozr2" +
+		"rJSPjJVhRz7tjSRtxnlmXZXKQjqZnbSA9n4zYLxuGwZEyzMRlluIYBDkZLQyZxUfEequW#Y" +
+		"7l#63EXN3CCBCgHgLA4CvgZ0Iv#E2msPFeJzn9b6CxtpbteuqktV$1X5d4QN4469uhNSZV8" +
+		"opYNE8SublrxcV7sdnVsF$UjYrpNiElykJvos$le4xZVqSJi4cgQTmCNUjgO6J8Hjt1kfwX" +
+		"6cuaNr$8AF$27TWPc14kwpxt2Kxw4#9Xx3CNEq#klKwRELPSfivJnSOrRs88MvyTn3ViqIL" +
+		"e$QPCsUsQNrGMdEmq5Eh3zMNU1YDg9wCgwY#acqJPMJj#t4ynhRRQUrW#NiKYsbDOHAjAVp" +
+		"MUb$JsPWNnTt23nX#0K#p$3oUmmgimJlOGTv2fF2c#W9ByGnRdcNCBzBs4bPY7TPYFLx3Hh" +
+		"o1zx2TrgtOoPDi6u1tyNTulntckWKHPcNTUMubMOlnH8gPKscGoHrQCVjipLog3VFEjioAs" +
+		"flvT636sf5tBS7ejBe5zva4TvfEp39o6KzdHXIcxcNKyDMw9tZUntt$zVlEzzNTw1l6Tq43" +
+		"V2UDkaBKkTnpHt3sLPpzIAvdDVVXC7MUKHUBEibyeOXds02M2gGKfkuMyAtNN4UTPqLSlpg" +
+		"zvXL#rEaLpmzLkqQTz6UUUqWpJnXrJr#T54s2Qlsi91gmvaahRgr9CWCeu9gxzQnvxu1wAA" +
+		"FMQhrc1SnZ#ZAF2LEVRjIzHPsWtbupFOSmTMx6glMdxqBZEybSJQz1cBhIg0jzt#uX#UuHU" +
+		"CwB6RTMQD#bl1FrgVEDEZth1DyjxJlUmBTJwqwJEFlxY8VgQdpbDN0dq8eIHcFxoEDPKvT2" +
+		"zzTpSha7DE9fqOHV2ytuVNcuxFOy#dpbtev4kxq2QTHsDmvbZBhsyoCn$c$i$$zsRQjv3el" +
+		"zkjvfxESmvUyqtgxL8x1h9LYpwtg4EFD8tJSzkgxR8zfbtSSDxA3nWzuctLhEdJh9gtUUUb" +
+		"u6ywjG#ouJtvtyUHQQVjuval3FaRYe2tb6L1frBhyBo$XTcEHtOVgSxoyZdyHocUMlt5XrU" +
+		"rd6#vhEnj9Hs9mkTq5NKzQieMrWLXLdhOJNE6t5l6OnJftX5REKPQpvl9OYJodTeimFNRmh" +
+		"HzWzYHTMzW6H3Ips8xgQ31NCXe6BYC6Jl4os5$jjrEKq#3k6k8oudfWYjcd4R8xNBAFlTfr" +
+		"J16qHzejMwTbuzUXeuR724uLlvEKKygtaHUIPW7Cv#I7oY#GdoL#INo9VGdwDV3FvBV9KyX" +
+		"xo7F8d38snnOuZJYJwqiQOOoNa4yXdavkGB#JSzf8l9Q#rOdYAjWdaH8qjTgsmn1#xNNYMy" +
+		"4ATKsIinOUqTpVV1OWzGxw0l8fy5R5VT9jvkGtwMm8n0ejbpT9hvmWpXXZl7xyy4Eb0z2Rw" +
+		"UMtEN9R7IR$9h2#nrlvXwZvdWMiIcKvGxpGYZoMt8LSHRm2ko$eOqNp6UbFoBUJcOdk1bn5" +
+		"SjvZSg#DhV3Zd45SIESGAuXhgMfB74TeFxx$3zodIJlhFO$lH78C#d0K4dqcd3zjFbVQdW#" +
+		"iO6M$vMauCP47FToUnbSLsx5DDxYBhFjHZzrZYA4Bcx39Ufv9z#SouVAQT0#GiQMjFUsVRh" +
+		"zZvPU2s87WVNNvPkN7gzFgqblbyOVLjI$Ga#DovUYtEvvWBfDyqwSDxv$8PTpiIkKIss3lL" +
+		"ZAE$PPphqdM#DlfvdobhKMNtovolrJOsepwbbZwZQx6fcd9aW72ryDN2KuLd22yKNY#yGNY" +
+		"Jy2wFeuwmh7cqiN2fSBbmXV1AuLN2gm#URtHDHdsTy1xXlSBxX3$A74FYblVEwI4yADZkd6" +
+		"ULHzKsXjK#Nk9k8YpFfJCrs2yoAaEtFAD#XV1AQvvwVnrZrS#0sQ#SayFcb37kH4lFVG7Bh" +
+		"BPDmRxOJsopshSUWfz5#lssukLxwYorshTazDzfbNTOSpYNzNqDzMkDmNVM#LXytnJIRtVz" +
+		"OqK#bRu7P4wx#QfiGU2dxZ7NkzKCDTsttILyf$g7scDA7wl$g4$5kf5ubk3fe7WIAzv9jPJ" +
+		"WIQUM48k99uZ72QwcUenubE1fenuXk7igxl2A9wIQhrQg5NglO7cvudcfk6Uhvubbn7F6Fa" +
+		"yzgEOYuwSsM6MUgMeziSwth2NMcD8cS$sd#kIW4JuJVjMtx5Ix3UyYFb2hCnNIwvMCEaz7z" +
+		"R9wNyrKdwkFr863#czMholk#EezmlptfkP8oxlcUh#wJzshtibGlKtiKBCiomEAEOEQBRLj" +
+		"n9jgk#8vY8jHpJokckUBXyRCwI94p6Hu6fN4MGPHPdaW8ipw8imIDQBC5454#DH6cC5vI1a" +
+		"u1aDO7iBnXhCydFs7quzNRYnePC555VjNiTz8ZZkIvH74KEgBg2bYbbx4VaLiz#1ANTjR4i" +
+		"s9LgPDvzerS8IZ6OWTPdZ#IbWkPQuwZELXvX#Oc8z1jEd$e0OQP1bKqAPnvly0k33PLm==");
 
 	private final Action[] actions;
 
@@ -452,7 +452,7 @@ public class Parser extends beaver.Parser {
 			Action.NONE,  	// [38] opt$lst$definition = 
 			Action.RETURN,	// [39] opt$lst$definition = lst$definition
 			Action.RETURN,	// [40] defs = opt$lst$definition
-			new Action() {	// [41] local1 = LBRACE locals2.ss RBRACE
+			new Action() {	// [41] block = LBRACE locals2.ss RBRACE
 				public Symbol reduce(Symbol[] _symbols, int offset) {
 					final Symbol _symbol_ss = _symbols[offset + 2];
 					final ArrayList _list_ss = (ArrayList) _symbol_ss.value;
@@ -503,23 +503,23 @@ public class Parser extends beaver.Parser {
 					 return ControlFence.self();
 				}
 			},
-			new Action() {	// [47] local1 = IF LPAREN expr.a RPAREN local.b
+			new Action() {	// [47] local1 = IF LPAREN expr.a RPAREN block.b
 				public Symbol reduce(Symbol[] _symbols, int offset) {
 					final Symbol _symbol_a = _symbols[offset + 3];
 					final Expression a = (Expression) _symbol_a.value;
 					final Symbol _symbol_b = _symbols[offset + 5];
-					final Statement b = (Statement) _symbol_b.value;
+					final Block b = (Block) _symbol_b.value;
 					 return new If(a, b);
 				}
 			},
-			new Action() {	// [48] local1 = IF LPAREN expr.a RPAREN local.b ELSE local.c
+			new Action() {	// [48] local1 = IF LPAREN expr.a RPAREN block.b ELSE block.c
 				public Symbol reduce(Symbol[] _symbols, int offset) {
 					final Symbol _symbol_a = _symbols[offset + 3];
 					final Expression a = (Expression) _symbol_a.value;
 					final Symbol _symbol_b = _symbols[offset + 5];
-					final Statement b = (Statement) _symbol_b.value;
+					final Block b = (Block) _symbol_b.value;
 					final Symbol _symbol_c = _symbols[offset + 7];
-					final Statement c = (Statement) _symbol_c.value;
+					final Block c = (Block) _symbol_c.value;
 					 return new If(a, b, c);
 				}
 			},

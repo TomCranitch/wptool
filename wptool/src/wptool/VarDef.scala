@@ -44,8 +44,8 @@ case object Low extends Security {
 }
 
 case class GammaMapping(variable: Id, security: Security) extends beaver.Symbol {
-  def this(variable: Id, index: Int, security: Security) = this(Id(variable.name + "[" + index + "]"), security)
-  def this(variable: String, security: Security) = this(Id(variable), security)
+  def this(variable: Id, index: Int, security: Security) = this(new Id(variable.name + "[" + index + "]"), security)
+  def this(variable: String, security: Security) = this(new Id(variable), security)
 
   def toPair(arrays: Map[Id, IdArray] ): Seq[(Id, Security)] = this match {
     // array wildcard case
@@ -60,23 +60,23 @@ case class GammaMapping(variable: Id, security: Security) extends beaver.Symbol 
 sealed trait Definition extends beaver.Symbol
 
 case class VarDef(name: Id, pred: Expression, mode: Mode) extends Definition {
-  def this(name: String, pred: Expression, mode: Mode) = this(Id(name), pred, mode)
-  def this(name: String, mode: Mode) = this(Id(name), Const._true, mode)
-  def this(name: String, pred: Expression) = this(Id(name), pred, Reg)
-  def this(name: String) = this(Id(name), Const._true, Reg)
+  def this(name: String, pred: Expression, mode: Mode) = this(new Id(name), pred, mode)
+  def this(name: String, mode: Mode) = this(new Id(name), Const._true, mode)
+  def this(name: String, pred: Expression) = this(new Id(name), pred, Reg)
+  def this(name: String) = this(new Id(name), Const._true, Reg)
 }
 
 case class ArrayDef(name: Id, size: Int, preds: IndexedSeq[Expression], mode: Mode) extends Definition {
-  def this(name: String, size: Int, lpred: Expression, mode: Mode) = this(Id(name), size, ArrayDef.predArray(size, lpred), mode)
-  def this(name: String, size: Int, lpreds: Array[Expression], mode: Mode) = this(Id(name), size, lpreds.toIndexedSeq, mode)
-  def this(name: String, size: Int, mode: Mode) = this(Id(name), size, ArrayDef.predArray(size, Const._true), mode)
-  def this(name: String, size: Int, lpred: Expression) = this(Id(name), size, ArrayDef.predArray(size, lpred), Reg)
-  def this(name: String, size: Int, lpreds: Array[Expression]) = this(Id(name), size, lpreds.toIndexedSeq, Reg)
-  def this(name: String, size: Int) = this(Id(name), size, ArrayDef.predArray(size, Const._true), Reg)
+  def this(name: String, size: Int, lpred: Expression, mode: Mode) = this(new Id(name), size, ArrayDef.predArray(size, lpred), mode)
+  def this(name: String, size: Int, lpreds: Array[Expression], mode: Mode) = this(new Id(name), size, lpreds.toIndexedSeq, mode)
+  def this(name: String, size: Int, mode: Mode) = this(new Id(name), size, ArrayDef.predArray(size, Const._true), mode)
+  def this(name: String, size: Int, lpred: Expression) = this(new Id(name), size, ArrayDef.predArray(size, lpred), Reg)
+  def this(name: String, size: Int, lpreds: Array[Expression]) = this(new Id(name), size, lpreds.toIndexedSeq, Reg)
+  def this(name: String, size: Int) = this(new Id(name), size, ArrayDef.predArray(size, Const._true), Reg)
 
   def toVarDefs: Set[VarDef] = {
     for (i <- 0 until size)
-      yield VarDef(Id(name.toString.arrayIndex(i)), preds(i), mode)
+      yield VarDef(new Id(name.toString.arrayIndex(i)), preds(i), mode)
   }.toSet
 }
 
@@ -92,7 +92,7 @@ case class IdArray(name: Id, array: IndexedSeq[Id])
 object IdArray {
   def apply(name: Id, size: Int): IdArray = {
     val array = for (i <- 0 until size)
-      yield Id(name.toString.arrayIndex(i))
+      yield new Id(name.toString.arrayIndex(i))
     this(name, array)
   }
 }

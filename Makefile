@@ -21,11 +21,11 @@ clean:
 check-dependencies:
 	$(MILL) mill.scalalib.Dependency/updates
 
-$(WEMELT_LAUNCHER):
+$(WEMELT_LAUNCHER): wptool/src/wptool/*.scala
 	@echo $@
 	$(MILL) wptool.launcher
 
-$(WEMELT_JAR):
+$(WEMELT_JAR): wptool/src/wptool/*.scala
 	@echo $@
 	$(MILL) wptool.jar
 

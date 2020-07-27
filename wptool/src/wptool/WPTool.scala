@@ -39,7 +39,9 @@ object WPTool {
             val state0: State = State.init(variables, P_0, gamma_0, toLog, debug, noInfeasible)
             Var.index = 0
             Switch.index = 0
-            Exec.execute(statements, state0)
+            //Exec.execute(statements, state0)
+            val (passifiedStmts, _) = Passify.execute(statements, Map[String, Int]())
+            println(passifiedStmts)
             printTime(start)
           } catch {
             case e: java.io.FileNotFoundException =>
