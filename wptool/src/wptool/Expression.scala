@@ -1,5 +1,7 @@
 package wptool
 
+import scala.util.Try
+
 trait Expression extends beaver.Symbol {
 
   def variables: Set[Id] // returns all variables in the expression, does NOT include array indices
@@ -253,4 +255,13 @@ case class Const(name: String) extends Expression {
   override def subst(su: Subst): Const = this
   override def subst(su: Subst, num: Int): Const = this
   override def arrays = Set()
+}
+
+case class Gamma (ids: Set[Id]) extends Expression {
+  def eval (state: State): Security = Try(ids.map(ident => state.Gamma.getOrElse(ident.copy(index = 0), Low)).max).getOrElse(Low)
+
+  override def subst(su: Subst): Gamma = this
+  override def subst(su: Subst, num: Int): Gamma = this
+  override def variables: Set[Id] = Set()
+  override def arrays: Set[Access] = Set()
 }

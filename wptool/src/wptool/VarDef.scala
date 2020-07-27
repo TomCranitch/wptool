@@ -22,25 +22,15 @@ case object RW extends Mode {
   def instance = this
 }
 
-sealed trait Security extends beaver.Symbol {
-  def >(security: Security): Boolean
-  def <(security: Security): Boolean
-  def >=(security: Security): Boolean
-  def <=(security: Security): Boolean
+sealed trait Security extends beaver.Symbol with Ordered[Security] {
+  def compare(that: Security): Int = if (this == that) 0 else {if (this == High) 1 else -1}
 }
 case object High extends Security {
   def instance = this
-  def >(security: Security): Boolean = if (security == Low) { true } else { false }
-  def <(security: Security): Boolean = false
-  def >=(security: Security): Boolean = true
-  def <=(security: Security): Boolean = if (security == Low) { false } else { true }
 }
+
 case object Low extends Security {
   def instance = this
-  def >(security: Security): Boolean = false
-  def <(security: Security): Boolean = if (security == High) { true } else { false }
-  def >=(security: Security): Boolean = if (security == High) { false } else { true }
-  def <=(security: Security): Boolean = true
 }
 
 case class GammaMapping(variable: Id, security: Security) extends beaver.Symbol {
@@ -52,6 +42,12 @@ case class GammaMapping(variable: Id, security: Security) extends beaver.Symbol 
     case g if arrays.keySet.contains(g.variable) =>
       for (i <- arrays(g.variable).array)
         yield i -> g.security
+    case g =>
+      Seq(g.variable -> g.security)
+  }
+
+
+  def toPair: Seq[(Id, Security)] = this match {
     case g =>
       Seq(g.variable -> g.security)
   }

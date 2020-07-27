@@ -113,8 +113,8 @@ stables = stable | stables COMMA stable;
 definition
     =     VAR REG_ID.n COLON lpred.l                 {: return new VarDef(n, l); :}
           | VAR REG_ID.n                        {: return new VarDef(n); :}
-          | VAR ID.n COLON lpred.l mode.m              {:  return new VarDef(n, l, m); :}
-          | VAR ID.n COLON mode.m                      {: return new VarDef(n, m); :}
+          | VAR ID.n COLON lpred.l              {:  return new VarDef(n, l); :} // TODO: does this make them appear as global (i.e. are vars without right permissions global)
+          | VAR ID.n COLON                     {: return new VarDef(n); :}
           | ARRAY ID.n LBRACK NUM.s RBRACK COLON lpred.l mode.m {: return new ArrayDef(n, s, l, m); :}
           | ARRAY ID.n LBRACK NUM.s RBRACK COLON lpredindexes.l mode.m {: return new ArrayDef(n, s, l, m); :}
           | ARRAY ID.n LBRACK NUM.s RBRACK COLON mode.m {: return new ArrayDef(n, s, m); :}

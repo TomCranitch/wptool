@@ -27,6 +27,9 @@ object WPTool {
             println(file)
             val res = parse(file)
             val variables = res.variables
+
+            println(variables)
+
             val statements = res.statements
             val P_0 = res.P_0
             val gamma_0 = res.gamma_0
@@ -36,13 +39,22 @@ object WPTool {
               println(P_0)
               println(gamma_0)
             }
-            val state0: State = State.init(variables, P_0, gamma_0, toLog, debug, noInfeasible)
-            Var.index = 0
-            Switch.index = 0
+            //val state0: StateOLD = StateOLD.init(variables, P_0, gamma_0, toLog, debug, noInfeasible)
+            //Var.index = 0
+            //Switch.index = 0
             //Exec.execute(statements, state0)
-            val (passifiedStmts, _) = Passify.execute(statements, Map[String, Int]())
-            println(passifiedStmts)
+            val state = State(variables, false, gamma_0)
+            val (passifiedStmts, _) = Passify.execute(statements, Map[String, Int](), state)
+            val _state = Exec.exec(passifiedStmts, state)
+            println(_state)
+            println(SMT.prove(_state.Q, List[Expression](), debug = false))
             printTime(start)
+
+
+
+            // val testExpr = BinOp("=>", BinOp("==", Id("b", 0), Lit(0)), BinOp("==", Id("b", 0), Lit(0)))
+            //val testExpr = BinOp("=>", Const._true, BinOp("==", Id("b", 0), Lit(0)))
+            //println(SMT.prove(testExpr, List[Expression](), false))
           } catch {
             case e: java.io.FileNotFoundException =>
               println("file does not exist")

@@ -2,19 +2,19 @@ package wptool
 
 // remnant of handling break/continue/returns - might be useful in future
 sealed trait Cont {
-  def st: State
+  def st: StateOLD
 }
 
 object Cont {
-  case class next(st: State) extends Cont
+  case class next(st: StateOLD) extends Cont
   /*
   case class break(st: State) extends Cont
   case class cont(st: State) extends Cont
   case class ret(result: Expression, st: State) extends Cont */
 }
 
-object Exec {
-  def execute(statements: List[Statement], state: State): Cont = statements match {
+object ExecOLD {
+  def execute(statements: List[Statement], state: StateOLD): Cont = statements match {
     case Nil =>
       Cont.next(state)
     case stmt :: rest =>
@@ -22,7 +22,7 @@ object Exec {
       execute(rest, st)
   }
 
-  def execute(statement: Statement, state0: State): Cont = statement match {
+  def execute(statement: Statement, state0: StateOLD): Cont = statement match {
     case Malformed =>
       throw error.InvalidProgram("parser")
 
@@ -275,7 +275,7 @@ object Exec {
   }
 
   // compute fixed point of D
-  def DFixedPoint(test: Expression, body: Statement, state: State): Map[Id, (Set[Id], Set[Id], Set[Id], Set[Id])] = {
+  def DFixedPoint(test: Expression, body: Statement, state: StateOLD): Map[Id, (Set[Id], Set[Id], Set[Id], Set[Id])] = {
     var DFixed = false
     var st0 = state
     var DPrime: Map[Id, (Set[Id], Set[Id], Set[Id], Set[Id])] = Map()
@@ -315,7 +315,7 @@ object Exec {
     DPrime
   }
 
-  def DFixedPoint(statements: List[Statement], state: State): State = statements match {
+  def DFixedPoint(statements: List[Statement], state: StateOLD): StateOLD = statements match {
     case Nil =>
       state
     case stmt :: rest =>
@@ -323,7 +323,7 @@ object Exec {
       DFixedPoint(rest, st)
   }
 
-  def DFixedPoint(statement: Statement, st0: State): State = statement match {
+  def DFixedPoint(statement: Statement, st0: StateOLD): StateOLD = statement match {
     case Malformed =>
       throw error.InvalidProgram("parser")
 
@@ -387,7 +387,7 @@ object Exec {
       throw error.InvalidProgram("unimplemented statement at line " + statement.line + ": " + statement)
   }
 
-  def DFixedPoint(expr: Expression, st0: State): State = expr match {
+  def DFixedPoint(expr: Expression, st0: StateOLD): StateOLD = expr match {
     case id: Id =>
       st0.updateRead(id)
 
@@ -412,7 +412,7 @@ object Exec {
       throw error.InvalidProgram("unimplemented expression: " + expr)
   }
 
-  def eval(expr: Expression, st0: State): (Expression, State) = expr match {
+  def eval(expr: Expression, st0: StateOLD): (Expression, StateOLD) = expr match {
     case id: Id =>
       // value has been READ
       val st1 = st0.updateRead(id)
@@ -525,7 +525,7 @@ object Exec {
 
   }
 
-  def ifRule(test: Expression, left: Statement, right: Option[Statement], state0: State, line: Int): State = {
+  def ifRule(test: Expression, left: Statement, right: Option[Statement], state0: StateOLD, line: Int): StateOLD = {
     // IF rule
     if (state0.toLog)
       println("IF applying")
@@ -566,7 +566,7 @@ object Exec {
       execute(left, _left).st
     }
 
-    val _right1: State = right match {
+    val _right1: StateOLD = right match {
       case Some(r) =>
         if (state0.toLog)
           println("} else {")
@@ -589,7 +589,7 @@ object Exec {
     _left1.mergeIf(_right1)
   }
 
-  def whileRule(test: Expression, PPrime: List[Expression], gammaPrime: Map[Id, Security], body: Statement, state0: State, line: Int): State = {
+  def whileRule(test: Expression, PPrime: List[Expression], gammaPrime: Map[Id, Security], body: Statement, state0: StateOLD, line: Int): StateOLD = {
     // WHILE rule
 
     if (state0.toLog)
@@ -711,7 +711,7 @@ object Exec {
   }
 
 
-  def arrayAssignRule(a: Id, index: Expression, rhs: Expression, st0: State, line: Int): State = {
+  def arrayAssignRule(a: Id, index: Expression, rhs: Expression, st0: StateOLD, line: Int): StateOLD = {
     val array = st0.arrays(a)
     // ARRAY ASSIGN rule
     if (st0.toLog)
@@ -778,7 +778,7 @@ object Exec {
     st5.updateDArrayAssign(a, _rhs)
   }
 
-  def arrayAssignCRule(a: Id, index: Expression, rhs: Expression, st0: State, line: Int): State = {
+  def arrayAssignCRule(a: Id, index: Expression, rhs: Expression, st0: StateOLD, line: Int): StateOLD = {
     val array = st0.arrays(a)
     // ARRAY ASSIGNC rule
     if (st0.toLog)
@@ -875,7 +875,7 @@ object Exec {
     st4.updateDArrayAssign(a, _rhs)
   }
 
-  def assignRule(lhs: Id, rhs: Expression, st0: State, line: Int): State = {
+  def assignRule(lhs: Id, rhs: Expression, st0: StateOLD, line: Int): StateOLD = {
     // ASSIGN rule
     if (st0.toLog)
       println("ASSIGN applying")
@@ -918,7 +918,7 @@ object Exec {
     st4.updateDAssign(lhs, _rhs)
   }
 
-  def assignCRule(lhs: Id, rhs: Expression, st0: State, line: Int): State = {
+  def assignCRule(lhs: Id, rhs: Expression, st0: StateOLD, line: Int): StateOLD = {
     // ASSIGNC rule
     if (st0.toLog)
       println("ASSIGNC applying")
@@ -986,7 +986,7 @@ object Exec {
     st3.updateDAssign(lhs, _rhs)
   }
 
-  def compareAndSwapRule(lhs: Id, x: Id, r1: Expression, r2: Expression, st0: State, line: Int): State = {
+  def compareAndSwapRule(lhs: Id, x: Id, r1: Expression, r2: Expression, st0: StateOLD, line: Int): StateOLD = {
     // CAS rule
     if (st0.toLog)
       println("CAS applying")
@@ -1058,7 +1058,7 @@ object Exec {
     st8.updateDCAS(lhs, x, _r1, _r2)
   }
 
-  def compareAndSwapCRule(lhs: Id, x: Id, r1: Expression, r2: Expression, st0: State, line: Int): State = {
+  def compareAndSwapCRule(lhs: Id, x: Id, r1: Expression, r2: Expression, st0: StateOLD, line: Int): StateOLD = {
     // CASC rule
     if (st0.toLog)
       println("CASC applying")
@@ -1154,7 +1154,7 @@ object Exec {
 
 
   // start application of the nonblocking rule
-  def startNonBlocking(stable: Set[Id], state0: State): (Map[Id, Mode], State) = {
+  def startNonBlocking(stable: Set[Id], state0: StateOLD): (Map[Id, Mode], StateOLD) = {
     // add stable set to gamma
     val state1 = state0.updateRead(stable)
     val PRestrict = state1.restrictP(state1.knownW)
@@ -1209,7 +1209,7 @@ object Exec {
   }
 
   // end application of the nonblocking rule for variables, restoring their mode to oldMode
-  def endNonBlocking(stable: Set[Id], oldModes: Map[Id, Mode], state0: State): State = {
+  def endNonBlocking(stable: Set[Id], oldModes: Map[Id, Mode], state0: StateOLD): StateOLD = {
     // restore original modes
     val state1 = state0.setModes(oldModes)
 
@@ -1245,7 +1245,7 @@ object Exec {
 
 
   // evaluate multiple expressions
-  def evals(exprs: List[Expression], pre: State): (List[Expression], State) = exprs match {
+  def evals(exprs: List[Expression], pre: StateOLD): (List[Expression], StateOLD) = exprs match {
     case Nil =>
       (Nil, pre)
 

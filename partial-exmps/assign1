@@ -1,4 +1,13 @@
-a = 1;
-b = 2;
-a = b;
-a = 4;
+_var a:
+_L: FALSE
+
+_var b:
+_L: c == 2
+
+_var c:
+_L: TRUE
+
+_Gamma_0: a -> HIGH, b -> LOW
+
+c = 2;
+b = a;
