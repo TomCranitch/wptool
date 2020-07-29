@@ -7,8 +7,9 @@ case class State (
                    controlled: Set[Id],
                    controlledBy: Map[Id, Set[Id]],
                    L: Map[Id, Expression],
-                   Gamma: Map[Id, Security]
+                   ids: Set[Id]
                  ) {
+
 }
 
 object State {
@@ -27,7 +28,8 @@ object State {
     val ids: Set[Id] = {for (v <- variables) yield v.name}
 
     for (v <- variables) {
-      val controlling: Set[Id] = v.pred.variables
+      // TODO check
+      val controlling: Set[Id] = v.pred.ids.map(id => Id(id.name))
 
       if (controlling.nonEmpty) {
         controlled += v.name
@@ -54,46 +56,17 @@ object State {
     }
 
 
-    val gammaDom: Set[Id] = ids collect {case v if !controls.contains(v) => v}
-
-    // init gamma
-    val gamma: Map[Id, Security] = gamma_0 match {
-      // security high by default if user hasn't provided
-      case None => {
-        for (i <- gammaDom) yield {
-          i -> High
-        }
-      }.toMap
-      // user provided
-      case Some(gs) => {
-        gs flatMap {g => g.toPair}
-      }.toMap
-    }
-
-    // check gamma domain
-    if (gamma.keySet != gammaDom)
-      throw error.InvalidProgram("provided gamma has invalid domain (" + gamma.keySet.mkString(", ")
-        + "), correct domain is " + gammaDom.mkString(", "))
-
-    // for replacing Ids in predicates with Vars
-    val idToVar: Subst = {
-      for (v <- ids)
-        yield v -> v.toVar
-    }.toMap
-
     // init L - map variables to their L predicates
     val L: Map[Id, Expression] = {
       for (v <- variables) yield {
-        val predVar = v.pred.subst(idToVar)
-        v.name -> predVar
+        v.name -> v.pred
       }
     }.toMap
 
     if (debug) {
       println("L: " + L)
-      println("gamma: " + gamma.gammaStr)
     }
 
-    State(Const._true, debug, controls, controlled, controlledBy, L, gamma)
+    State(Const._true, debug, controls, controlled, controlledBy, L, ids)
   }
 }

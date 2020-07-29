@@ -23,7 +23,8 @@ case object RW extends Mode {
 }
 
 sealed trait Security extends beaver.Symbol with Ordered[Security] {
-  def compare(that: Security): Int = if (this == that) 0 else {if (this == High) 1 else -1}
+  def compare (that: Security): Int = if (this == that) 0 else {if (this == High) 1 else -1}
+  def toTruth: Const = if (this == Low) Const._true else Const._false
 }
 case object High extends Security {
   def instance = this

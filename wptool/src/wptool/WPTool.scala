@@ -2,6 +2,7 @@ package wptool
 
 import java.io.FileReader
 import wptool.error._
+import com.microsoft.z3
 
 object WPTool {
 
@@ -44,10 +45,14 @@ object WPTool {
             //Switch.index = 0
             //Exec.execute(statements, state0)
             val state = State(variables, false, gamma_0)
-            val (passifiedStmts, _) = Passify.execute(statements, Map[String, Int](), state)
+            val (passifiedStmts, _) = Passify.execute(statements, PassifyState(state, gamma_0))
+            println(passifiedStmts)
             val _state = Exec.exec(passifiedStmts, state)
-            println(_state)
-            println(SMT.prove(_state.Q, List[Expression](), debug = false))
+            // println(_state)
+            println(SMT.prove(_state.Q, List[Expression](), debug = true))
+
+            SMT.simplify(_state.Q)
+
             printTime(start)
 
 

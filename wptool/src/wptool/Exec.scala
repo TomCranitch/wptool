@@ -23,7 +23,9 @@ object Exec {
       val state2 = exec(ifStmt.right.get, state) // Right should contain block from passification
       val left = BinOp("=>", ifStmt.test, state1.Q)
       val right = BinOp("=>", PreOp("!", ifStmt.test), state2.Q)
-      state.copy(Q = BinOp("&&", left, right))
+      // println(Gamma(ifStmt.test.variables).eval(state))
+      val gamma = Const._true// if (Gamma(ifStmt.test.variables).eval(state) == Low) Const._true else Const._false
+      state.copy(Q = BinOp("&&", gamma, BinOp("&&", left, right)))
     case stmt =>
       println("Unhandled statement: " + stmt)
       state
@@ -31,8 +33,8 @@ object Exec {
 
   def eval (expr: Expression, state: State): Expression = expr match {
     case BinOp(op, arg1, arg2) => BinOp(op, eval(arg1, state), eval(arg2, state))
-    case gamma: Gamma => if (gamma.eval(state) == High) Const._false else Const._true // TODO
-    case _: Lit | _: Const | _: Id => expr
+    // case gamma: Gamma => if (gamma.eval(state) == High) Const._false else Const._true // TODO
+    case _: Lit | _: Const | _: Id | _: Var => expr
     case expr =>
       println("Unhandled expression: " + expr)
       expr

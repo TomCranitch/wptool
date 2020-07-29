@@ -8,6 +8,13 @@ object SMT {
   val ctx = new z3.Context(cfg)
   val solver = ctx.mkSolver()
 
+  def simplify(cond: Expression): Unit = {
+    val g = ctx.mkGoal(true, false, false)
+    g.add(formula(cond))
+    println(ctx.mkTactic("ctx-solver-simplify").apply(g))
+
+  }
+
   def prove(cond: Expression, given: List[Expression], debug: Boolean) = {
     if (debug)
       println("smt checking !(" + cond + ") given " + given.PStr)
@@ -197,8 +204,8 @@ object SMT {
     case MultiSwitch(n: Int) => ctx.mkConst("MultiSwitch" + n, ctx.getIntSort)
 
     case x: Id =>
-      ctx.mkConst(x.toString, ctx.getIntSort)
-      // TODO: throw error.InvalidProgram("unresolved program variable", x)
+      // ctx.mkConst(x.toString, ctx.getIntSort)
+      throw error.InvalidProgram("unresolved program variable", x)
 
     case BinOp("==", arg1, arg2) => ctx.mkEq(translate(arg1), translate(arg2))
 
@@ -239,7 +246,7 @@ object SMT {
       ctx.mkExists(bound.toArray map translate, translate(body), 0, scala.Array(), null, null, null)
 
       // array index
-    case VarAccess(name, index) => ctx.mkSelect(ctx.mkArrayConst(name.toString, ctx.getIntSort, ctx.getIntSort), translate(index))
+    // case VarAccess(name, index) => ctx.mkSelect(ctx.mkArrayConst(name.toString, ctx.getIntSort, ctx.getIntSort), translate(index))
 
     case _ =>
       throw error.InvalidProgram("cannot translate to SMT", prop)

@@ -8,3 +8,4 @@ parser.java
 .bloop/bloop.settings.json
 .bloop/wptool.json
 .metals/
+*.notes

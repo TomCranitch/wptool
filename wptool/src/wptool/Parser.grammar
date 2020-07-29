@@ -153,7 +153,7 @@ local1
 expr
     = PREFIX | POSTFIX /* unused */
     | id_reg_id.n                              {: return n;  :}
-    | id_reg_id.n LBRACK expr.i RBRACK       {: return new Access(n, i); :}
+    // | id_reg_id.n LBRACK expr.i RBRACK       {: return new Access(n, i); :}
     | NUM.n                             {: return new Lit(n); :}
     | PLUS  expr.a @ PREFIX             {: return new PreOp("+", a);    :}
     | MINUS expr.a @ PREFIX             {: return new PreOp("-", a);    :}
