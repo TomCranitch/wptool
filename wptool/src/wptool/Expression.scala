@@ -28,7 +28,7 @@ case class Lit(arg: Int) extends Expression {
 case class Id(name: String) extends Expression {
   //override def toString = "ID_" + name
   override def toString: String = name
-  override def variables: Set[Var] = throw new Error("Tried to get variable from identifier")// Set(this)
+  override def variables: Set[Var] = throw new Error("Tried to get variable from identifier")
   override def ids: Set[Id] = Set(this)
   override def subst(su: Subst): Expression = su.getOrElse(this, this)
   override def subst(su: Subst, num: Int): Expression = this.subst(su)
@@ -39,7 +39,7 @@ case class Var(name: String, index: Int, gamma: Security) extends Expression {
   override def toString: String = name __ index
   override def variables: Set[Var] = Set(this)
   override def ids: Set[Id] = Set(Id(this.name))
-  override def subst(su: Subst): Expression = su.getOrElse(this, this)
+  override def subst(su: Subst): Expression = su.getOrElse(this.ident, this)
   override def subst(su: Subst, num: Int): Expression = this.subst(su)
 
   def ident: Id = Id(name)

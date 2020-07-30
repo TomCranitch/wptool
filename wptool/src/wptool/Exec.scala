@@ -24,7 +24,8 @@ object Exec {
       val left = BinOp("=>", ifStmt.test, state1.Q)
       val right = BinOp("=>", PreOp("!", ifStmt.test), state2.Q)
       // println(Gamma(ifStmt.test.variables).eval(state))
-      val gamma = Const._true// if (Gamma(ifStmt.test.variables).eval(state) == Low) Const._true else Const._false
+      val gamma = ifStmt.test.variables.map(vari => vari.gamma).max.toTruth
+      println(ifStmt.test.variables + " - " + ifStmt.test.variables.map(vari => vari.gamma) + ": " + gamma)
       state.copy(Q = BinOp("&&", gamma, BinOp("&&", left, right)))
     case stmt =>
       println("Unhandled statement: " + stmt)

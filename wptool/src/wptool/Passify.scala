@@ -6,9 +6,9 @@ object Passify {
   def execute(statements: List[Statement], state: PassifyState): (List[Statement], PassifyState) =
     statements match {
     case stmt :: rest =>
-      val (st, idi) = execute(stmt, state)
-      val (stl, idi1) = execute(rest, state)
-      (st :: stl, idi1)
+      val (st1, state1) = execute(stmt, state)
+      val (st2, state2) = execute(rest, state1)
+      (st1 :: st2, state2)
     case Nil => (Nil, state)
   }
 
@@ -20,19 +20,17 @@ object Passify {
 
       //val atomic = Atomic(List(Assert(Unit), Assume(assign.)))
       // TODO: assert
-      val _state = updateVarIndex(assign.lhs, state)
-      val lhs = idToVar(assign.lhs, state)
       val rhs = eval(assign.expression, state)
-      val _lhs = lhs.copy(gamma = computeGamma(rhs, _state))
+      val (lhs, _state) = idToNewVar(assign.lhs, computeGamma(rhs, state), state)
       val assume = Assume(BinOp("==", lhs, rhs))
       // TODO check default vals
-      val globalPred = BinOp("=>", Const._true, BinOp("=>", eval(state.state.L.getOrElse(assign.lhs, Const._false), _state), _lhs.gamma.toTruth))// Gamma(assign.expression.variables)))
+      val globalPred = BinOp("=>", Const._true, BinOp("=>", eval(state.state.L.getOrElse(assign.lhs, Const._false), _state), lhs.gamma.toTruth))// Gamma(assign.expression.variables)))
       val controlPred = if (state.state.controls.contains(assign.lhs)) {
         constructForall(state.state.controlledBy.getOrElse(assign.lhs, Set()).map(contr =>
           // TODO default val
           BinOp(
             "=>",
-            BinOp("=>", BinOp("==", _lhs, rhs), eval(state.state.L.getOrElse(contr, throw new Error("No L(x) defined")), state)),
+            eval(state.state.L.getOrElse(contr, throw new Error("No L(x) defined")).subst(Map((assign.lhs, rhs))), state),
             BinOp("||", getGamma(contr, state).toTruth, eval(state.state.L.getOrElse(contr, throw new Error("No L(x) defined")), state))
           )
         ).toList)
@@ -43,13 +41,13 @@ object Passify {
         Const._true
       }
 
-      println("SMT: " + SMT.proveExpression(BinOp("&&", globalPred, controlPred), debug=false))
-      SMT.simplify(BinOp("&&", globalPred, controlPred))
+      // TODO why true ???? println("SMT: " + SMT.proveExpression(BinOp("&&", globalPred, controlPred), debug=false))
+      // SMT.simplify(BinOp("&&", globalPred, controlPred))
 
       // val controlPred = if (SMT.proveExpression(_controlPred, debug = false)) Const._true else Const._false
 
-      println(controlPred)
-      println(SMT.proveExpression(controlPred, false))
+      // println(controlPred)
+      // println(SMT.proveExpression(controlPred, false))
       val assert = Assert(BinOp("&&", globalPred, controlPred)) // TODO
       val atomic = Atomic(List(assert, assume))
       (atomic, _state)
@@ -69,10 +67,15 @@ object Passify {
 
       // Merge the two maps taking the max of the vals
       val _idToVar: Map[Id, Var] = state1.idVarMap ++ state2.idVarMap.map{case (k, v) => k -> {
-        val var1 = state1.idVarMap.getOrElse(k, Var("", 0, High))
-        val index = math.max(v.index, var1.index)
-        val sec = Set(v.gamma, var1.gamma).max
-        Var (k.toString, index, sec)
+        val var1 = state1.idVarMap.get(k)
+        var1 match {
+          case Some(vari) => {
+            val index = math.max(v.index, vari.index) + 1
+            val sec = Set(v.gamma, vari.gamma).max
+            Var(k.toString, index, sec)
+          }
+          case None => v
+        }
       }}
 
       for ((k, v) <- _idToVar) {
@@ -97,10 +100,6 @@ object Passify {
       (stmt, state)
   }
 
-  def idToVar(id: Id, state: PassifyState): Var = {
-    state.idVarMap.getOrElse(id, id.toVar(0, state.Gamma.getOrElse(id, Low)))
-  }
-
   // TODO eval for expression
   def eval(expr: Expression, state: PassifyState): Expression = expr match {
     case id: Id => idToVar(id, state)
@@ -116,11 +115,6 @@ object Passify {
       expr
   }
 
-  def updateVarIndex (id: Id, state: PassifyState): PassifyState = {
-    val vari = state.idVarMap.getOrElse(id, id.toVar(-1, state.Gamma.getOrElse(id, Low)))
-    state.copy(idVarMap = state.idVarMap.updated(id, vari.copy(index = vari.index + 1)))
-  }
-
   def computeGamma (expr: Expression, state: PassifyState): Security = {
     Try(expr.variables.map(id => id.gamma).max).getOrElse(Low)
   }
@@ -128,6 +122,19 @@ object Passify {
   def getGamma (id: Id, state: PassifyState): Security = {
     Try(state.idVarMap(id).gamma).getOrElse(state.Gamma.getOrElse(id, Low))
   }
+
+  def idToNewVar(id: Id, gamma: Security, state: PassifyState): (Var, PassifyState) = {
+    val index = state.idVarMap.getOrElse(id, Var("", -1, Low)).index + 1
+    val vari = id.toVar(index, gamma)
+    val _state = state.copy(idVarMap = state.idVarMap.updated(id, vari))
+    (vari, _state)
+  }
+
+  def idToVar(id: Id, state: PassifyState): Var = {
+    val index = state.idVarMap.getOrElse(id, Var("", -1, Low)).index + 1
+    id.toVar(index, getGamma(id, state))
+  }
+
 
   def constructForall (exprs: List[Expression]): Expression = exprs match {
     case expr :: Nil => expr

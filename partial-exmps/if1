@@ -7,13 +7,11 @@ _L: TRUE
 _Gamma_0: a -> HIGH
 
 
-a = 1; // TODO should this be low now ?
-b = 2;
+// a = 1; // TODO should this be low now ?
+// b = 1;
 
-// TODO need to update gamma (need to update in assignment)
-// should this be a variable that is updated using assume ?
-if (a == 1) {
-  b = 3;
+if (a == 0) {
+  a = 2;
 } else {
-  b = 4;
+  a = 4;
 }

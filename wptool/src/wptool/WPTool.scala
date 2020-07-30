@@ -12,7 +12,7 @@ object WPTool {
     var noInfeasible: Boolean = false // whether to not check infeasible paths
 
     if (args.isEmpty) {
-      println("usage: ./wemelt.sh file1 file2...")
+      println("usage: ./wptool.sh file1 file2...")
     } else {
       for (file <- args) file match {
         case "-v" =>
@@ -25,41 +25,8 @@ object WPTool {
         case _ =>
           val start = System.currentTimeMillis()
           try {
-            println(file)
-            val res = parse(file)
-            val variables = res.variables
-
-            println(variables)
-
-            val statements = res.statements
-            val P_0 = res.P_0
-            val gamma_0 = res.gamma_0
-            if (debug) {
-              println(statements)
-              println(variables)
-              println(P_0)
-              println(gamma_0)
-            }
-            //val state0: StateOLD = StateOLD.init(variables, P_0, gamma_0, toLog, debug, noInfeasible)
-            //Var.index = 0
-            //Switch.index = 0
-            //Exec.execute(statements, state0)
-            val state = State(variables, false, gamma_0)
-            val (passifiedStmts, _) = Passify.execute(statements, PassifyState(state, gamma_0))
-            println(passifiedStmts)
-            val _state = Exec.exec(passifiedStmts, state)
-            // println(_state)
-            println(SMT.prove(_state.Q, List[Expression](), debug = true))
-
-            SMT.simplify(_state.Q)
-
+            println(run(file, debug))
             printTime(start)
-
-
-
-            // val testExpr = BinOp("=>", BinOp("==", Id("b", 0), Lit(0)), BinOp("==", Id("b", 0), Lit(0)))
-            //val testExpr = BinOp("=>", Const._true, BinOp("==", Id("b", 0), Lit(0)))
-            //println(SMT.prove(testExpr, List[Expression](), false))
           } catch {
             case e: java.io.FileNotFoundException =>
               println("file does not exist")
@@ -78,6 +45,27 @@ object WPTool {
           }
       }
     }
+  }
+
+  def run (file: String, debug: Boolean): Boolean = {
+    val res = parse(file)
+    val variables = res.variables
+
+    val statements = res.statements
+    val P_0 = res.P_0
+    val gamma_0 = res.gamma_0
+    if (debug) {
+      println(statements)
+      println(variables)
+      println(P_0)
+      println(gamma_0)
+    }
+
+    val state = State(variables, false, gamma_0)
+    val (passifiedStmts, _) = Passify.execute(statements, PassifyState(state, gamma_0))
+    val _state = Exec.exec(passifiedStmts, state)
+
+    SMT.prove(_state.Q, List[Expression](), debug = false)
   }
 
   def printTime(start: Long): Unit = {

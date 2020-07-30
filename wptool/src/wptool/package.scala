@@ -41,15 +41,16 @@ package object wptool {
 
   }
 
-  type Subst = Map[Expression, Var]
+  type Subst = Map[Id, Expression]
 
+  /*
   object Subst {
     val empty: Subst = Map()
 
     def apply(xs: (Expression, Var)*): Subst = {
       xs.toMap
     }
-  }
+  } */
 
   val sub = "₀₁₂₃₄₅₆₇₈₉"
   implicit class StringOps(self: String) {
