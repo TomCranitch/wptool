@@ -80,7 +80,7 @@ case class Atomic(statements: List[Statement]) extends Statement {
   override def toString: String = "<" + statements.mkString(",") + ">"
 }
 
-case class Assume(expression: Expression) extends Statement { // TODO: dont think type should be expression
+case class Assume(expression: Expression) extends Statement {
   def self: Assume = this
 }
 

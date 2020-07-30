@@ -7,7 +7,7 @@ _L: TRUE
 _Gamma_0: a -> HIGH
 
 
-// a = 1; // TODO should this be low now ?
+// a = 1;
 // b = 1;
 
 if (a == 0) {

@@ -34,7 +34,6 @@ object Exec {
 
   def eval (expr: Expression, state: State): Expression = expr match {
     case BinOp(op, arg1, arg2) => BinOp(op, eval(arg1, state), eval(arg2, state))
-    // case gamma: Gamma => if (gamma.eval(state) == High) Const._false else Const._true // TODO
     case _: Lit | _: Const | _: Id | _: Var => expr
     case expr =>
       println("Unhandled expression: " + expr)

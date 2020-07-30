@@ -28,7 +28,6 @@ object State {
     val ids: Set[Id] = {for (v <- variables) yield v.name}
 
     for (v <- variables) {
-      // TODO check
       val controlling: Set[Id] = v.pred.ids.map(id => Id(id.name))
 
       if (controlling.nonEmpty) {
