@@ -6,7 +6,6 @@ case class State (
                    controls: Set[Id],
                    controlled: Set[Id],
                    controlledBy: Map[Id, Set[Id]],
-                   L: Map[Id, Expression],
                    ids: Set[Id]
                  ) {
 
@@ -55,17 +54,6 @@ object State {
     }
 
 
-    // init L - map variables to their L predicates
-    val L: Map[Id, Expression] = {
-      for (v <- variables) yield {
-        v.name -> v.pred
-      }
-    }.toMap
-
-    if (debug) {
-      println("L: " + L)
-    }
-
-    State(Const._true, debug, controls, controlled, controlledBy, L, ids)
+    State(Const._true, debug, controls, controlled, controlledBy, ids)
   }
 }

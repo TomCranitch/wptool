@@ -1,6 +1,9 @@
 package wptool
 
 import java.io.FileReader
+import java.lang.ClassLoader
+import java.net.URLClassLoader
+
 import wptool.error._
 import com.microsoft.z3
 
@@ -47,6 +50,19 @@ object WPTool {
     }
   }
 
+
+  // TODO rm debug func
+  def dispClassPath () = {
+    def urlses(cl: ClassLoader): Array[java.net.URL] = cl match {
+      case null => Array()
+      case u: java.net.URLClassLoader => u.getURLs() ++ urlses(cl.getParent)
+      case _ => urlses(cl.getParent)
+    }
+
+    val urls = urlses(getClass.getClassLoader)
+    println(urls.mkString("\n"))
+  }
+
   def run (file: String, debug: Boolean): Boolean = {
     val res = parse(file)
     val variables = res.variables
@@ -61,8 +77,10 @@ object WPTool {
       println(gamma_0)
     }
 
-    val state = State(variables, false, gamma_0)
-    val (passifiedStmts, _) = Passify.execute(statements, PassifyState(state, gamma_0))
+    val state = State(variables, debug, gamma_0)
+    val (passifiedStmts, _) = Passify.execute(statements, PassifyState(state, gamma_0, variables))
+
+
     val _state = Exec.exec(passifiedStmts, state)
 
     SMT.prove(_state.Q, List[Expression](), debug = false)

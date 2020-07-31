@@ -14,8 +14,8 @@ object wptool extends ScalaModule {
 
     object test extends Tests {
         override def unmanagedClasspath: Target[Loose.Agg[PathRef]] = T {
-            if (!ammonite.ops.exists(millSourcePath / "lib")) Agg()
-            else Agg.from(ammonite.ops.ls(millSourcePath / "lib").map(PathRef(_)))
+            if (!os.exists(millSourcePath / os.up / "lib")) Agg()
+            else Agg.from(os.list(millSourcePath / os.up / "lib").map(PathRef(_)))
         }
 
         override def ivyDeps = Agg(

@@ -1,4 +1,4 @@
-.PHONY: all test clean parser check-dependencies
+.PHONY: all test clean parser check-dependencies test
 
 MILL = ./mill
 
@@ -20,6 +20,9 @@ clean:
 
 check-dependencies:
 	$(MILL) mill.scalalib.Dependency/updates
+
+test: all
+	$(MILL) wptool.test
 
 $(WEMELT_LAUNCHER): wptool/src/wptool/*.scala
 	@echo $@

@@ -1,0 +1,10 @@
+_var a:
+_L: b == 2
+
+_var b:
+_L: TRUE
+
+_Gamma_0: a -> HIGH
+
+
+b = 2;

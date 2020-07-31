@@ -90,3 +90,8 @@ if (x == 0) {
 * `^` bitwise xor
 * `~` bitwise not
 
+## Unsupported
+Below is an inconclusive list of broken or unsupported language features.
+ * While and do-while loops
+ * Rely-guarantee and WMM
+ * Local variables

@@ -24,9 +24,8 @@ object Exec {
       val left = BinOp("=>", ifStmt.test, state1.Q)
       val right = BinOp("=>", PreOp("!", ifStmt.test), state2.Q)
       // println(Gamma(ifStmt.test.variables).eval(state))
-      val gamma = ifStmt.test.variables.map(vari => vari.gamma).max.toTruth
-      println(ifStmt.test.variables + " - " + ifStmt.test.variables.map(vari => vari.gamma) + ": " + gamma)
-      state.copy(Q = BinOp("&&", gamma, BinOp("&&", left, right)))
+      val condGamma = computeGamma(ifStmt.test.variables.toList)
+      state.copy(Q = BinOp("&&", condGamma, BinOp("&&", left, right)))
     case stmt =>
       println("Unhandled statement: " + stmt)
       state
@@ -38,6 +37,12 @@ object Exec {
     case expr =>
       println("Unhandled expression: " + expr)
       expr
+  }
+
+  def computeGamma (variables: List[Var]): Expression = variables match {
+    case v :: Nil => BinOp("||", v.gamma, v.L)
+    case v :: rest => BinOp("&&", computeGamma(List(v)), computeGamma(rest))
+    case Nil => Const._true
   }
 
 }

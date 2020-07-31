@@ -1,0 +1,14 @@
+_var a:
+_L: FALSE
+
+_var b:
+_L: TRUE
+
+_Gamma_0: a -> HIGH, b -> LOW
+
+
+if (b == 1) {
+  b = a; // Can reach here
+} else {
+  b = 0;
+}

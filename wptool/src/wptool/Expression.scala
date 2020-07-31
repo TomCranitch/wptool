@@ -32,17 +32,21 @@ case class Id(name: String) extends Expression {
   override def ids: Set[Id] = Set(this)
   override def subst(su: Subst): Expression = su.getOrElse(this, this)
   override def subst(su: Subst, num: Int): Expression = this.subst(su)
-  def toVar(index: Int, security: Security): Var = Var(name, index, security)
+  def toVar(index: Int, gamma: Expression, L: Expression): Var = Var(name, index, gamma, L)
 }
 
-case class Var(name: String, index: Int, gamma: Security) extends Expression {
+case class Var(name: String, index: Int, gamma: Expression, L: Expression) extends Expression {
   override def toString: String = name __ index
+  // override def toString: String = (name __ index) + "(" + this.gamma + "," + this.L + ")"
   override def variables: Set[Var] = Set(this)
   override def ids: Set[Id] = Set(Id(this.name))
   override def subst(su: Subst): Expression = su.getOrElse(this.ident, this)
   override def subst(su: Subst, num: Int): Expression = this.subst(su)
 
   def ident: Id = Id(name)
+}
+object Var  {
+  def emptyIndex(index: Int): Var = Var("", index, Const._true, Const._true)
 }
 
 object CFence extends Id("cfence")
