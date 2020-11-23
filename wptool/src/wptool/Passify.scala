@@ -86,6 +86,7 @@ object Passify {
       val test = eval(loop.test, state)
       // TODO for body should we havoc (or clear all the vars security)
       val body = execute(loop.body, state)
+      (loop, state)
     case block: Block =>
       val (stl, idi1) = execute(block.statements, state)
       val block1 = block.copy(statements = stl)
