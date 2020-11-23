@@ -4,7 +4,7 @@ case class PassifyState (
                           idVarMap: Map[Id, Var],
                           state: State,
                           gamma0: Map[Id, Security],
-                          L: Map[Id, Expression]
+                          L: Map[Id, Expression],
                        ) {
 
 }

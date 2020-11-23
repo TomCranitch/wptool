@@ -1,8 +1,10 @@
+// TODO this leads to problems because you need to step forward to get the Gamma, but that then requires the PO are generated here
+
 package wptool
 
 import scala.util.Try
 
-object Passify {
+object Preprocess {
   def execute(statements: List[Statement], state: PassifyState): (List[Statement], PassifyState) =
     statements match {
     case stmt :: rest =>
@@ -13,39 +15,17 @@ object Passify {
   }
 
   def execute(statement: Statement, state: PassifyState): (Statement, PassifyState) = statement match {
-    case assign: Assignment =>
-      // 1: convert id to var
-      // 2: start at index 0 and increment each time
-
-
-      //val atomic = Atomic(List(Assert(Unit), Assume(assign.)))
-      val rhs = eval(assign.expression, state)
-      val (lhs, _state) = idToNewVar(assign.lhs, computeGamma(rhs.variables.toList, state), state)
-      val assume = Assume(BinOp("==", lhs, rhs))
-      // TODO check default vals
-      // TODO need to fix Const._true
-      val globalPred = BinOp("=>", Const._true, BinOp("=>", getL(assign.lhs, state), lhs.gamma))
-      val controlPred = if (state.state.controls.contains(assign.lhs)) {
-        constructForall(state.state.controlledBy.getOrElse(assign.lhs, Set()).map(contr =>
-          BinOp(
-            "=>",
-            getL(contr, state).subst(Map((assign.lhs, rhs))),
-            BinOp("||", getGamma(contr, state), getL(contr, state))
-          )
-        ).toList)
-      } else {
-        Const._true
-      }
-
-      val assert = Assert(BinOp("&&", globalPred, controlPred)) // TODO
-      val atomic = Atomic(List(assert, assume))
-      (atomic, _state)
+    case Assignment(lhs, rhs) =>
+      val _rhs = eval(rhs, state)
+      val (vari, _state) = idToNewVar(lhs, computeGamma(_rhs.variables.toList, state), state)
+      (VarAssignment(vari, _rhs), _state)
     case ifStmt: If =>
+      // TODO
       val _test = eval(ifStmt.test, state)
       var (_left: Block, state1: PassifyState) = execute(ifStmt.left, state)
       var (_right: Block, state2: PassifyState) = ifStmt.right match {
         case Some(right: Block) => execute(right, state)
-        case None => (Block(List()), state) // Need an empty block to add extra assumes
+        case None => (None, state)
       }
 
 
@@ -54,38 +34,18 @@ object Passify {
         val var1 = state1.idVarMap.get(k)
         var1 match {
           case Some(vari) => {
-            val index = math.max(v.index, vari.index)
             // TODO how to compute security
-            // Should all instances of a given variable have the same security ?
-            // Would need to instanciate new instaces of all vars at the end for the same gamma ?
+
+            // TODO should this be b => v.gamma && ~b => vari.gamma??
             val sec = BinOp("&&", v.gamma, vari.gamma)
-            Var(k.toString, index, sec, state.L.getOrElse(k, throw new Error("")))
+            Var(k.toString, 0, sec, state.L.getOrElse(k, throw new Error("")))
           }
           case None => v
         }
       }}
 
-      // Set the index of the variables in each branch to be the same
-      for ((k, v) <- _idToVar) {
-        // TODO need to handle var not declared before if
-        // TODO is low correct default
-        if (state1.idVarMap.getOrElse(k, Var.emptyIndex(-1)).index < v.index) {
-          _left = _left.copy(statements = (_left.statements :+ Assume(BinOp("==", k.toVar(v.index, v.gamma, getL(k, state)), state1.idVarMap.getOrElse(k, throw new Error("Variable " + k + "not defined in left branch"))))))
-        }
-
-        if (state2.idVarMap.getOrElse(k, Var.emptyIndex(-1)).index < v.index) {
-          _right = _right.copy(statements = (_right.statements :+ Assume(BinOp("==", k.toVar(v.index, v.gamma, getL(k, state)), state2.idVarMap.getOrElse(k, throw new Error("Variable " + k + "not defined in right branch"))))))
-        }
-      }
-
       val _ifstmt = ifStmt.copy(test = _test, left = _left, right = Some(_right))
       (_ifstmt, state.copy(idVarMap = _idToVar))
-    case loop: While =>
-      // TODO check invariant
-      val inv = loop.invariant.map(i => eval(i, state))
-      val test = eval(loop.test, state)
-      // TODO for body should we havoc (or clear all the vars security)
-      val body = execute(loop.body, state)
     case block: Block =>
       val (stl, idi1) = execute(block.statements, state)
       val block1 = block.copy(statements = stl)
@@ -123,18 +83,13 @@ object Passify {
   }
 
   def idToNewVar(id: Id, gamma: Expression, state: PassifyState): (Var, PassifyState) = {
-    val index = state.idVarMap.get(id) match {
-      case Some(v) => v.index + 1
-      case None => 0
-    }
-    val vari = id.toVar(index, gamma, getL(id, state))
+    val vari = id.toVar(0, gamma, getL(id, state))
     val _state = state.copy(idVarMap = state.idVarMap.updated(id, vari))
     (vari, _state)
   }
 
   def idToVar(id: Id, state: PassifyState): Var = {
-    val index = state.idVarMap.getOrElse(id, Var("", 0, Const._true, getL(id, state))).index
-    id.toVar(index, getGamma(id, state), getL(id, state))
+    id.toVar(0, getGamma(id, state), getL(id, state))
   }
 
   def constructForall (exprs: List[Expression]): Expression = exprs match {

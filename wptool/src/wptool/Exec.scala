@@ -18,6 +18,24 @@ object Exec {
       state.copy(Q = BinOp("=>", eval(assume.expression, state), state.Q))
     case assert: Assert =>
       state.copy(Q = BinOp("&&", eval(assert.expression, state), state.Q))
+    /*
+    case VarAssignment(lhs, rhs) =>
+      // If not using passification
+      val globalPred = BinOp("=>", Const._true, BinOp("=>", lhs.L, lhs.gamma))
+      val controlPred = if (state.controls.contains(lhs.ident)) {
+        Helper.constructForall(state.controlledBy.getOrElse(lhs.ident, Set()).map(contr =>
+          BinOp(
+            "=>",
+            Helper.getL(contr, state, eval).subst(Map((lhs.ident, rhs))),
+            BinOp("||", Helper.getL(contr, state, eval), Helper.getL(contr, state, eval))
+          )
+        ).toList)
+      } else {
+        Const._true
+      }
+      
+      state.copy(Q = BinOp("&&", BinOp("&&", globalPred, controlPred), state.Q))
+    */
     case ifStmt: If =>
       val state1 = exec(ifStmt.left, state)
       val state2 = exec(ifStmt.right.get, state) // Right should contain block from passification
@@ -33,6 +51,7 @@ object Exec {
 
   def eval (expr: Expression, state: State): Expression = expr match {
     case BinOp(op, arg1, arg2) => BinOp(op, eval(arg1, state), eval(arg2, state))
+    // TODO
     case _: Lit | _: Const | _: Id | _: Var => expr
     case expr =>
       println("Unhandled expression: " + expr)

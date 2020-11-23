@@ -79,9 +79,10 @@ object WPTool {
 
     val state = State(variables, debug, gamma_0)
     val (passifiedStmts, _) = Passify.execute(statements, PassifyState(state, gamma_0, variables))
-
+    if (debug) println("Passified stmts: " + passifiedStmts.toString())
 
     val _state = Exec.exec(passifiedStmts, state)
+    if (debug) println("State: " + state.toString())
 
     SMT.prove(_state.Q, List[Expression](), debug = false)
   }

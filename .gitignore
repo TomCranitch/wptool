@@ -3,8 +3,8 @@ out/
 .idea/
 build/
 wptool.sh
-scannar.java
-parser.java
+Scanner.java
+Parser.java
 .bloop/bloop.settings.json
 .bloop/wptool.json
 .metals/
