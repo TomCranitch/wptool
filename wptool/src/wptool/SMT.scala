@@ -30,7 +30,7 @@ object SMT {
     } catch {
       case e: java.lang.UnsatisfiedLinkError if e.getMessage.equals("com.microsoft.z3.Native.INTERNALgetErrorMsgEx(JI)Ljava/lang/String;")=>
         // weird unintuitive error z3 can have when an input type is incorrect in a way it doesn't check
-        throw error.Z3Error("Z3 failed", cond, given.PStr, "incorrect z3 expression type, probably involving ForAll/Exists")
+        throw error.Z3Error("Z3 failed", cond, " given ", given.PStr, "incorrect z3 expression type, probably involving ForAll/Exists")
       case e: Throwable =>
         throw error.Z3Error("Z3 failed", cond, given.PStr, e)
     } finally {
@@ -62,7 +62,7 @@ object SMT {
     } catch {
       case e: java.lang.UnsatisfiedLinkError if e.getMessage.equals("com.microsoft.z3.Native.INTERNALgetErrorMsgEx(JI)Ljava/lang/String;")=>
         // weird unintuitive error z3 can have when an input type is incorrect in a way it doesn't check
-        throw error.Z3Error("Z3 failed", cond, given.PStr, "incorrect z3 expression type, probably involving ForAll/Exists")
+        throw error.Z3Error("Z3 failed", cond, " given ", given.PStr, "incorrect z3 expression type, probably involving ForAll/Exists")
       case e: Throwable =>
         throw error.Z3Error("Z3 failed", cond, given.PStr, e)
     } finally {
@@ -90,7 +90,7 @@ object SMT {
     } catch {
       case e: java.lang.UnsatisfiedLinkError if e.getMessage.equals("com.microsoft.z3.Native.INTERNALgetErrorMsgEx(JI)Ljava/lang/String;")=>
         // weird unintuitive error z3 can have when an input type is incorrect in a way it doesn't check
-        throw error.Z3Error("Z3 failed", given.PStr, "incorrect z3 expression type, probably involving ForAll/Exists")
+        throw error.Z3Error("Z3 failed", " given ", given.PStr, "incorrect z3 expression type, probably involving ForAll/Exists")
       case e: Throwable =>
         throw error.Z3Error("Z3 failed", given.PStr, e)
     } finally {
@@ -192,7 +192,9 @@ object SMT {
    and bitwise arithmetic operations for better simulation of the assembly semantics if this ends up being important
   https://z3prover.github.io/api/html/classcom_1_1microsoft_1_1z3_1_1_context.html */
   def translate(prop: Expression): z3.Expr = prop match {
-    case x: Var => ctx.mkConst(x.toString, ctx.getIntSort)
+    case x: Var => 
+      // ctx.mkConst(x.ident.toString, ctx.getIntSort)
+      throw error.InvalidProgram("variable is not an identifier", x)
 
     case Const._true => ctx.mkTrue
     case Const._false => ctx.mkFalse
@@ -204,8 +206,8 @@ object SMT {
     case MultiSwitch(n: Int) => ctx.mkConst("MultiSwitch" + n, ctx.getIntSort)
 
     case x: Id =>
-      // ctx.mkConst(x.toString, ctx.getIntSort)
-      throw error.InvalidProgram("unresolved program variable", x)
+      ctx.mkConst(x.toString, ctx.getIntSort)
+      // throw error.InvalidProgram("unresolved program variable", x)
 
     case BinOp("==", arg1, arg2) => ctx.mkEq(translate(arg1), translate(arg2))
 
