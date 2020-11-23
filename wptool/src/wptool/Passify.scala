@@ -15,7 +15,7 @@ object Passify {
   def execute(statement: Statement, state: PassifyState): (Statement, PassifyState) = statement match {
     case assign: Assignment =>
       // 1: convert id to var
-      // 2: start at index 0 and incrument each time
+      // 2: start at index 0 and increment each time
 
 
       //val atomic = Atomic(List(Assert(Unit), Assume(assign.)))
@@ -65,8 +65,9 @@ object Passify {
         }
       }}
 
+      // Set the index of the variables in each branch to be the same
       for ((k, v) <- _idToVar) {
-        // TODO need ot handle var not declared before if
+        // TODO need to handle var not declared before if
         // TODO is low correct default
         if (state1.idVarMap.getOrElse(k, Var.emptyIndex(-1)).index < v.index) {
           _left = _left.copy(statements = (_left.statements :+ Assume(BinOp("==", k.toVar(v.index, v.gamma, getL(k, state)), state1.idVarMap.getOrElse(k, throw new Error("Variable " + k + "not defined in left branch"))))))

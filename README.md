@@ -95,3 +95,4 @@ Below is an inconclusive list of broken or unsupported language features.
  * While and do-while loops
  * Rely-guarantee and WMM
  * Local variables
+ * Logic for if statements may not be correct (need to check calculation of gamma for merge variables)
