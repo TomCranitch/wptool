@@ -78,23 +78,14 @@ object WPTool {
     }
 
     val state = State(variables, debug, gamma_0)
-    val (passifiedStmts, pState) = Passify.execute(statements, PassifyState(state, gamma_0, variables))
+    val (passifiedStmts, _) = Passify.execute(statements, PassifyState(state, gamma_0, variables))
     if (debug) println("Passified stmts: " + passifiedStmts.toString())
 
-    val _state = Exec.exec(statements, state)
+    val _state = Exec.exec(passifiedStmts, state)
     if (debug) println("State: " + state.toString())
 
-    // SMT.prove( _state.Q, pState.gamma0.map(gammaMap => BinOp("==", gammaMap._1, gammaMap._2.toTruth)).toList, debug = false)
-    // TODO gamma0
-    SMT.prove(BinOp("=>", genGamma(state.ids.toList, pState.gamma0), _state.Q), List(), debug = false)
+    SMT.prove(_state.Q, List[Expression](), debug = false)
   }
-
-  def genGamma(ids: List[Id], gamma0: Map[Id, Security]): Expression = ids match {
-    case id::Nil => BinOp("==", id, gamma0.getOrElse(id, Low).toTruth)
-    case id::ids => BinOp("&&", genGamma(List(id), gamma0), genGamma(ids, gamma0))
-    case Nil => Const._true
-  }
-
 
   def printTime(start: Long): Unit = {
     val end = System.currentTimeMillis()

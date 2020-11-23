@@ -18,14 +18,15 @@ object Exec {
       state.copy(Q = BinOp("=>", eval(assume.expression, state), state.Q))
     case assert: Assert =>
       state.copy(Q = BinOp("&&", eval(assert.expression, state), state.Q))
-    case Assignment(lhs, rhs) =>
+    /*
+    case VarAssignment(lhs, rhs) =>
       // If not using passification
-      val globalPred = BinOp("=>", Const._true, BinOp("=>", Helper.getL(lhs, state, eval), createGamma(lhs)))
-      val controlPred = if (state.controls.contains(lhs)) {
-        Helper.constructForall(state.controlledBy.getOrElse(lhs, Set()).map(contr =>
+      val globalPred = BinOp("=>", Const._true, BinOp("=>", lhs.L, lhs.gamma))
+      val controlPred = if (state.controls.contains(lhs.ident)) {
+        Helper.constructForall(state.controlledBy.getOrElse(lhs.ident, Set()).map(contr =>
           BinOp(
             "=>",
-            Helper.getL(contr, state, eval).subst(Map((lhs, rhs))),
+            Helper.getL(contr, state, eval).subst(Map((lhs.ident, rhs))),
             BinOp("||", Helper.getL(contr, state, eval), Helper.getL(contr, state, eval))
           )
         ).toList)
@@ -34,12 +35,15 @@ object Exec {
       }
       
       state.copy(Q = BinOp("&&", BinOp("&&", globalPred, controlPred), state.Q))
+    */
     case ifStmt: If =>
-      val left = BinOp("=>", ifStmt.test, exec(ifStmt.left, state).Q)
-      // TODO right
-      // val right = BinOp("=>", PreOp("!", ifStmt.test), )
-      val condGamma = Helper.constructForall(ifStmt.test.ids.toList.map(createGamma))
-      state.copy(Q = BinOp("&&", condGamma, BinOp("&&", left, Const._true)))
+      val state1 = exec(ifStmt.left, state)
+      val state2 = exec(ifStmt.right.get, state) // Right should contain block from passification
+      val left = BinOp("=>", ifStmt.test, state1.Q)
+      val right = BinOp("=>", PreOp("!", ifStmt.test), state2.Q)
+      // println(Gamma(ifStmt.test.variables).eval(state))
+      val condGamma = computeGamma(ifStmt.test.variables.toList)
+      state.copy(Q = BinOp("&&", condGamma, BinOp("&&", left, right)))
     case stmt =>
       println("Unhandled statement: " + stmt)
       state
@@ -54,5 +58,10 @@ object Exec {
       expr
   }
 
-  def createGamma (id: Id): Id = Id("gamma_" + id.name)
+  def computeGamma (variables: List[Var]): Expression = variables match {
+    case v :: Nil => BinOp("||", v.gamma, v.L)
+    case v :: rest => BinOp("&&", computeGamma(List(v)), computeGamma(rest))
+    case Nil => Const._true
+  }
+
 }
