@@ -68,14 +68,14 @@ case class If(test: Expression, left: Block, right: Option[Block]) extends State
 
 
 
-case class While(test: Expression, invariant: List[Expression], gamma: List[GammaMapping], nonblocking: Option[Set[Id]], body: Statement) extends Statement {
-  def this(test: Expression, invariant: Array[Expression], gamma: Array[GammaMapping], body: Statement) = this(test, invariant.toList, gamma.toList, None, body)
-  def this(test: Expression, invariant: Array[Expression], gamma: Array[GammaMapping], nonblocking: Array[Id], body: Statement) = this(test, invariant.toList, gamma.toList, Some(nonblocking.toSet), body)
+case class While(test: Expression, invariant: Expression, gamma: List[GammaMapping], nonblocking: Option[Set[Id]], body: Statement) extends Statement {
+  def this(test: Expression, invariant: Expression, gamma: Array[GammaMapping], body: Statement) = this(test, invariant, gamma.toList, None, body)
+  def this(test: Expression, invariant: Expression, gamma: Array[GammaMapping], nonblocking: Array[Id], body: Statement) = this(test, invariant, gamma.toList, Some(nonblocking.toSet), body)
 }
 
-case class DoWhile(test: Expression, invariant: List[Expression], gamma: List[GammaMapping], nonblocking: Option[Set[Id]], body: Statement) extends Statement {
-  def this(test: Expression, invariant: Array[Expression], gamma: Array[GammaMapping], body: Statement) = this(test, invariant.toList, gamma.toList, None, body)
-  def this(test: Expression, invariant: Array[Expression], gamma: Array[GammaMapping], nonblocking: Array[Id], body: Statement) = this(test, invariant.toList, gamma.toList, Some(nonblocking.toSet), body)
+case class DoWhile(test: Expression, invariant: Expression, gamma: List[GammaMapping], nonblocking: Option[Set[Id]], body: Statement) extends Statement {
+  def this(test: Expression, invariant: Expression, gamma: Array[GammaMapping], body: Statement) = this(test, invariant, gamma.toList, None, body)
+  def this(test: Expression, invariant: Expression, gamma: Array[GammaMapping], nonblocking: Array[Id], body: Statement) = this(test, invariant, gamma.toList, Some(nonblocking.toSet), body)
 }
 
 case class Atomic(statements: List[Statement]) extends Statement {

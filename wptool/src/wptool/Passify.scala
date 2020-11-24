@@ -82,11 +82,16 @@ object Passify {
       (_ifstmt, state.copy(idVarMap = _idToVar))
     case loop: While =>
       // TODO check invariant
-      val inv = loop.invariant.map(i => eval(i, state))
+      val inv = eval(loop.invariant, state)
       val test = eval(loop.test, state)
+      val gamma = gammaMappingToMap(loop.gamma, state)
+      val _state = state.copy(idVarMap = state.idVarMap.map(x => (x._1, x._2.copy(gamma = gamma.getOrElse(x._1, Low).toTruth))))
+
+
       // TODO for body should we havoc (or clear all the vars security)
       val body = execute(loop.body, state)
-      (loop, state)
+      val _loop = loop.copy(test=test, body=body._1, invariant=inv)
+      (_loop, _state)
     case block: Block =>
       val (stl, idi1) = execute(block.statements, state)
       val block1 = block.copy(statements = stl)
@@ -148,4 +153,11 @@ object Passify {
   def getL (id: Id, state: PassifyState): Expression = {
     eval(state.L.getOrElse(id, throw new Error("L not defined for " + id)), state)
   }
+
+  def gammaMappingToMap (gamma_0: List[GammaMapping], state: PassifyState): Map[Id, Security] = {
+    val gammaDom: Set[Id] = state.state.ids collect {case v if !state.state.controls.contains(v) => v}
+    // init gamma
+    gamma_0.flatMap(g => g.toPair).toMap
+  }
+
 }

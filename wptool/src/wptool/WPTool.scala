@@ -82,7 +82,7 @@ object WPTool {
     if (debug) println("Passified stmts: " + passifiedStmts.toString())
 
     val _state = Exec.exec(passifiedStmts, state)
-    if (debug) println("State: " + state.toString())
+    if (debug) println("VCs: " + _state.Q)
 
     SMT.prove(_state.Q, List[Expression](), debug = false)
   }
