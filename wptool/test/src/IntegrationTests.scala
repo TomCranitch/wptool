@@ -3,12 +3,17 @@ import wptool.WPTool
 
 class IntegrationTests extends  AnyFunSuite {
   val testDir: String = System.getProperty("user.dir") + "/tests/"
+  val testNegDir: String = System.getProperty("user.dir") + "/tests/neg/"
 
   test("Test assignment") {
-    assert(!WPTool.run(testDir + "assign1", debug = false))
+    assert(WPTool.run(testDir + "assign1", debug = false))
     assert(WPTool.run(testDir + "assign2", debug = false))
     assert(!WPTool.run(testDir + "assign3", debug = false))
     assert(!WPTool.run(testDir + "assign4", debug = false))
+  }
+
+  test("Test assignment fails") {
+    assert(!WPTool.run(testNegDir + "assign1", debug = false))
   }
 
   test("Test if") {

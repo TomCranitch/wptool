@@ -10,5 +10,5 @@ _L: TRUE
 _Gamma_0: a -> HIGH, b -> LOW
 
 c = 1;
-b = a;
-
+b = 2;
+c = 3;

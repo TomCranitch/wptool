@@ -11,4 +11,5 @@ _Gamma_0: a -> HIGH, b -> LOW
 
 c = 1;
 b = a;
+c = 2;
 

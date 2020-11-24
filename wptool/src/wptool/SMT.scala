@@ -192,8 +192,6 @@ object SMT {
    and bitwise arithmetic operations for better simulation of the assembly semantics if this ends up being important
   https://z3prover.github.io/api/html/classcom_1_1microsoft_1_1z3_1_1_context.html */
   def translate(prop: Expression): z3.Expr = prop match {
-    case x: Var => ctx.mkConst(x.toString, ctx.getIntSort)
-
     case Const._true => ctx.mkTrue
     case Const._false => ctx.mkFalse
 
@@ -203,9 +201,8 @@ object SMT {
 
     case MultiSwitch(n: Int) => ctx.mkConst("MultiSwitch" + n, ctx.getIntSort)
 
-    case x: Id =>
-      // ctx.mkConst(x.toString, ctx.getIntSort)
-      throw error.InvalidProgram("unresolved program variable", x)
+    case x: Id => ctx.mkConst(x.toString, ctx.getIntSort)
+    case x: GammaId => ctx.mkConst(x.toString, ctx.getIntSort)
 
     case BinOp("==", arg1, arg2) => ctx.mkEq(translate(arg1), translate(arg2))
 

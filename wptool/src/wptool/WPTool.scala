@@ -78,13 +78,30 @@ object WPTool {
     }
 
     val state = State(variables, debug, gamma_0)
-    val (passifiedStmts, _) = Passify.execute(statements, PassifyState(state, gamma_0, variables))
-    if (debug) println("Passified stmts: " + passifiedStmts.toString())
+    val _state = Exec.exec(statements, state)
 
-    val _state = Exec.exec(passifiedStmts, state)
-    if (debug) println("VCs: " + _state.Q)
+    println(state.ids)
 
-    SMT.prove(_state.Q, List[Expression](), debug = false)
+    val gammaDom: Set[Id] = state.ids
+    val gamma: Map[Id, Security] = gamma_0 match {
+      // security high by default if user hasn't provided
+      case None => Map()
+      case Some(gs) => {
+        gs flatMap {g => g.toPair}
+      }.toMap
+    }
+    val gammaSubstr = {
+      for (i <- gammaDom) yield {
+        GammaId(i) -> gamma.getOrElse(i, High).toTruth
+      }
+    }.toMap[Identifier, Expression]
+
+    val vcs = _state.Q.subst(gammaSubstr)
+
+    if (debug) println("VCs: " + vcs)
+    if (debug) println("Gamma0: " + gammaSubstr)
+
+    SMT.prove(vcs, List[Expression](), debug = false)
   }
 
   def printTime(start: Long): Unit = {

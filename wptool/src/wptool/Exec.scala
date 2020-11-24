@@ -11,46 +11,46 @@ object Exec {
 
   def exec (stmt: Statement, state: State): State = stmt match {
     case atomic: Atomic =>
+      // TODO check
       exec(atomic.statements, state)
     case block: Block =>
       exec(block.statements, state)
-    case assume: Assume =>
-      state.copy(Q = BinOp("=>", eval(assume.expression, state), state.Q))
-    case assert: Assert =>
-      state.copy(Q = BinOp("&&", eval(assert.expression, state), state.Q))
-    /*
-    case VarAssignment(lhs, rhs) =>
-      // If not using passification
-      val globalPred = BinOp("=>", Const._true, BinOp("=>", lhs.L, lhs.gamma))
-      val controlPred = if (state.controls.contains(lhs.ident)) {
-        Helper.constructForall(state.controlledBy.getOrElse(lhs.ident, Set()).map(contr =>
+    case assign: Assignment =>
+      // TODO change true with x in Global
+      val globalPred = BinOp("=>", Const._true, BinOp("=>", getL(assign.lhs, state), computeGamma(assign.expression.ids.toList, state)))
+      val controlPred = if (state.controls.contains(assign.lhs)) {
+        constructForall(state.controlledBy.getOrElse(assign.lhs, Set()).map(contr =>
           BinOp(
             "=>",
-            Helper.getL(contr, state, eval).subst(Map((lhs.ident, rhs))),
-            BinOp("||", Helper.getL(contr, state, eval), Helper.getL(contr, state, eval))
+            getL(contr, state).subst(Map(assign.lhs -> assign.expression)),
+            BinOp("||", GammaId(contr), getL(contr, state))
           )
         ).toList)
       } else {
         Const._true
       }
-      
-      state.copy(Q = BinOp("&&", BinOp("&&", globalPred, controlPred), state.Q))
-     */
+
+      val Q = state.Q.subst(Map((GammaId(assign.lhs) -> computeGamma(assign.expression.ids.toList, state)), (assign.lhs -> assign.expression)))
+
+      state.copy(Q = BinOp("&&", BinOp("&&", globalPred, controlPred), Q))
+
     case ifStmt: If =>
       val state1 = exec(ifStmt.left, state)
       val state2 = exec(ifStmt.right.get, state) // Right should contain block from passification
       val left = BinOp("=>", ifStmt.test, state1.Q)
       val right = BinOp("=>", PreOp("!", ifStmt.test), state2.Q)
       // println(Gamma(ifStmt.test.variables).eval(state))
-      val condGamma = computeGamma(ifStmt.test.variables.toList)
+      val condGamma = computeGamma(ifStmt.test.ids.toList, state)
       // TODO include Q??
       state.copy(Q = BinOp("&&", condGamma, BinOp("&&", left, right)))
     case loop: While => 
-      val condGamma = computeGamma(loop.test.variables.toList)
-      val PO = BinOp("&&", eval(loop.invariant, state), BinOp("=>", eval(loop.invariant, state), condGamma))
-      val body = exec(loop.body, state)
-      val wpQ = BinOp("&&", BinOp("=>", BinOp("&&", eval(loop.invariant, state), eval(loop.test, state)), eval(loop.invariant, state)), BinOp("=>", BinOp("&&", eval(loop.invariant, state), PreOp("!", eval(loop.test, state))), state.Q))
-      println(PO)
+      val gammaPred = constructForall(loop.gamma.map(x => BinOp("==", GammaId(x.variable), x.security.toTruth)))
+      val inv = BinOp("&&", gammaPred, loop.invariant)
+      val condGamma = computeGamma(loop.test.ids.toList, state)
+      val PO = BinOp("&&", eval(inv, state), BinOp("=>", eval(inv, state), condGamma))
+      val body = exec(loop.body, state.copy(Q=eval(inv, state)))
+      val wpQ = BinOp("&&", BinOp("=>", BinOp("&&", eval(inv, state), eval(loop.test, state)), body.Q), BinOp("=>", BinOp("&&", eval(inv, state), PreOp("!", eval(loop.test, state))), state.Q))
+      println(body.Q)
       state.copy(Q = BinOp("&&", PO, wpQ))
     case stmt =>
       println("Unhandled statement: " + stmt)
@@ -59,16 +59,24 @@ object Exec {
 
   def eval (expr: Expression, state: State): Expression = expr match {
     case BinOp(op, arg1, arg2) => BinOp(op, eval(arg1, state), eval(arg2, state))
-    // TODO
-    case _: Lit | _: Const | _: Id | _: Var => expr
+    case _: Lit | _: Const | _: Id | _: GammaId  => expr
     case expr =>
       println("Unhandled expression: " + expr)
       expr
   }
 
-  def computeGamma (variables: List[Var]): Expression = variables match {
-    case v :: Nil => BinOp("||", v.gamma, v.L)
-    case v :: rest => BinOp("&&", computeGamma(List(v)), computeGamma(rest))
+  def computeGamma (ids: List[Id], state: State): Expression = ids match {
+    case i :: Nil => BinOp("||", GammaId(i), state.L.getOrElse(i, Const._false)) // Default to high
+    case i :: rest => BinOp("&&", computeGamma(List(i), state), computeGamma(rest, state))
+    case Nil => Const._true
+  }
+
+  def getL (id: Id, state: State): Expression = eval(state.L.getOrElse(id, throw new Error("L not defined for " + id)), state)
+  
+  def constructForall (exprs: List[Expression]): Expression = exprs match {
+    case expr :: Nil => expr
+    case expr :: rest =>
+      BinOp("&&", expr, constructForall(rest))
     case Nil => Const._true
   }
 
