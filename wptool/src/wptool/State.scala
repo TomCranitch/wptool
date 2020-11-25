@@ -7,7 +7,8 @@ case class State (
                    controlled: Set[Id],
                    controlledBy: Map[Id, Set[Id]],
                    L: Map[Id, Expression],
-                   ids: Set[Id]
+                   ids: Set[Id],
+                   globals: Set[Id]
                  ) {
 
 }
@@ -51,9 +52,12 @@ object State {
     // init L - map variables to their L predicates
     val L: Map[Id, Expression] = {
       for (v <- variables) yield {
-        v.name -> v.pred
+        if (v.access == GlobalVar) v.name -> v.pred
+        else v.name -> Const._false
       }
     }.toMap
+
+    val globals = variables.filter(v => v.access == GlobalVar).map(v => v.name)
 
     if (debug) {
       println("controls: " + controls)
@@ -62,6 +66,6 @@ object State {
     }
 
 
-    State(Const._true, debug, controls, controlled, controlledBy, L, ids)
+    State(Const._true, debug, controls, controlled, controlledBy, L, ids, globals)
   }
 }

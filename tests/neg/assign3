@@ -2,13 +2,13 @@ global var a:
 _L: FALSE
 
 global var b:
-_L: c == 2
+_L: TRUE
 
 global var c:
 _L: TRUE
 
-_Gamma_0: a -> HIGH, b -> LOW
+_Gamma_0: a -> HIGH, b -> LOW, c -> LOW
 
-c = 1;
+c = 2;
 b = a;
 

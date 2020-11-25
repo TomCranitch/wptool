@@ -16,8 +16,7 @@ object Exec {
     case block: Block =>
       exec(block.statements, state)
     case assign: Assignment =>
-      // TODO change true with x in Global
-      val globalPred = BinOp("=>", Const._true, BinOp("=>", getL(assign.lhs, state), computeGamma(assign.expression.ids.toList, state)))
+      val globalPred = if (state.globals.contains(assign.lhs)) BinOp("=>", getL(assign.lhs, state), computeGamma(assign.expression.ids.toList, state)) else Const._true
       val controlPred = if (state.controls.contains(assign.lhs)) {
         constructForall(state.controlledBy.getOrElse(assign.lhs, Set()).map(contr =>
           BinOp(
@@ -26,32 +25,35 @@ object Exec {
             BinOp("||", GammaId(contr), getL(contr, state))
           )
         ).toList)
-      } else {
-        Const._true
-      }
+      } 
+      else Const._true
+      val PO = BinOp("&&", globalPred, controlPred)
 
       val Q = state.Q.subst(Map((GammaId(assign.lhs) -> computeGamma(assign.expression.ids.toList, state)), (assign.lhs -> assign.expression)))
 
-      state.copy(Q = BinOp("&&", BinOp("&&", globalPred, controlPred), Q))
+      // val guar = state.
+
+      state.copy(Q = constructForall(List(PO, Q)))
 
     case ifStmt: If =>
       val state1 = exec(ifStmt.left, state)
       val state2 = exec(ifStmt.right.get, state) // Right should contain block from passification
       val left = BinOp("=>", ifStmt.test, state1.Q)
       val right = BinOp("=>", PreOp("!", ifStmt.test), state2.Q)
-      // println(Gamma(ifStmt.test.variables).eval(state))
       val condGamma = computeGamma(ifStmt.test.ids.toList, state)
       // TODO include Q??
       state.copy(Q = BinOp("&&", condGamma, BinOp("&&", left, right)))
+
     case loop: While => 
       val gammaPred = constructForall(loop.gamma.map(x => BinOp("==", GammaId(x.variable), x.security.toTruth)))
       val inv = BinOp("&&", gammaPred, loop.invariant)
       val condGamma = computeGamma(loop.test.ids.toList, state)
       val PO = BinOp("&&", eval(inv, state), BinOp("=>", eval(inv, state), condGamma))
+      // TODO i dont think this considers forall sigma
       val body = exec(loop.body, state.copy(Q=eval(inv, state)))
       val wpQ = BinOp("&&", BinOp("=>", BinOp("&&", eval(inv, state), eval(loop.test, state)), body.Q), BinOp("=>", BinOp("&&", eval(inv, state), PreOp("!", eval(loop.test, state))), state.Q))
-      println(body.Q)
       state.copy(Q = BinOp("&&", PO, wpQ))
+
     case stmt =>
       println("Unhandled statement: " + stmt)
       state

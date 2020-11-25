@@ -1,0 +1,14 @@
+global var a:
+_L: b == 2
+
+global var b:
+_L: TRUE
+
+_Gamma_0: a -> HIGH
+
+
+b = 1;
+
+if (a == 0) { // Test condition is high
+} else {
+}

@@ -1,14 +1,14 @@
-_var a:
+global var a:
 _L: FALSE
 
-_var b:
+global var b:
 _L: c == 2
 
-_var c:
+global var c:
 _L: TRUE
 
 _Gamma_0: a -> HIGH, b -> LOW
 
 c = 1;
-b = a;
-
+b = 2;
+c = 3;

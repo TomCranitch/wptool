@@ -1,16 +1,14 @@
-_var a:
-_L: FALSE
+global var a:
+_L: b == 2
 
-_var b:
+global var b:
 _L: TRUE
 
-_Gamma_0: a -> HIGH, b -> LOW
+_Gamma_0: a -> LOW
 
 
-b = 1;
+b = 2;
 
-if (b == 0) {
-  b = a; // Fine as cant reach this branch
+if (a == 0) { // Test condition is low
 } else {
-  b = 0;
 }
