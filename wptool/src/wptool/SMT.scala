@@ -12,7 +12,6 @@ object SMT {
     val g = ctx.mkGoal(true, false, false)
     g.add(formula(cond))
     println(ctx.mkTactic("ctx-solver-simplify").apply(g))
-
   }
 
   def prove(cond: Expression, given: List[Expression], debug: Boolean) = {
@@ -41,7 +40,7 @@ object SMT {
       println(res)
       if (res == z3.Status.SATISFIABLE) {
         val model = solver.getModel
-        println(model)
+        println("Model:", model.getConstDecls())
       }
     }
     res == z3.Status.UNSATISFIABLE
@@ -202,9 +201,10 @@ object SMT {
     case MultiSwitch(n: Int) => ctx.mkConst("MultiSwitch" + n, ctx.getIntSort)
 
     case x: Id => ctx.mkConst(x.toString, ctx.getIntSort)
-    case x: GammaId => ctx.mkConst(x.toString, ctx.getIntSort)
+    case x: GammaId => ctx.mkConst(x.toString, ctx.getBoolSort)
 
     case BinOp("==", arg1, arg2) => ctx.mkEq(translate(arg1), translate(arg2))
+    case BinOp("!=", arg1, arg2) => ctx.mkNot(ctx.mkEq(translate(arg1), translate(arg2)))
 
     case PreOp("!", arg) => ctx.mkNot(formula(arg))
     case BinOp("&&", arg1, arg2) => ctx.mkAnd(formula(arg1), formula(arg2))

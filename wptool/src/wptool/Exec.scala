@@ -29,11 +29,19 @@ object Exec {
       else Const._true
       val PO = BinOp("&&", globalPred, controlPred)
 
-      val Q = state.Q.subst(Map((GammaId(assign.lhs) -> computeGamma(assign.expression.ids.toList, state)), (assign.lhs -> assign.expression)))
+      val rhsGamma = computeGamma(assign.expression.ids.toList, state)
 
-      // val guar = state.
+      val Q = state.Q.subst(Map((assign.lhs.gamma -> rhsGamma), (assign.lhs -> assign.expression)))
 
-      state.copy(Q = constructForall(List(PO, Q)))
+      // TODO detect x ~ y
+      val idsNoLHS = state.ids.filter(id => id != assign.lhs)
+      val subst: Map[Identifier, Expression] = idsNoLHS.map(id => id.prime -> id).toMap[Identifier, Expression] ++ idsNoLHS.map(id => id.prime.gamma -> id.gamma).toMap[Identifier, Expression]
+      val guar = state.guar.subst(Map(assign.lhs.prime -> assign.expression, assign.lhs.prime.gamma -> rhsGamma)).subst(subst)
+
+      // TODO stable R
+      val pred = constructForall(List(PO, Q, guar))
+
+      state.copy(Q = BinOp("&&", pred, stableR(pred, state)))
 
     case ifStmt: If =>
       val state1 = exec(ifStmt.left, state)
@@ -82,4 +90,9 @@ object Exec {
     case Nil => Const._true
   }
 
+  def stableR (p: Expression, state: State) = {
+    val primed = p.subst(state.ids.map(id => id -> id.prime).toMap)
+    println(BinOp("=>", BinOp("&&", state.rely, p), primed))
+    BinOp("=>", BinOp("&&", state.rely, p), primed)
+  }
 }

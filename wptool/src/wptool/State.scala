@@ -1,5 +1,7 @@
 package wptool
 
+import wptool.Helper.constructForall
+
 case class State (
                    Q: Expression,
                    debug: Boolean,
@@ -8,13 +10,15 @@ case class State (
                    controlledBy: Map[Id, Set[Id]],
                    L: Map[Id, Expression],
                    ids: Set[Id],
-                   globals: Set[Id]
+                   globals: Set[Id],
+                   rely: Expression,
+                   guar: Expression
                  ) {
 
 }
 
 object State {
-  def apply (definitions: Set[Definition], debug: Boolean, gamma_0: Option[List[GammaMapping]]): State = {
+  def apply (definitions: Set[Definition], debug: Boolean, gamma_0: Option[List[GammaMapping]], rely: Option[Rely], guar: Option[Guar]): State = {
     var controls: Set[Id] = Set()
     var controlled: Set[Id] = Set()
     var controlledBy: Map[Id, Set[Id]] = Map()
@@ -58,6 +62,7 @@ object State {
     }.toMap
 
     val globals = variables.filter(v => v.access == GlobalVar).map(v => v.name)
+    val locals = variables.filter(v => v.access == LocalVar).map(v => v.name)
 
     if (debug) {
       println("controls: " + controls)
@@ -65,7 +70,24 @@ object State {
       println("controlled by: " + controlledBy)
     }
 
+    val subst = ids.map(id => id -> id.prime).toMap[Identifier, Expression]
+    // val _rely = constructForall(List(rely.getOrElse(Rely(Const._true)).exp) ++ locals.map(id => BinOp("&&", BinOp("==", id, id.prime), BinOp("==", id.gamma, id.prime.gamma))) ++ globals.map(id => BinOp("&&", BinOp("=>", BinOp("==", id, id.prime), BinOp("==", id.gamma, id.prime.gamma)), BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.prime.gamma))))
+    val _rely = constructForall(List(rely.getOrElse(Rely(Const._true)).exp) 
+      ++ locals.map(id => BinOp(
+        "&&", 
+        BinOp("==", id, id.prime), 
+        BinOp("==", id.gamma, id.prime.gamma)
+      ))
+      ++ globals.map(id => BinOp(
+        "&&", 
+        BinOp("=>", BinOp("==", id, id.prime), BinOp("==", id.gamma, id.prime.gamma)), 
+        BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.prime.gamma)
+      ))
+    )
+    println(globals.map(id => L.getOrElse(id, Const._false).subst(subst)))
+    val _guar = guar.getOrElse(Guar(Const._true)).exp
 
-    State(Const._true, debug, controls, controlled, controlledBy, L, ids, globals)
+
+    State(Const._true, debug, controls, controlled, controlledBy, L, ids, globals, _rely, _guar)
   }
 }

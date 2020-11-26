@@ -2,8 +2,8 @@ import org.scalatest.funsuite.AnyFunSuite
 import wptool.WPTool
 
 class IntegrationTests extends  AnyFunSuite {
-  val testDir: String = System.getProperty("user.dir") + "/tests/"
-  val testNegDir: String = System.getProperty("user.dir") + "/tests/neg/"
+  val testDir: String = System.getProperty("user.dir") + "/tests/base/"
+  val testNegDir: String = System.getProperty("user.dir") + "/tests/base/neg/"
 
   test("Test assignment") {
     assert(WPTool.run(testDir + "assign1", debug = false))

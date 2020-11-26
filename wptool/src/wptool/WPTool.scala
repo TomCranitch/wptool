@@ -70,14 +70,18 @@ object WPTool {
     val statements = res.statements
     val P_0 = res.P_0
     val gamma_0 = res.gamma_0
+    val rely = res.rely
+    val guar = res.guarantee
     if (debug) {
       println(statements)
       println(variables)
       println(P_0)
       println(gamma_0)
+      println(rely)
+      println(guar)
     }
 
-    val state = State(variables, debug, gamma_0)
+    val state = State(variables, debug, gamma_0, rely, guar)
     val _state = Exec.exec(statements, state)
 
     val gammaDom: Set[Id] = state.ids

@@ -1,11 +1,11 @@
 package wptool
 
 // highest level parsed data structure
-case class Global(variables: Set[Definition], P_0: Option[List[Expression]], gamma_0: Option[List[GammaMapping]], statements: List[Statement]) extends beaver.Symbol {
-  def this(variables: Array[Definition], P_0: Array[Expression], gamma_0: Array[GammaMapping], statements: Array[Statement]) = this(variables.toSet, Some(P_0.toList), Some(gamma_0.toList), statements.toList)
-  def this(variables: Array[Definition], P_0: Array[Expression], statements: Array[Statement]) = this(variables.toSet, Some(P_0.toList), None, statements.toList)
-  def this(variables: Array[Definition], gamma_0: Array[GammaMapping], statements: Array[Statement]) = this(variables.toSet, None, Some(gamma_0.toList), statements.toList)
-  def this(variables: Array[Definition], statements: Array[Statement]) = this(variables.toSet, None, None, statements.toList)
+case class Global(variables: Set[Definition], P_0: Option[List[Expression]], gamma_0: Option[List[GammaMapping]], rely: Option[Rely], guarantee: Option[Guar], statements: List[Statement]) extends beaver.Symbol {
+  def this(variables: Array[Definition], statements: Array[Statement]) = this(variables.toSet, None, None, None, None, statements.toList)
+  def this(variables: Array[Definition], gamma_0: Array[GammaMapping], statements: Array[Statement]) = this(variables.toSet, None, Some(gamma_0.toList), None, None, statements.toList)
+  def this(variables: Array[Definition], rely: Rely, guar: Guar, statements: Array[Statement]) = this(variables.toSet, None, None, Some(rely), Some(guar), statements.toList)
+  def this(variables: Array[Definition], gamma_0: Array[GammaMapping], rely: Rely, guar: Guar, statements: Array[Statement]) = this(variables.toSet, None, Some(gamma_0.toList), Some(rely), Some(guar), statements.toList)
 }
 
 sealed trait Access extends beaver.Symbol
@@ -48,6 +48,9 @@ case class GammaMapping(variable: Id, security: Security) extends beaver.Symbol 
       Seq(g.variable -> g.security)
   }
 }
+
+case class Rely(exp: Expression) extends beaver.Symbol
+case class Guar(exp: Expression) extends beaver.Symbol
 
 sealed trait Definition extends beaver.Symbol
 

@@ -22,7 +22,9 @@ import wptool.Parser.Terminals;
     Symbol resolve(String name) {
           return newToken(Terminals.ID,   name);
     }
-
+	Symbol resolvePrime(String name) {
+		return newToken(Terminals.PRIMEID, name);
+	}
 	Symbol newToken(short id)
 	{
 		return newToken(id, yytext());
@@ -101,10 +103,11 @@ WS = {NL} | [ \t\f]
 "_invariant" {return newToken(Terminals.INVARIANT);}
 "_Gamma" {return newToken(Terminals.GAMMA);}
 "_Gamma_0" {return newToken(Terminals.GAMMA_0);}
-"_P_0" {return newToken(Terminals.P_0);}
 "_Stable" {return newToken(Terminals.STABLE);}
 "global var"      { return newToken(Terminals.GLOBALVAR);     }
 "local var"      { return newToken(Terminals.LOCALVAR);     }
+"_Rely" {return newToken(Terminals.RELY);}
+"_Guar" {return newToken(Terminals.GUAR);}
 //"_array"    { return newToken(Terminals.ARRAY);     }
 
 "TRUE" { return newToken(Terminals.TRUE);    }
@@ -116,6 +119,8 @@ WS = {NL} | [ \t\f]
 
 [a-zA-Z_][a-zA-Z_0-9]*
             { return resolve(yytext()); }
+[a-zA-Z_][a-zA-Z_0-9]*[']
+            { return resolvePrime(yytext()); }
 
 [0-9]+      { return newToken(Terminals.NUM, new Integer(yytext())); }
 

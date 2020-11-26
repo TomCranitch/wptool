@@ -31,9 +31,10 @@
 
 %terminals CAS;
 %terminals FENCE, CFENCE;
-%terminals INVARIANT, GAMMA, P_0, GAMMA_0, STABLE;
+%terminals INVARIANT, GAMMA, GAMMA_0, STABLE, RELY, GUAR;
 %terminals LPRED;
 %terminals MAPSTO;
+%terminals PRIMEID;
 
 %nonassoc IF;
 %nonassoc ELSE;
@@ -54,6 +55,7 @@
 %left  COMMA;
 
 %typeof ID      = "String";
+%typeof PRIMEID      = "String";
 
 %typeof NUM     = "Integer";
 
@@ -71,6 +73,8 @@
 %typeof lpred = "Expression";
 %typeof unit = "Global";
 %typeof gamma_mapping = "GammaMapping";
+%typeof rely = "Rely";
+%typeof guar = "Guar";
 %typeof security = "Security";
 //%typeof lpredindex = "Expression";
 
@@ -78,10 +82,8 @@
 
 unit = defs.v locals.s {: return new Global(v, s); :}
      | defs.v GAMMA_0 COLON gamma_mappings.f locals.s {: return new Global(v, f, s); :}
-     | defs.v P_0 COLON exprs.e locals.s {: return new Global(v, e, s); :}
-     | defs.v P_0 COLON exprs.e GAMMA_0 COLON gamma_mappings.f locals.s {: return new Global(v, e, f, s); :};
-
-exprs = expr @ ASG | exprs COMMA expr;
+     | defs.v rely.r guar.g locals.s {: return new Global(v, r, g, s); :}
+     | defs.v GAMMA_0 COLON gamma_mappings.f rely.r guar.g locals.s {: return new Global(v, f, r, g, s); :};
 
 
 local
@@ -143,6 +145,7 @@ local1
 expr
     = PREFIX | POSTFIX /* unused */
     | ID.n                              {: return new Id(n);  :}
+    | PRIMEID.n                              {: return new Id(n);  :}
     // | ID.n LBRACK expr.i RBRACK       {: return new Access(n, i); :}
     | NUM.n                             {: return new Lit(n); :}
     | PLUS  expr.a @ PREFIX             {: return new PreOp("+", a);    :}
@@ -174,9 +177,12 @@ expr
     ;
 
 // for _L(x): pred construction to set predicate for variable security level
-lpred
-    = LPRED COLON expr.a {: return (Symbol) a; :}
-    ;
+lpred = LPRED COLON expr.a {: return (Symbol) a; :};
+
+
+rely = RELY COLON expr.a {: return  new Rely(a); :};
+guar = GUAR COLON expr.a {: return new Guar(a); :};
+
 
 //lpredindex = LPRED LBRACK NUM.n RBRACK COLON expr.a {: return (Symbol) a; :};
 

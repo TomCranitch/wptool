@@ -31,6 +31,8 @@ case class Id(name: String) extends Expression with Identifier {
   override def ids: Set[Id] = Set(this)
   override def subst(su: Subst): Expression = su.getOrElse(this, this)
   override def subst(su: Subst, num: Int): Expression = this.subst(su)
+  def prime: Id = Id(name + "'")
+  def gamma: GammaId = GammaId(this)
 }
 
 case class GammaId(ident: Id) extends Expression with Identifier {
