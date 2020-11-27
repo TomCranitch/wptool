@@ -58,7 +58,7 @@ case object ControlFence extends Statement {
 }
 
 case class If(test: Expression, left: Block, right: Option[Block]) extends Statement {
-  def this(test: Expression, left: Block) = this(test, left, None)
+  def this(test: Expression, left: Block) = this(test, left, Some(Block(List())))
   def this(test: Expression, left: Block, right: Block) = this(test, left, Some(right))
 }
 

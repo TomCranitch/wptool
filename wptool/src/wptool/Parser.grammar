@@ -13,6 +13,7 @@
 %terminals LOW, HIGH, TRUE, FALSE;
 
 %terminals LPAREN, RPAREN, LBRACK, RBRACK, LBRACE, RBRACE;
+%terminals IMPLIES;
 %terminals POSTFIX;
 %terminals PREFIX,  BANG, TILDE;
 %terminals STAR, DIV, MOD;
@@ -35,6 +36,7 @@
 %terminals LPRED;
 %terminals MAPSTO;
 %terminals PRIMEID;
+%terminals GAMMAID;
 
 %nonassoc IF;
 %nonassoc ELSE;
@@ -56,6 +58,7 @@
 
 %typeof ID      = "String";
 %typeof PRIMEID      = "String";
+%typeof GAMMAID      = "String";
 
 %typeof NUM     = "Integer";
 
@@ -144,6 +147,7 @@ local1
 
 expr
     = PREFIX | POSTFIX /* unused */
+	| GAMMAID.n                        {: return new GammaId(new Id(n));  :}
     | ID.n                              {: return new Id(n);  :}
     | PRIMEID.n                              {: return new Id(n);  :}
     // | ID.n LBRACK expr.i RBRACK       {: return new Access(n, i); :}
@@ -152,6 +156,7 @@ expr
     | MINUS expr.a @ PREFIX             {: return new PreOp("-", a);    :}
     | BANG  expr.a @ PREFIX             {: return new PreOp("!", a);    :}
     | TILDE expr.a @ PREFIX             {: return new PreOp("~", a);    :}
+    | expr.a IMPLIES   expr.b           {: return new BinOp("=>", a, b); :}
     | expr.a STAR   expr.b              {: return new BinOp("*", a, b); :}
     | expr.a DIV    expr.b              {: return new BinOp("/", a, b); :}
     | expr.a MOD    expr.b              {: return new BinOp("%", a, b); :}

@@ -1,0 +1,18 @@
+global var a:
+_L: FALSE
+
+global var b:
+_L: TRUE
+
+_Gamma_0: a -> HIGH, b -> LOW
+_Rely: TRUE
+_Guar: TRUE
+
+
+b = 1;
+
+if (b == 0) {
+  b = a; // Fine as cant reach this branch
+} else {
+  b = 0;
+}

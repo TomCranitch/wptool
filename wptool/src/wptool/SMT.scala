@@ -1,6 +1,7 @@
 package wptool
 
 import com.microsoft.z3
+import com.microsoft.z3.BoolExpr
 
 object SMT {
   val intSize = 32 // size of bitvectors used
@@ -8,10 +9,16 @@ object SMT {
   val ctx = new z3.Context(cfg)
   val solver = ctx.mkSolver()
 
-  def simplify(cond: Expression): Unit = {
+  def simplify(cond: Expression) = {
     val g = ctx.mkGoal(true, false, false)
     g.add(formula(cond))
-    println(ctx.mkTactic("ctx-solver-simplify").apply(g))
+    ctx.mkTactic("ctx-simplify").apply(g)
+  }
+
+  def solverSimplify (cond: Expression) = {
+    val g = ctx.mkGoal(true, false, false)
+    g.add(formula(cond))
+    ctx.mkTactic("ctx-solver-simplify").apply(g)
   }
 
   def prove(cond: Expression, given: List[Expression], debug: Boolean) = {
@@ -42,6 +49,7 @@ object SMT {
         val model = solver.getModel
         println("Model: " + model.getConstDecls())
       }
+      println(solverSimplify(cond))
     }
     res == z3.Status.UNSATISFIABLE
   }
@@ -248,6 +256,4 @@ object SMT {
     case _ =>
       throw error.InvalidProgram("cannot translate to SMT", prop)
   }
-
-
 }

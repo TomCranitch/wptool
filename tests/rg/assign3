@@ -1,0 +1,13 @@
+global var x:
+_L: z != 1
+
+local var y:
+
+global var z:
+_L: TRUE
+
+_Rely: TRUE
+_Guar: TRUE
+
+z = 2;
+y = x;

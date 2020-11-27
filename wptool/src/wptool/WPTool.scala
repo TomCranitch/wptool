@@ -100,8 +100,9 @@ object WPTool {
 
     val vcs = _state.Q.subst(gammaSubstr)
 
-    if (debug) println("VCs: " + vcs)
+    //if (debug) println("VCs: " + vcs)
     if (debug) println("Gamma0: " + gammaSubstr)
+    if (debug) println("L: " + state.L)
 
     SMT.prove(vcs, List[Expression](), debug = debug)
   }

@@ -22,7 +22,7 @@ object Exec {
           BinOp(
             "=>",
             getL(contr, state).subst(Map(assign.lhs -> assign.expression)),
-            BinOp("||", GammaId(contr), getL(contr, state))
+            BinOp("||", GammaId(contr), getL(contr, state)) // TODO this is the issue !!
           )
         ).toList)
       } 
@@ -36,14 +36,18 @@ object Exec {
       // TODO detect x ~ y
       val idsNoLHS = state.ids.filter(id => id != assign.lhs)
       val subst: Map[Identifier, Expression] = idsNoLHS.map(id => id.prime -> id).toMap[Identifier, Expression] ++ idsNoLHS.map(id => id.prime.gamma -> id.gamma).toMap[Identifier, Expression]
-      val guar = state.guar.subst(Map(assign.lhs.prime -> assign.expression, assign.lhs.prime.gamma -> rhsGamma)).subst(subst)
+      val guar = state.guar
+        .subst(Map(assign.lhs.prime -> assign.expression, assign.lhs.prime.gamma -> rhsGamma))
+        .subst(subst)
 
-      println(guar)
+      println(assign + ": " + guar)
+      // println(stableR(guar, state))
 
-      // TODO stable R
+
       val pred = constructForall(List(PO, Q, guar))
 
       state.copy(Q = BinOp("&&", pred, stableR(pred, state)))
+      // state.copy(Q = BinOp("&&", pred, stableR(constructForall(List(PO, Q)), state)))
 
     case ifStmt: If =>
       val state1 = exec(ifStmt.left, state)
@@ -51,8 +55,10 @@ object Exec {
       val left = BinOp("=>", ifStmt.test, state1.Q)
       val right = BinOp("=>", PreOp("!", ifStmt.test), state2.Q)
       val condGamma = computeGamma(ifStmt.test.ids.toList, state)
+      // TODO is this pred correct
+      val condStableR = BinOp("=>", PreOp("!", stableR(ifStmt.test, state)), BinOp("&&", state1.Q, state2.Q))
       // TODO include Q??
-      state.copy(Q = BinOp("&&", condGamma, BinOp("&&", left, right)))
+      state.copy(Q = constructForall(List(condGamma, stableR(condGamma, state), left, right, condStableR)))
 
     case loop: While => 
       val gammaPred = constructForall(loop.gamma.map(x => BinOp("==", GammaId(x.variable), x.security.toTruth)))
@@ -62,7 +68,7 @@ object Exec {
       // TODO i dont think this considers forall sigma
       val body = exec(loop.body, state.copy(Q=eval(inv, state)))
       val wpQ = BinOp("&&", BinOp("=>", BinOp("&&", eval(inv, state), eval(loop.test, state)), body.Q), BinOp("=>", BinOp("&&", eval(inv, state), PreOp("!", eval(loop.test, state))), state.Q))
-      state.copy(Q = BinOp("&&", PO, wpQ))
+      state.copy(Q = constructForall(List(PO, stableR(inv, state), wpQ)))
 
     case stmt =>
       println("Unhandled statement: " + stmt)
@@ -94,7 +100,6 @@ object Exec {
 
   def stableR (p: Expression, state: State) = {
     val primed = p.subst(state.ids.map(id => id -> id.prime).toMap)
-    println(BinOp("=>", BinOp("&&", state.rely, p), primed))
     BinOp("=>", BinOp("&&", state.rely, p), primed)
   }
 }
