@@ -40,7 +40,7 @@ object SMT {
       println(res)
       if (res == z3.Status.SATISFIABLE) {
         val model = solver.getModel
-        println("Model:", model.getConstDecls())
+        println("Model: " + model.getConstDecls())
       }
     }
     res == z3.Status.UNSATISFIABLE

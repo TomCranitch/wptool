@@ -84,8 +84,15 @@ object State {
         BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.prime.gamma)
       ))
     )
-    println(globals.map(id => L.getOrElse(id, Const._false).subst(subst)))
-    val _guar = guar.getOrElse(Guar(Const._true)).exp
+    val _guar = constructForall(List(guar.getOrElse(Guar(Const._true)).exp)
+      /* 
+      G1 is for interaction between local vars and can be ommited
+      G2 causes issues with simple assignment if Gamma_0 is not specified
+      ++ ids.map(id => BinOp("=>", BinOp("==", id, id.prime), BinOp("==", id.gamma, id.prime.gamma)))
+      G3 is checked by the rules
+      ++ globals.map(id => BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.prime.gamma))
+      */
+    )
 
 
     State(Const._true, debug, controls, controlled, controlledBy, L, ids, globals, _rely, _guar)

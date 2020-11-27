@@ -1,7 +1,9 @@
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.Ignore
 import wptool.WPTool
 
-class IntegrationTests extends  AnyFunSuite {
+@Ignore
+class IntegrationTests extends AnyFunSuite {
   val testDir: String = System.getProperty("user.dir") + "/tests/base/"
   val testNegDir: String = System.getProperty("user.dir") + "/tests/base/neg/"
 

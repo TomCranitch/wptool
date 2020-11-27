@@ -103,7 +103,7 @@ object WPTool {
     if (debug) println("VCs: " + vcs)
     if (debug) println("Gamma0: " + gammaSubstr)
 
-    SMT.prove(vcs, List[Expression](), debug = false)
+    SMT.prove(vcs, List[Expression](), debug = debug)
   }
 
   def printTime(start: Long): Unit = {

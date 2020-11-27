@@ -38,6 +38,8 @@ object Exec {
       val subst: Map[Identifier, Expression] = idsNoLHS.map(id => id.prime -> id).toMap[Identifier, Expression] ++ idsNoLHS.map(id => id.prime.gamma -> id.gamma).toMap[Identifier, Expression]
       val guar = state.guar.subst(Map(assign.lhs.prime -> assign.expression, assign.lhs.prime.gamma -> rhsGamma)).subst(subst)
 
+      println(guar)
+
       // TODO stable R
       val pred = constructForall(List(PO, Q, guar))
 
