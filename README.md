@@ -35,18 +35,20 @@ arguments.
 
 ### Variable definitions
 ```
-_var z:
+global var a:
 
-_var x:
+global var b:
 _L: z % 2 == 0
 
-_var r_secret:
+global var secret:
 _L: FALSE
 
-_var r12:
+gloabl var c:
 _L: TRUE
+
+local var d:
 ```
-Variables must be defined at the start of the file, before any statements. Variables can have the mode `NoW` (No Write), `NoRW` (No Read/Write) or `RW` (Read/Write). Variables with `r_`  at the start of their names or of the form `r#` (where `#` is a sequence of digits) are Local, and automatically have the mode `NoRW`. All other variables are Global. If the L predicate is not defined for a variable, it will be `TRUE` by default. 
+Variables must be defined at the start of the file, before any statements. 
 
 ### Gamma_0 definitions
 ```
@@ -72,7 +74,8 @@ if (x == 0) {
 
 ### Supported operations
 * `=` assignment
-* `==` equality
+* `==` equal to
+* `!=` not equal to
 * `<=` less than or equal to
 * `<` less than
 * `>=` greater than or equal to
@@ -90,9 +93,21 @@ if (x == 0) {
 * `^` bitwise xor
 * `~` bitwise not
 
-## Unsupported
-Below is an inconclusive list of broken or unsupported language features.
- * While and do-while loops
- * Rely-guarantee and WMM
- * Local variables
- * Logic for if statements may not be correct (need to check calculation of gamma for merge variables)
+## TODOs
+### Unsupported language features
+Below is an inconclusive list of unsupported language features.
+ * Do-while loops
+ * Atomics (this would also make CAS simpler to implement)
+ * Pointers
+ * Arrays
+ 
+### Weak memory model
+The logic for the weak memory model is currently not implemented
+
+### Basic blocks
+Implementing the tool using basic blocks, as opposed to the current while language, will make the tool more flexible. This would allow, in theory, to easily build C support.
+
+### Improved feedback
+The tool currently provides no feedback when it fails. This should be modified to, at a minimum, provide feedback on things like the loop invariant.
+
+
