@@ -5,6 +5,10 @@
 ## Supported Platforms
 * Linux
 
+## Test Status
+
+![Test Status](https://github.com/TomCranitch/wptool/workflows/Tests/badge.svg)
+
 
 ## Building
 
