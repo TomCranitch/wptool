@@ -169,3 +169,11 @@ case class Gamma (ids: Set[Id]) extends Expression {
   override def variables: Set[Id] = Set()
 }
  */
+
+case class CompareAndSwap(x: Id, e1: Expression, e2: Expression) extends Expression {
+  def this(x: String, e1: Expression, e2: Expression) = this(new Id(x), e1, e2)
+  override def toString: String = "CAS(" + x + ", " + e1 + ", " + e2 + ")"
+  override def ids: Set[Id] = Set()
+  override def subst(su: Subst): Expression = this
+  override def subst(su: Subst, num: Int): Expression = this
+}

@@ -8,7 +8,7 @@ global var z:
 _L: c != 1
 
 _Gamma_0: z -> LOW, x -> HIGH, c -> LOW
-_Rely: c == 1 => c == c'
+_Rely: TRUE
 _Guar: TRUE
 
 while (c != 1) {

@@ -1,0 +1,32 @@
+// This is not quite the example
+
+global var x:
+_L: (z % 2) == 0
+
+global var z:
+_L: TRUE
+
+local var r1:
+local var r2:
+
+global var output:
+_L: TRUE
+
+_Gamma_0: r1 -> LOW, r2 -> LOW
+_Rely: z' >= z
+// TODO: _Guar: Gamma_x && (z' == z)
+_Guar: (z' == z)
+
+while (z != r1)
+_invariant: TRUE
+{
+	while (r1 % 2 != 0)
+	_invariant: TRUE
+	{
+		r1 = z;
+	}
+
+	r2 = x;
+}
+
+output = r2;

@@ -60,6 +60,7 @@
 %typeof PRIMEID      = "String";
 %typeof GAMMAID      = "String";
 
+
 %typeof NUM     = "Integer";
 
 %typeof stable = "Id";
@@ -153,6 +154,7 @@ expr
     | PRIMEID.n                              {: return new Id(n);  :}
     // | ID.n LBRACK expr.i RBRACK       {: return new Access(n, i); :}
     | NUM.n                             {: return new Lit(n); :}
+	| CAS LPAREN ID.x COMMA expr.y COMMA expr.z RPAREN {: return new CompareAndSwap(x, y, z); :}
     | PLUS  expr.a @ PREFIX             {: return new PreOp("+", a);    :}
     | MINUS expr.a @ PREFIX             {: return new PreOp("-", a);    :}
     | BANG  expr.a @ PREFIX             {: return new PreOp("!", a);    :}

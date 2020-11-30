@@ -1,5 +1,3 @@
-// TODO: this fails
-
 global var x:
 _L: z != 1
 
@@ -7,7 +5,7 @@ global var z:
 _L: TRUE
 
 _Gamma_0: z -> LOW
-_Rely: z != 1
+_Rely: z == z'
 _Guar: TRUE
 
 z = 2;

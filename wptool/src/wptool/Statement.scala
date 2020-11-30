@@ -26,11 +26,6 @@ case class ArrayAssignment(name: Id, index: Expression, expression: Expression) 
   override def toString: String = name + "[" + index + "]" + " = " + expression
 }
 
-case class CompareAndSwap(x: Id, e1: Expression, e2: Expression) extends Statement {
-  def this(x: String, e1: Expression, e2: Expression) = this(new Id(x), e1, e2)
-  override def toString: String = "CAS(" + x + ", " + e1 + ", " + e2 + ")"
-}
-
 /*
 case object Break extends Statement {
   def self = this
