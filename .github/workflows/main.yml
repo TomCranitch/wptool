@@ -27,6 +27,9 @@ jobs:
       
       - name: Install jflex
         run: sudo apt-get install -y jflex
+      
+      - name: Link z3
+        run: java -Djava.library.path="./wptool/lib/libz3java.so"
 
       # Runs a single command using the runners shell
       - name: Run the tests
