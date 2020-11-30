@@ -9,3 +9,6 @@ Parser.java
 .bloop/wptool.json
 .metals/
 *.notes
+notes
+.bloop/*
+mill.hdWu

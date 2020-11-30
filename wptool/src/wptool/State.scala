@@ -1,5 +1,7 @@
 package wptool
 
+import wptool.Helper.constructForall
+
 case class State (
                    Q: Expression,
                    debug: Boolean,
@@ -7,13 +9,16 @@ case class State (
                    controlled: Set[Id],
                    controlledBy: Map[Id, Set[Id]],
                    L: Map[Id, Expression],
-                   ids: Set[Id]
+                   ids: Set[Id],
+                   globals: Set[Id],
+                   rely: Expression,
+                   guar: Expression
                  ) {
 
 }
 
 object State {
-  def apply (definitions: Set[Definition], debug: Boolean, gamma_0: Option[List[GammaMapping]]): State = {
+  def apply (definitions: Set[Definition], debug: Boolean, gamma_0: Option[List[GammaMapping]], rely: Option[Rely], guar: Option[Guar]): State = {
     var controls: Set[Id] = Set()
     var controlled: Set[Id] = Set()
     var controlledBy: Map[Id, Set[Id]] = Map()
@@ -51,9 +56,13 @@ object State {
     // init L - map variables to their L predicates
     val L: Map[Id, Expression] = {
       for (v <- variables) yield {
-        v.name -> v.pred
+        if (v.access == GlobalVar) v.name -> v.pred
+        else v.name -> Const._false
       }
     }.toMap
+
+    val globals = variables.filter(v => v.access == GlobalVar).map(v => v.name)
+    val locals = variables.filter(v => v.access == LocalVar).map(v => v.name)
 
     if (debug) {
       println("controls: " + controls)
@@ -61,7 +70,31 @@ object State {
       println("controlled by: " + controlledBy)
     }
 
+    val subst = ids.map(id => id -> id.prime).toMap[Identifier, Expression]
+    // val _rely = constructForall(List(rely.getOrElse(Rely(Const._true)).exp) ++ locals.map(id => BinOp("&&", BinOp("==", id, id.prime), BinOp("==", id.gamma, id.prime.gamma))) ++ globals.map(id => BinOp("&&", BinOp("=>", BinOp("==", id, id.prime), BinOp("==", id.gamma, id.prime.gamma)), BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.prime.gamma))))
+    val _rely = constructForall(List(rely.getOrElse(Rely(Const._true)).exp) 
+      ++ locals.map(id => BinOp(
+        "&&", 
+        BinOp("==", id, id.prime), 
+        BinOp("==", id.gamma, id.prime.gamma)
+      ))
+      ++ globals.map(id => BinOp(
+        "&&", 
+        BinOp("=>", BinOp("==", id, id.prime), BinOp("==", id.gamma, id.prime.gamma)), 
+        BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.prime.gamma)
+      ))
+    )
+    val _guar = constructForall(List(guar.getOrElse(Guar(Const._true)).exp)
+      /* 
+      G1 is for interaction between local vars and can be ommited
+      G2 causes issues with simple assignment if Gamma_0 is not specified
+      ++ ids.map(id => BinOp("=>", BinOp("==", id, id.prime), BinOp("==", id.gamma, id.prime.gamma)))
+      G3 is checked by the rules
+      ++ globals.map(id => BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.prime.gamma))
+      */
+    )
 
-    State(Const._true, debug, controls, controlled, controlledBy, L, ids)
+
+    State(Const._true, debug, controls, controlled, controlledBy, L, ids, globals, _rely, _guar)
   }
 }

@@ -1,0 +1,12 @@
+global var a:
+_L: FALSE
+
+local var b:
+
+
+_Gamma_0: a -> HIGH, b -> LOW
+
+if (b) {}
+
+b = a;
+

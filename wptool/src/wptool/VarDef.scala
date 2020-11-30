@@ -1,24 +1,18 @@
 package wptool
 
 // highest level parsed data structure
-case class Global(variables: Set[Definition], P_0: Option[List[Expression]], gamma_0: Option[List[GammaMapping]], statements: List[Statement]) extends beaver.Symbol {
-  def this(variables: Array[Definition], P_0: Array[Expression], gamma_0: Array[GammaMapping], statements: Array[Statement]) = this(variables.toSet, Some(P_0.toList), Some(gamma_0.toList), statements.toList)
-  def this(variables: Array[Definition], P_0: Array[Expression], statements: Array[Statement]) = this(variables.toSet, Some(P_0.toList), None, statements.toList)
-  def this(variables: Array[Definition], gamma_0: Array[GammaMapping], statements: Array[Statement]) = this(variables.toSet, None, Some(gamma_0.toList), statements.toList)
-  def this(variables: Array[Definition], statements: Array[Statement]) = this(variables.toSet, None, None, statements.toList)
+case class Global(variables: Set[Definition], P_0: Option[List[Expression]], gamma_0: Option[List[GammaMapping]], rely: Option[Rely], guarantee: Option[Guar], statements: List[Statement]) extends beaver.Symbol {
+  def this(variables: Array[Definition], statements: Array[Statement]) = this(variables.toSet, None, None, None, None, statements.toList)
+  def this(variables: Array[Definition], gamma_0: Array[GammaMapping], statements: Array[Statement]) = this(variables.toSet, None, Some(gamma_0.toList), None, None, statements.toList)
+  def this(variables: Array[Definition], rely: Rely, guar: Guar, statements: Array[Statement]) = this(variables.toSet, None, None, Some(rely), Some(guar), statements.toList)
+  def this(variables: Array[Definition], gamma_0: Array[GammaMapping], rely: Rely, guar: Guar, statements: Array[Statement]) = this(variables.toSet, None, Some(gamma_0.toList), Some(rely), Some(guar), statements.toList)
 }
 
-sealed trait Mode extends beaver.Symbol
-case object Reg extends Mode {
+sealed trait Access extends beaver.Symbol
+case object LocalVar extends Access {
   def instance = this
 }
-case object NoW extends Mode {
-  def instance = this
-}
-case object NoRW extends Mode {
-  def instance = this
-}
-case object RW extends Mode {
+case object GlobalVar extends Access {
   def instance = this
 }
 
@@ -36,7 +30,7 @@ case object Low extends Security {
 }
 
 case class GammaMapping(variable: Id, security: Security) extends beaver.Symbol {
-  def this(variable: Id, index: Int, security: Security) = this(new Id(variable.name + "[" + index + "]"), security)
+  def this(variable: String, index: Int, security: Security) = this(new Id(variable + "[" + index + "]"), security)
   def this(variable: String, security: Security) = this(new Id(variable), security)
 
   def toPair(arrays: Map[Id, IdArray] ): Seq[(Id, Security)] = this match {
@@ -55,28 +49,27 @@ case class GammaMapping(variable: Id, security: Security) extends beaver.Symbol 
   }
 }
 
+case class Rely(exp: Expression) extends beaver.Symbol
+case class Guar(exp: Expression) extends beaver.Symbol
+
 sealed trait Definition extends beaver.Symbol
 
-case class VarDef(name: Id, pred: Expression, mode: Mode) extends Definition {
-  def this(name: String, pred: Expression, mode: Mode) = this(new Id(name), pred, mode)
-  def this(name: String, mode: Mode) = this(new Id(name), Const._true, mode)
-  def this(name: String, pred: Expression) = this(new Id(name), pred, Reg)
-  def this(name: String) = this(new Id(name), Const._true, Reg)
+case class VarDef(name: Id, pred: Expression, access: Access) extends Definition {
+  def this(name: String, pred: Expression, access: Access) = this(new Id(name), pred, access)
+  def this(name: String, access: Access) = this(new Id(name), Const._true, access)
 }
 
-case class ArrayDef(name: Id, size: Int, preds: IndexedSeq[Expression], mode: Mode) extends Definition {
-  def this(name: String, size: Int, lpred: Expression, mode: Mode) = this(new Id(name), size, ArrayDef.predArray(size, lpred), mode)
-  def this(name: String, size: Int, lpreds: Array[Expression], mode: Mode) = this(new Id(name), size, lpreds.toIndexedSeq, mode)
-  def this(name: String, size: Int, mode: Mode) = this(new Id(name), size, ArrayDef.predArray(size, Const._true), mode)
-  def this(name: String, size: Int, lpred: Expression) = this(new Id(name), size, ArrayDef.predArray(size, lpred), Reg)
-  def this(name: String, size: Int, lpreds: Array[Expression]) = this(new Id(name), size, lpreds.toIndexedSeq, Reg)
-  def this(name: String, size: Int) = this(new Id(name), size, ArrayDef.predArray(size, Const._true), Reg)
+case class ArrayDef(name: Id, size: Int, preds: IndexedSeq[Expression], access: Access) extends Definition {
+  def this(name: String, size: Int, lpred: Expression, access: Access) = this(new Id(name), size, ArrayDef.predArray(size, lpred), access)
+  def this(name: String, size: Int, lpreds: Array[Expression], access: Access) = this(new Id(name), size, lpreds.toIndexedSeq, access)
+  def this(name: String, size: Int, access: Access) = this(new Id(name), size, ArrayDef.predArray(size, Const._true), access)
 
   def toVarDefs: Set[VarDef] = {
     for (i <- 0 until size)
-      yield VarDef(new Id(name.toString.arrayIndex(i)), preds(i), mode)
+      yield VarDef(new Id(name.toString.arrayIndex(i)), preds(i), access)
   }.toSet
 }
+
 
 object ArrayDef {
   def predArray(size: Int, lpred: Expression): IndexedSeq[Expression] = {

@@ -1,0 +1,14 @@
+global var a:
+_L: TRUE
+
+global var b:
+_L: a == 1
+
+global var c:
+_L: FALSE
+
+_Gamma_0: a -> LOW, b -> LOW, c -> HIGH
+_Rely: a == 1
+_Guar: a' == 1
+
+b = c;

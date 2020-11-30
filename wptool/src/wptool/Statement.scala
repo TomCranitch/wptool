@@ -21,18 +21,9 @@ case class Assignment(lhs: Id, expression: Expression) extends Statement {
   override def toString: String = lhs + " = " + expression
 }
 
-case class VarAssignment(lhs: Var, expression: Expression) extends Statement {
-  override def toString: String = lhs + " = " + expression
-}
-
 case class ArrayAssignment(name: Id, index: Expression, expression: Expression) extends Statement {
   def this(name: String, index: Expression, expression: Expression) = this(new Id(name), index, expression)
   override def toString: String = name + "[" + index + "]" + " = " + expression
-}
-
-case class CompareAndSwap(result: Id, toCompare: Id, oldValue: Expression, newValue: Expression) extends Statement {
-  def this(result: String, toCompare: String, oldValue: Expression, newValue: Expression) = this(new Id(result), new Id(toCompare), oldValue, newValue)
-  override def toString: String = result + " = " + "CAS(" + toCompare + ", " + oldValue + ", " + newValue + ")"
 }
 
 /*
@@ -62,13 +53,15 @@ case object ControlFence extends Statement {
 }
 
 case class If(test: Expression, left: Block, right: Option[Block]) extends Statement {
-  def this(test: Expression, left: Block) = this(test, left, None)
+  def this(test: Expression, left: Block) = this(test, left, Some(Block(List())))
   def this(test: Expression, left: Block, right: Block) = this(test, left, Some(right))
 }
 
 
 
 case class While(test: Expression, invariant: Expression, gamma: List[GammaMapping], nonblocking: Option[Set[Id]], body: Statement) extends Statement {
+  def this(test: Expression, body: Statement) = this(test, Const._true, List(), None, body)
+  def this(test: Expression, invariant: Expression, body: Statement) = this(test, invariant, List(), None, body)
   def this(test: Expression, invariant: Expression, gamma: Array[GammaMapping], body: Statement) = this(test, invariant, gamma.toList, None, body)
   def this(test: Expression, invariant: Expression, gamma: Array[GammaMapping], nonblocking: Array[Id], body: Statement) = this(test, invariant, gamma.toList, Some(nonblocking.toSet), body)
 }

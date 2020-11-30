@@ -20,13 +20,14 @@ import wptool.Parser.Terminals;
 
 %{
     Symbol resolve(String name) {
-      if (name.matches("r[0-9]+") || name.startsWith("r_")) {
-          return newToken(Terminals.REG_ID, name);
-      } else {
           return newToken(Terminals.ID,   name);
-      }
     }
-
+	Symbol resolvePrime(String name) {
+		return newToken(Terminals.PRIMEID, name);
+	}
+	Symbol resolveGamma(String name) {
+		return newToken(Terminals.GAMMAID, name);
+	}
 	Symbol newToken(short id)
 	{
 		return newToken(id, yytext());
@@ -60,6 +61,7 @@ WS = {NL} | [ \t\f]
 //"--"        { return newToken(Terminals.DECR);     }
 //"."         { return newToken(Terminals.DOT);      }
 "!"         { return newToken(Terminals.BANG);     }
+"=>"         { return newToken(Terminals.IMPLIES);     }
 "~"         { return newToken(Terminals.TILDE);    }
 //"sizeof"    { return newToken(Terminals.SIZEOF);   }
 "*"         { return newToken(Terminals.STAR);     }
@@ -102,17 +104,15 @@ WS = {NL} | [ \t\f]
 "fence"     { return newToken(Terminals.FENCE);    }
 "cfence"     { return newToken(Terminals.CFENCE);    }
 "_L"       { return newToken(Terminals.LPRED);      }
-"_Mode"       { return newToken(Terminals.MODE);     }
-"NoRW"      { return newToken(Terminals.NORW);    }
-"NoW"      { return newToken(Terminals.NOW);    }
-"RW"      { return newToken(Terminals.RW);    }
 "_invariant" {return newToken(Terminals.INVARIANT);}
 "_Gamma" {return newToken(Terminals.GAMMA);}
 "_Gamma_0" {return newToken(Terminals.GAMMA_0);}
-"_P_0" {return newToken(Terminals.P_0);}
 "_Stable" {return newToken(Terminals.STABLE);}
-"_var"      { return newToken(Terminals.VAR);     }
-"_array"    { return newToken(Terminals.ARRAY);     }
+"global var"      { return newToken(Terminals.GLOBALVAR);     }
+"local var"      { return newToken(Terminals.LOCALVAR);     }
+"_Rely" {return newToken(Terminals.RELY);}
+"_Guar" {return newToken(Terminals.GUAR);}
+//"_array"    { return newToken(Terminals.ARRAY);     }
 
 "TRUE" { return newToken(Terminals.TRUE);    }
 "FALSE" { return newToken(Terminals.FALSE);    }
@@ -120,9 +120,12 @@ WS = {NL} | [ \t\f]
 "HIGH" { return newToken(Terminals.HIGH);    }
 
 "->"        { return newToken(Terminals.MAPSTO);    }
+Gamma_[a-zA-Z][a-zA-Z0-9]*[']?    { return resolveGamma(yytext()); }
 
 [a-zA-Z_][a-zA-Z_0-9]*
             { return resolve(yytext()); }
+[a-zA-Z_][a-zA-Z_0-9]*[']
+            { return resolvePrime(yytext()); }
 
 [0-9]+      { return newToken(Terminals.NUM, new Integer(yytext())); }
 

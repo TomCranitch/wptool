@@ -70,21 +70,41 @@ object WPTool {
     val statements = res.statements
     val P_0 = res.P_0
     val gamma_0 = res.gamma_0
+    val rely = res.rely
+    val guar = res.guarantee
     if (debug) {
       println(statements)
       println(variables)
       println(P_0)
       println(gamma_0)
+      println(rely)
+      println(guar)
     }
 
-    val state = State(variables, debug, gamma_0)
-    val (passifiedStmts, _) = Passify.execute(statements, PassifyState(state, gamma_0, variables))
-    if (debug) println("Passified stmts: " + passifiedStmts.toString())
+    val state = State(variables, debug, gamma_0, rely, guar)
+    val _state = Exec.exec(statements, state)
 
-    val _state = Exec.exec(passifiedStmts, state)
-    if (debug) println("VCs: " + _state.Q)
+    val gammaDom: Set[Id] = state.ids
+    val gamma: Map[Id, Security] = gamma_0 match {
+      // security high by default if user hasn't provided
+      case None => Map()
+      case Some(gs) => {
+        gs flatMap {g => g.toPair}
+      }.toMap
+    }
+    val gammaSubstr = {
+      for (i <- gammaDom) yield {
+        GammaId(i) -> gamma.getOrElse(i, High).toTruth
+      }
+    }.toMap[Identifier, Expression]
 
-    SMT.prove(_state.Q, List[Expression](), debug = false)
+    val vcs = _state.Q.subst(gammaSubstr)
+
+    //if (debug) println("VCs: " + vcs)
+    if (debug) println("Gamma0: " + gammaSubstr)
+    if (debug) println("L: " + state.L)
+
+    SMT.prove(vcs, List[Expression](), debug = debug)
   }
 
   def printTime(start: Long): Unit = {

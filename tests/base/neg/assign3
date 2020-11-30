@@ -1,10 +1,10 @@
-_var a:
+global var a:
 _L: FALSE
 
-_var b:
+global var b:
 _L: TRUE
 
-_var c:
+global var c:
 _L: TRUE
 
 _Gamma_0: a -> HIGH, b -> LOW, c -> LOW

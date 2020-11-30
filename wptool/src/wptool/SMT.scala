@@ -1,6 +1,7 @@
 package wptool
 
 import com.microsoft.z3
+import com.microsoft.z3.BoolExpr
 
 object SMT {
   val intSize = 32 // size of bitvectors used
@@ -8,11 +9,16 @@ object SMT {
   val ctx = new z3.Context(cfg)
   val solver = ctx.mkSolver()
 
-  def simplify(cond: Expression): Unit = {
+  def simplify(cond: Expression) = {
     val g = ctx.mkGoal(true, false, false)
     g.add(formula(cond))
-    println(ctx.mkTactic("ctx-solver-simplify").apply(g))
+    ctx.mkTactic("ctx-simplify").apply(g)
+  }
 
+  def solverSimplify (cond: Expression) = {
+    val g = ctx.mkGoal(true, false, false)
+    g.add(formula(cond))
+    ctx.mkTactic("ctx-solver-simplify").apply(g)
   }
 
   def prove(cond: Expression, given: List[Expression], debug: Boolean) = {
@@ -41,8 +47,9 @@ object SMT {
       println(res)
       if (res == z3.Status.SATISFIABLE) {
         val model = solver.getModel
-        println(model)
+        println("Model: " + model.getConstDecls())
       }
+      println(solverSimplify(cond))
     }
     res == z3.Status.UNSATISFIABLE
   }
@@ -192,8 +199,6 @@ object SMT {
    and bitwise arithmetic operations for better simulation of the assembly semantics if this ends up being important
   https://z3prover.github.io/api/html/classcom_1_1microsoft_1_1z3_1_1_context.html */
   def translate(prop: Expression): z3.Expr = prop match {
-    case x: Var => ctx.mkConst(x.toString, ctx.getIntSort)
-
     case Const._true => ctx.mkTrue
     case Const._false => ctx.mkFalse
 
@@ -203,11 +208,11 @@ object SMT {
 
     case MultiSwitch(n: Int) => ctx.mkConst("MultiSwitch" + n, ctx.getIntSort)
 
-    case x: Id =>
-      // ctx.mkConst(x.toString, ctx.getIntSort)
-      throw error.InvalidProgram("unresolved program variable", x)
+    case x: Id => ctx.mkConst(x.toString, ctx.getIntSort)
+    case x: GammaId => ctx.mkConst(x.toString, ctx.getBoolSort)
 
     case BinOp("==", arg1, arg2) => ctx.mkEq(translate(arg1), translate(arg2))
+    case BinOp("!=", arg1, arg2) => ctx.mkNot(ctx.mkEq(translate(arg1), translate(arg2)))
 
     case PreOp("!", arg) => ctx.mkNot(formula(arg))
     case BinOp("&&", arg1, arg2) => ctx.mkAnd(formula(arg1), formula(arg2))
@@ -251,6 +256,4 @@ object SMT {
     case _ =>
       throw error.InvalidProgram("cannot translate to SMT", prop)
   }
-
-
 }

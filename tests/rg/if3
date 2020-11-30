@@ -1,0 +1,12 @@
+local var y:
+
+global var z:
+_L: TRUE
+
+_Gamma_0: z -> LOW
+_Rely: (z == 0) => (z' == z)
+_Guar: ((z == 1) => (z' == z))
+
+if (z == 0) {
+	z = 2;
+}
