@@ -26,9 +26,9 @@ case class ArrayAssignment(name: Id, index: Expression, expression: Expression) 
   override def toString: String = name + "[" + index + "]" + " = " + expression
 }
 
-case class CompareAndSwap(result: Id, toCompare: Id, oldValue: Expression, newValue: Expression) extends Statement {
-  def this(result: String, toCompare: String, oldValue: Expression, newValue: Expression) = this(new Id(result), new Id(toCompare), oldValue, newValue)
-  override def toString: String = result + " = " + "CAS(" + toCompare + ", " + oldValue + ", " + newValue + ")"
+case class CompareAndSwap(x: Id, e1: Expression, e2: Expression) extends Statement {
+  def this(x: String, e1: Expression, e2: Expression) = this(new Id(x), e1, e2)
+  override def toString: String = "CAS(" + x + ", " + e1 + ", " + e2 + ")"
 }
 
 /*
@@ -65,6 +65,8 @@ case class If(test: Expression, left: Block, right: Option[Block]) extends State
 
 
 case class While(test: Expression, invariant: Expression, gamma: List[GammaMapping], nonblocking: Option[Set[Id]], body: Statement) extends Statement {
+  def this(test: Expression, body: Statement) = this(test, Const._true, List(), None, body)
+  def this(test: Expression, invariant: Expression, body: Statement) = this(test, invariant, List(), None, body)
   def this(test: Expression, invariant: Expression, gamma: Array[GammaMapping], body: Statement) = this(test, invariant, gamma.toList, None, body)
   def this(test: Expression, invariant: Expression, gamma: Array[GammaMapping], nonblocking: Array[Id], body: Statement) = this(test, invariant, gamma.toList, Some(nonblocking.toSet), body)
 }

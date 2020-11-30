@@ -33,21 +33,16 @@ object Exec {
 
       val Q = state.Q.subst(Map((assign.lhs.gamma -> rhsGamma), (assign.lhs -> assign.expression)))
 
-      // TODO detect x ~ y
-      val idsNoLHS = state.ids.filter(id => id != assign.lhs)
-      val subst: Map[Identifier, Expression] = idsNoLHS.map(id => id.prime -> id).toMap[Identifier, Expression] ++ idsNoLHS.map(id => id.prime.gamma -> id.gamma).toMap[Identifier, Expression]
-      val guar = state.guar
-        .subst(Map(assign.lhs.prime -> assign.expression, assign.lhs.prime.gamma -> rhsGamma))
-        .subst(subst)
-
-      println(assign + ": " + guar)
-      // println(stableR(guar, state))
+      val guarantee = guar(assign, state)
+      println(assign + ": " + guarantee)
+      // println(stableR(guarantee, state))
 
 
-      val pred = constructForall(List(PO, Q, guar))
+      val pred = constructForall(List(PO, Q, guarantee))
 
-      state.copy(Q = BinOp("&&", pred, stableR(pred, state)))
+      // state.copy(Q = BinOp("&&", pred, stableR(pred, state)))
       // state.copy(Q = BinOp("&&", pred, stableR(constructForall(List(PO, Q)), state)))
+      state.copy(Q = pred)
 
     case ifStmt: If =>
       val state1 = exec(ifStmt.left, state)
@@ -57,6 +52,7 @@ object Exec {
       val condGamma = computeGamma(ifStmt.test.ids.toList, state)
       // TODO is this pred correct
       val condStableR = BinOp("=>", PreOp("!", stableR(ifStmt.test, state)), BinOp("&&", state1.Q, state2.Q))
+
       // TODO include Q??
       state.copy(Q = constructForall(List(condGamma, stableR(condGamma, state), left, right, condStableR)))
 
@@ -70,6 +66,15 @@ object Exec {
       val wpQ = BinOp("&&", BinOp("=>", BinOp("&&", eval(inv, state), eval(loop.test, state)), body.Q), BinOp("=>", BinOp("&&", eval(inv, state), PreOp("!", eval(loop.test, state))), state.Q))
       state.copy(Q = constructForall(List(PO, stableR(inv, state), wpQ)))
 
+    case cas: CompareAndSwap =>
+      val gamma = computeGamma(cas.e1.ids.toList, state)
+      val state1 = exec(Assignment(cas.x, cas.e2), exec(Assignment(cas.result, Lit(1)), state))
+      val state2 = exec(Assignment(cas.x, Lit(0)), state)
+      val guarantee = guar(Assignment(cas.x, cas.e2), state)
+      val left = BinOp("=>", BinOp("==", cas.x, cas.e1), BinOp("&&", guarantee, state1.Q))
+      val right = BinOp("=>", BinOp("==", cas.x, cas.e1), state2.Q)
+      val pred = constructForall(List(left, right, gamma))
+      state.copy(Q = BinOp("&&", pred, stableR(pred, state)))
     case stmt =>
       println("Unhandled statement: " + stmt)
       state
@@ -101,5 +106,15 @@ object Exec {
   def stableR (p: Expression, state: State) = {
     val primed = p.subst(state.ids.map(id => id -> id.prime).toMap)
     BinOp("=>", BinOp("&&", state.rely, p), primed)
+  }
+
+  def guar (a: Assignment, state: State) = {
+      // TODO detect x ~ y
+      val rhsGamma = computeGamma(a.expression.ids.toList, state)
+      val idsNoLHS = state.ids.filter(id => id != a.lhs)
+      val subst: Map[Identifier, Expression] = idsNoLHS.map(id => id.prime -> id).toMap[Identifier, Expression] ++ idsNoLHS.map(id => id.prime.gamma -> id.gamma).toMap[Identifier, Expression]
+      state.guar
+        .subst(Map(a.lhs.prime -> a.expression, a.lhs.prime.gamma -> rhsGamma))
+        .subst(subst)
   }
 }
