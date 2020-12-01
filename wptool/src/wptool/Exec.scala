@@ -21,7 +21,7 @@ object Exec {
       val left = BinOp("=>", BinOp("==", cas.x, cas.e1), _left) 
       val right = BinOp("=>", BinOp("!=", cas.x, cas.e1), exec(Assignment(lhs, Lit(1)), state).Q) 
       val pred = constructForall(List(gamma, left, right))
-      state.copy(Q = BinOp("&&", pred, stableR(pred, state)))
+      state.copy(Q = stableR(pred, state))
     case If(cas: CompareAndSwap, c1, c2) =>
       val state1 = exec(Assignment(cas.x, cas.e2), exec(c1, state), RG = false)
       val state2 = exec(c2.get, state) // Right should contain block from passification
@@ -29,7 +29,7 @@ object Exec {
       val right = BinOp("=>", BinOp("!=", cas.x, cas.e2), state2.Q)
       val condGamma = computeGamma(cas.e1.ids.toList :+ cas.x, state)
       val pred = constructForall(List(left, right, condGamma))
-      state.copy(Q = BinOp("&&", pred, stableR(pred, state)))
+      state.copy(Q = stableR(pred, state))
     case While(cas: CompareAndSwap, inv, gamma, _, c) =>
       val body = exec(Assignment(cas.x, cas.e2), exec(c, state.copy(Q = inv)), RG = false)
       val test = BinOp("=>", inv, computeGamma(cas.e1.ids.toList :+ cas.x, state))
@@ -59,14 +59,7 @@ object Exec {
         val guarantee = guar(assign, state)
         val pred = constructForall(List(PO, Q, guarantee))
 
-        println("# Predicates for " + assign + " #")
-        println("PO: " + PO)
-        println("Q: " + Q)
-        println("Guarantee: " + guarantee)
-        println("Pred: " + pred)
-        println("StableR: " + stableR(pred, state))
-
-        state.copy(Q = BinOp("&&", pred, stableR(pred, state)))
+        state.copy(Q = stableR(pred, state))
         // state.copy(Q = BinOp("&&", pred, stableR(constructForall(List(PO, Q)), state)))
         // state.copy(Q = pred)
       } else {
@@ -94,6 +87,7 @@ object Exec {
       // TODO i dont think this considers forall sigma
       val body = exec(loop.body, state.copy(Q=eval(inv, state)))
       val wpQ = BinOp("&&", BinOp("=>", BinOp("&&", eval(inv, state), eval(loop.test, state)), body.Q), BinOp("=>", BinOp("&&", eval(inv, state), PreOp("!", eval(loop.test, state))), state.Q))
+      // TODO check use of stableR
       state.copy(Q = constructForall(List(PO, stableR(inv, state), wpQ)))
 
     case stmt =>
@@ -127,7 +121,8 @@ object Exec {
 
   def stableR (p: Expression, state: State) = {
     val primed = p.subst(state.ids.map(id => id -> id.prime).toMap)
-    BinOp("=>", BinOp("&&", state.rely, p), primed)
+    // TODO maybe only use relevant parts of the axioms
+    BinOp("=>", state.rely, primed)
   }
 
   def guar (a: Assignment, state: State) = {
