@@ -59,6 +59,13 @@ object Exec {
         val guarantee = guar(assign, state)
         val pred = constructForall(List(PO, Q, guarantee))
 
+        println("# Predicates for " + assign + " #")
+        println("PO: " + PO)
+        println("Q: " + Q)
+        println("Guarantee: " + guarantee)
+        println("Pred: " + pred)
+        println("StableR: " + stableR(pred, state))
+
         state.copy(Q = BinOp("&&", pred, stableR(pred, state)))
         // state.copy(Q = BinOp("&&", pred, stableR(constructForall(List(PO, Q)), state)))
         // state.copy(Q = pred)

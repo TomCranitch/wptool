@@ -13,13 +13,12 @@ case class State (
                    globals: Set[Id],
                    rely: Expression,
                    guar: Expression,
-                   defaultG: Boolean
                  ) {
 
 }
 
 object State {
-  def apply (definitions: Set[Definition], debug: Boolean, gamma_0: Option[List[GammaMapping]], rely: Option[Rely], guar: Option[Guar], defaultG: Boolean): State = {
+  def apply (definitions: Set[Definition], debug: Boolean, gamma_0: Option[List[GammaMapping]], rely: Option[Rely], guar: Option[Guar]): State = {
     var controls: Set[Id] = Set()
     var controlled: Set[Id] = Set()
     var controlledBy: Map[Id, Set[Id]] = Map()
@@ -96,6 +95,6 @@ object State {
     )
 
 
-    State(Const._true, debug, controls, controlled, controlledBy, L, ids, globals, _rely, _guar, defaultG)
+    State(Const._true, debug, controls, controlled, controlledBy, L, ids, globals, _rely, _guar)
   }
 }
