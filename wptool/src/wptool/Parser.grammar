@@ -32,7 +32,7 @@
 
 %terminals CAS;
 %terminals FENCE, CFENCE;
-%terminals INVARIANT, GAMMA, GAMMA_0, STABLE, RELY, GUAR;
+%terminals INVARIANT, GAMMA, GAMMA_0, RELY, GUAR;
 %terminals LPRED;
 %terminals MAPSTO;
 %terminals PRIMEID;
@@ -63,13 +63,9 @@
 
 %typeof NUM     = "Integer";
 
-%typeof stable = "Id";
-
 %typeof expr    = "Expression";
 
 %typeof local   = "Statement";
-%typeof local1  = "Statement";
-%typeof local2  = "Statement";
 
 %typeof block  = "Block";
 
@@ -90,24 +86,7 @@ unit = defs.v locals.s {: return new Global(v, s); :}
      | defs.v GAMMA_0 COLON gamma_mappings.f rely.r guar.g locals.s {: return new Global(v, f, r, g, s); :};
 
 
-local
-    = SEMICOLON {: return Block.empty(); :}
-    | local1
-    ;
 
-local2
-	=  local1
-    ;
-
-locals  = local *;
-locals2 = local2 *;
-
-stable = ID.i {: return new Id(i); :}
-         | ID.i LBRACK STAR RBRACK {: return new Id(i); :}
-         | ID.i LBRACK NUM.n RBRACK {: return new Id(i + "[" + n + "]"); :}
-         ;
-
-stables = stable | stables COMMA stable;
 
 definition
     =     GLOBALVAR ID.n COLON lpred.l              {:  return new VarDef(n, l, GlobalVar.instance()); :} // TODO: does this make them appear as global (i.e. are vars without right permissions global)
@@ -120,11 +99,11 @@ definition
 
 defs = definition *;
 
-block = LBRACE locals2.ss RBRACE {: return new Block(ss); :};
+block = LBRACE locals.ss RBRACE {: return new Block(ss); :};
 
-local1
+local
     =
-    //LBRACE locals2.ss RBRACE          {: return new Block(ss); :}
+    //LBRACE locals.ss RBRACE          {: return new Block(ss); :}
     //| expr.a   SEMICOLON                {: return new Atomic(a); :}
     //|
     ID.n ASG    expr.b SEMICOLON              {: return new Assignment(n, b); :}
@@ -141,11 +120,10 @@ local1
     | WHILE LPAREN expr.a RPAREN INVARIANT COLON expr.i block.b      {: return new While(a, i, b);   :}
     | WHILE LPAREN expr.a RPAREN block.b      {: return new While(a, b);   :}
     | WHILE LPAREN expr.a RPAREN INVARIANT COLON expr.i GAMMA COLON gamma_mappings.g block.b      {: return new While(a, i, g, b);   :}
-    | WHILE LPAREN expr.a RPAREN INVARIANT COLON expr.i GAMMA COLON gamma_mappings.g STABLE COLON stables.n block.b      {: return new While(a, i, g, n, b);   :}
     | DO INVARIANT COLON expr.i GAMMA COLON gamma_mappings.g local.b WHILE LPAREN expr.a RPAREN    {: return new DoWhile(a, i, g, b);   :}
-    | DO INVARIANT COLON expr.i GAMMA COLON gamma_mappings.g STABLE COLON stables.n local.b WHILE LPAREN expr.a RPAREN     {: return new DoWhile(a, i, g, n, b);   :}
     | error SEMICOLON {: return Malformed.self(); :}
     ;
+locals  = local *;
 
 expr
     = PREFIX | POSTFIX /* unused */

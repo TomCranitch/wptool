@@ -13,6 +13,7 @@ object WPTool {
     var toLog: Boolean = false // whether to print P/Gamma/D state information for each rule application
     var debug: Boolean = false // whether to print further debug information
     var noInfeasible: Boolean = false // whether to not check infeasible paths
+    var defaultG = false
 
     if (args.isEmpty) {
       println("usage: ./wptool.sh file1 file2...")
@@ -25,10 +26,12 @@ object WPTool {
           toLog = true
         case "-p" =>
           noInfeasible = true
+        case "-no-g" =>
+          defaultG = false
         case _ =>
           val start = System.currentTimeMillis()
           try {
-            println(run(file, debug))
+            println(run(file, debug, defaultG))
             printTime(start)
           } catch {
             case e: java.io.FileNotFoundException =>
@@ -63,7 +66,7 @@ object WPTool {
     println(urls.mkString("\n"))
   }
 
-  def run (file: String, debug: Boolean): Boolean = {
+  def run (file: String, debug: Boolean, defaultG: Boolean): Boolean = {
     val res = parse(file)
     val variables = res.variables
 
@@ -81,7 +84,7 @@ object WPTool {
       println(guar)
     }
 
-    val state = State(variables, debug, gamma_0, rely, guar)
+    val state = State(variables, debug, gamma_0, rely, guar, defaultG)
     val _state = Exec.exec(statements, state)
 
     val gammaDom: Set[Id] = state.ids
