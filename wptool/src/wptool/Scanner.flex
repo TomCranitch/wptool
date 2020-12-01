@@ -107,7 +107,6 @@ WS = {NL} | [ \t\f]
 "_invariant" {return newToken(Terminals.INVARIANT);}
 "_Gamma" {return newToken(Terminals.GAMMA);}
 "_Gamma_0" {return newToken(Terminals.GAMMA_0);}
-"_Stable" {return newToken(Terminals.STABLE);}
 "global var"      { return newToken(Terminals.GLOBALVAR);     }
 "local var"      { return newToken(Terminals.LOCALVAR);     }
 "_Rely" {return newToken(Terminals.RELY);}

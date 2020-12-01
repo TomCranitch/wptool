@@ -12,7 +12,7 @@ case class State (
                    ids: Set[Id],
                    globals: Set[Id],
                    rely: Expression,
-                   guar: Expression
+                   guar: Expression,
                  ) {
 
 }

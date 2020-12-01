@@ -47,7 +47,7 @@ object SMT {
       println(res)
       if (res == z3.Status.SATISFIABLE) {
         val model = solver.getModel
-        println("Model: " + model.getConstDecls())
+        println("Model: [" + cond.ids.toList.sortWith((x, y) => x.toString < y.toString).map(x => x + " -> " + model.eval(translate(x), false)).mkString(", ") + "]")
       }
       println(solverSimplify(cond))
     }

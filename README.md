@@ -113,5 +113,3 @@ Implementing the tool using basic blocks, as opposed to the current while langua
 
 ### Improved feedback
 The tool currently provides no feedback when it fails. This should be modified to, at a minimum, provide feedback on things like the loop invariant.
-
-
