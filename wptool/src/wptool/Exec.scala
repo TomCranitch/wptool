@@ -10,9 +10,6 @@ object Exec {
   }
 
   def exec (stmt: Statement, state: State, RG: Boolean = true): State = stmt match {
-    case atomic: Atomic =>
-      // TODO check
-      exec(atomic.statements, state)
     case block: Block =>
       exec(block.statements, state)
     case Assignment(lhs, cas: CompareAndSwap) =>
@@ -43,7 +40,7 @@ object Exec {
           BinOp(
             "=>",
             getL(contr, state).subst(Map(assign.lhs -> assign.expression)),
-            BinOp("||", GammaId(contr), getL(contr, state)) // TODO this is the issue !!
+            BinOp("||", GammaId(contr), getL(contr, state))
           )
         ).toList)
       } 
@@ -76,7 +73,6 @@ object Exec {
       // TODO is this pred correct
       val notStableRImo = BinOp("=>", PreOp("!", stableR(ifStmt.test, state)), BinOp("&&", state1.Q, state2.Q))
 
-      // TODO include Q??
       state.copy(Q = constructForall(List(rImplies(condGamma, state), stableRImp, notStableRImo))).incIndicies
 
     case loop: While => 
@@ -87,7 +83,6 @@ object Exec {
       // TODO i dont think this considers forall sigma
       val body = exec(loop.body, state.copy(Q=eval(inv, state)))
       val wpQ = BinOp("&&", BinOp("=>", BinOp("&&", eval(inv, state), eval(loop.test, state)), body.Q), BinOp("=>", BinOp("&&", eval(inv, state), PreOp("!", eval(loop.test, state))), state.Q))
-      // TODO check use of stableR
       state.copy(Q = constructForall(List(PO, stableR(inv, state), wpQ))).incIndicies
 
     case stmt =>
