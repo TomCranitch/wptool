@@ -15,6 +15,7 @@ class IntegrationTestsRG extends  AnyFunSuite {
     assert(!WPTool.run(testNegDir + "assign1", debug = false))
     assert(!WPTool.run(testNegDir + "assign2", debug = false))
     assert(!WPTool.run(testNegDir + "assign3", debug = false))
+    assert(!WPTool.run(testNegDir + "assign4", debug = false))
   }
 
   test("CAS") {
@@ -30,8 +31,7 @@ class IntegrationTestsRG extends  AnyFunSuite {
     assert(WPTool.run(testDir + "if3", debug = false))
   }
 
-  test("If (Negative)") {
-    assert(!WPTool.run(testNegDir + "if1", debug = false))
+  ignore("If (Negative)") {
   }
 
   test("While") {

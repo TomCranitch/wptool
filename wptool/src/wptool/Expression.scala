@@ -26,13 +26,13 @@ trait Identifier {}
 
 // id parsed from input - need to convert to Var before use in predicates etc.
 case class Id(name: String) extends Expression with Identifier {
-  //override def toString = "ID_" + name
   override def toString: String = name
   override def ids: Set[Id] = Set(this)
   override def subst(su: Subst): Expression = su.getOrElse(this, this)
   override def subst(su: Subst, num: Int): Expression = this.subst(su)
   def prime: Id = Id(name + "'")
   def gamma: GammaId = GammaId(this)
+  def indexPrime(state: State): Id = Id(name __ state.primeIndicies.get(this))
 }
 
 case class GammaId(ident: Id) extends Expression with Identifier {
@@ -40,6 +40,7 @@ case class GammaId(ident: Id) extends Expression with Identifier {
   override def ids: Set[Id] = Set()
   override def subst(su: Subst): Expression = su.getOrElse(this, this)
   override def subst(su: Subst, num: Int): Expression = this.subst(su)
+  def indexPrime(state: State): GammaId = GammaId(Id(ident.name __ state.primeIndicies.get(this.ident)))
 }
 
 object CFence extends Id("cfence")

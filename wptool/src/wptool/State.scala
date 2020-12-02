@@ -13,8 +13,9 @@ case class State (
                    globals: Set[Id],
                    rely: Expression,
                    guar: Expression,
+                   primeIndicies: Map[Id, Int]
                  ) {
-
+  def incIndicies = this.copy(primeIndicies = primeIndicies.map(x => (x._1, x._2 + 1)).toMap)
 }
 
 object State {
@@ -94,7 +95,8 @@ object State {
       */
     )
 
+    val primeIndicies = ids.map(x => x.prime -> 0).toMap
 
-    State(Const._true, debug, controls, controlled, controlledBy, L, ids, globals, _rely, _guar)
+    State(Const._true, debug, controls, controlled, controlledBy, L, ids, globals, _rely, _guar, primeIndicies)
   }
 }

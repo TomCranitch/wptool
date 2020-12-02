@@ -21,7 +21,7 @@ object Exec {
       val left = BinOp("=>", BinOp("==", cas.x, cas.e1), _left) 
       val right = BinOp("=>", BinOp("!=", cas.x, cas.e1), exec(Assignment(lhs, Lit(1)), state).Q) 
       val pred = constructForall(List(gamma, left, right))
-      state.copy(Q = stableR(pred, state))
+      state.copy(Q = rImplies(pred, state)).incIndicies
     case If(cas: CompareAndSwap, c1, c2) =>
       val state1 = exec(Assignment(cas.x, cas.e2), exec(c1, state), RG = false)
       val state2 = exec(c2.get, state) // Right should contain block from passification
@@ -29,13 +29,13 @@ object Exec {
       val right = BinOp("=>", BinOp("!=", cas.x, cas.e2), state2.Q)
       val condGamma = computeGamma(cas.e1.ids.toList :+ cas.x, state)
       val pred = constructForall(List(left, right, condGamma))
-      state.copy(Q = stableR(pred, state))
+      state.copy(Q = rImplies(pred, state)).incIndicies
     case While(cas: CompareAndSwap, inv, gamma, _, c) =>
       val body = exec(Assignment(cas.x, cas.e2), exec(c, state.copy(Q = inv)), RG = false)
       val test = BinOp("=>", inv, computeGamma(cas.e1.ids.toList :+ cas.x, state))
       val left = BinOp("=>", BinOp("&&", inv, BinOp("==", cas.x, cas.e1)), guar(Assignment(cas.x, cas.e2), body))
       val right = BinOp("=>", BinOp("&&", inv, BinOp("!=", inv, cas.x)), state.Q)
-      state.copy(Q = constructForall(List(inv, stableR(inv, state), left, right)))
+      state.copy(Q = constructForall(List(inv, stableR(inv, state), left, right))).incIndicies
     case assign: Assignment =>
       val globalPred = if (state.globals.contains(assign.lhs)) BinOp("=>", getL(assign.lhs, state), computeGamma(assign.expression.ids.toList, state)) else Const._true
       val controlPred = if (state.controls.contains(assign.lhs)) {
@@ -59,11 +59,10 @@ object Exec {
         val guarantee = guar(assign, state)
         val pred = constructForall(List(PO, Q, guarantee))
 
-        state.copy(Q = stableR(pred, state))
-        // state.copy(Q = BinOp("&&", pred, stableR(constructForall(List(PO, Q)), state)))
-        // state.copy(Q = pred)
+        //state.copy(Q = BinOp("&&", guarantee, rImplies(pred, state))).incIndicies
+        state.copy(Q = rImplies(pred, state)).incIndicies
       } else {
-        state.copy(Q = BinOp("&&", PO, Q))
+        state.copy(Q = BinOp("&&", PO, Q)).incIndicies
       }
 
 
@@ -72,12 +71,13 @@ object Exec {
       val state2 = exec(ifStmt.right.get, state) // Right should contain block from passification
       val left = BinOp("=>", ifStmt.test, state1.Q)
       val right = BinOp("=>", PreOp("!", ifStmt.test), state2.Q)
+      val stableRImp = BinOp("=>", stableR(ifStmt.test, state), BinOp("&&", left, right))
       val condGamma = computeGamma(ifStmt.test.ids.toList, state)
       // TODO is this pred correct
-      val condStableR = BinOp("=>", PreOp("!", stableR(ifStmt.test, state)), BinOp("&&", state1.Q, state2.Q))
+      val notStableRImo = BinOp("=>", PreOp("!", stableR(ifStmt.test, state)), BinOp("&&", state1.Q, state2.Q))
 
       // TODO include Q??
-      state.copy(Q = constructForall(List(condGamma, stableR(condGamma, state), left, right, condStableR)))
+      state.copy(Q = constructForall(List(rImplies(condGamma, state), stableRImp, notStableRImo))).incIndicies
 
     case loop: While => 
       val gammaPred = constructForall(loop.gamma.map(x => BinOp("==", GammaId(x.variable), x.security.toTruth)))
@@ -88,11 +88,11 @@ object Exec {
       val body = exec(loop.body, state.copy(Q=eval(inv, state)))
       val wpQ = BinOp("&&", BinOp("=>", BinOp("&&", eval(inv, state), eval(loop.test, state)), body.Q), BinOp("=>", BinOp("&&", eval(inv, state), PreOp("!", eval(loop.test, state))), state.Q))
       // TODO check use of stableR
-      state.copy(Q = constructForall(List(PO, stableR(inv, state), wpQ)))
+      state.copy(Q = constructForall(List(PO, stableR(inv, state), wpQ))).incIndicies
 
     case stmt =>
       println("Unhandled statement: " + stmt)
-      state
+      state.incIndicies
   }
 
   def eval (expr: Expression, state: State): Expression = expr match {
@@ -102,6 +102,24 @@ object Exec {
     case expr =>
       println("Unhandled expression: " + expr)
       expr
+  }
+
+  def evalPrimed (expr: Expression, state: State): Expression = {
+  expr match {
+    case BinOp(op, arg1, arg2) => BinOp(op, evalPrimed(arg1, state), evalPrimed(arg2, state))
+    case PreOp(op, arg) => PreOp(op, evalPrimed(arg, state))
+    case _: Lit | _: Const  => expr
+    case id: Id => 
+      if (id.name.endsWith("'")) id.indexPrime(state)
+      else id
+    case id: GammaId => 
+      if (id.ident.name.endsWith("'")) id.indexPrime(state)
+      else id
+    case _: CompareAndSwap => throw new Error("Unexpected compare and swap")
+    case expr =>
+      println("Unhandled expression (eval primed): " + expr)
+      expr
+  }
   }
 
   def computeGamma (ids: List[Id], state: State): Expression = ids match {
@@ -119,11 +137,12 @@ object Exec {
     case Nil => Const._true
   }
 
-  def stableR (p: Expression, state: State) = {
-    val primed = p.subst(state.ids.map(id => id -> id.prime).toMap)
-    // TODO maybe only use relevant parts of the axioms
-    BinOp("=>", state.rely, primed)
-  }
+  def primed (p: Expression, state: State) = p.subst(state.ids.map(id => id -> id.prime).toMap)
+
+  // TODO maybe only use relevant parts of the axioms
+  def stableR (p: Expression, state: State) = evalPrimed(BinOp("=>", BinOp("&&", state.rely, p), primed(p, state)), state)
+
+  def rImplies (p: Expression, state: State) = evalPrimed(BinOp("=>", state.rely, primed(p, state)), state)
 
   def guar (a: Assignment, state: State) = {
       // TODO detect x ~ y

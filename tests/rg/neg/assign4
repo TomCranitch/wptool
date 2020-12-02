@@ -1,0 +1,10 @@
+local var y:
+
+global var z:
+_L: TRUE
+
+_Rely: TRUE
+_Guar: z' == z
+
+y = 1;
+z = 1;
