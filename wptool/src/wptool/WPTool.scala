@@ -82,7 +82,11 @@ object WPTool {
     }
 
     val state = State(variables, debug, gamma_0, rely, guar)
-    val _state = Exec.exec(statements, state)
+    printBlocks(PreProcess.process(statements, state))
+
+    true
+    /* val _state = Exec.exec(statements, state)
+
 
     val gammaDom: Set[Id] = state.ids
     val gamma: Map[Id, Security] = gamma_0 match {
@@ -105,6 +109,7 @@ object WPTool {
     if (debug) println("L: " + state.L)
 
     SMT.prove(vcs, List[Expression](), debug = debug)
+     */
   }
 
   def printTime(start: Long): Unit = {
@@ -127,6 +132,10 @@ object WPTool {
     result
   }
 
+  def printBlocks (block: Block): Unit = {
+    println(block)
+    block.parents.foreach(b => printBlocks(b))
+  }
 
 
 }

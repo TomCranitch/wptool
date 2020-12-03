@@ -1,7 +1,13 @@
 package wptool
 
 object Block {
-  def empty: Block = Block(Nil)
+  def empty: Block = Block("empty", "?", Nil, Nil)
+
+  private var currName = 'A'
+  def nextName = {
+    currName = (currName + 1).toChar
+    currName.toString
+  }
 }
 
 sealed trait Statement extends beaver.Symbol {
@@ -12,8 +18,11 @@ case object Malformed extends Statement {
   def self: Malformed.type = this
 }
 
-case class Block(statements: List[Statement]) extends Statement {
-  def this(statements: Array[Statement]) = this(statements.toList)
+case class Block(label: String, name: String, statements: List[Statement], parents: List[Block]) extends Statement {
+  def this(label: String, statements: Array[Statement]) = this(label, Block.nextName, statements.toList, List())
+  def append(statement: Statement) = this.copy(statements = statements :+ statement)
+
+  override def toString: String = label + ": [" + parents.map(b => b.name).mkString(", ") + "] {\n" + statements.mkString(";\n") + "\n}"
 }
 
 case class Assignment(lhs: Id, expression: Expression) extends Statement {
@@ -53,10 +62,15 @@ case object ControlFence extends Statement {
 }
 
 case class If(test: Expression, left: Block, right: Option[Block]) extends Statement {
-  def this(test: Expression, left: Block) = this(test, left, Some(Block(List())))
+  def this(test: Expression, left: Block) = this(test, left, None)
   def this(test: Expression, left: Block, right: Block) = this(test, left, Some(right))
 }
 
+case class Goto() extends Statement {
+  def self = this
+  // override def toString: String = "goto " + children.map(b => b.name).mkString(" ,")
+  override def toString: String = "goto"
+}
 
 
 case class While(test: Expression, invariant: Expression, gamma: List[GammaMapping], nonblocking: Option[Set[Id]], body: Statement) extends Statement {

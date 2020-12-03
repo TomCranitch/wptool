@@ -99,11 +99,11 @@ definition
 
 defs = definition *;
 
-block = LBRACE locals.ss RBRACE {: return new Block(ss); :};
+block = LBRACE locals.ss RBRACE {: return new Block("unprocessed", ss); :};
 
 local
     =
-    //LBRACE locals.ss RBRACE          {: return new Block(ss); :}
+    //LBRACE locals.ss RBRACE          {: return new Block("unprocessed", ss); :}
     //| expr.a   SEMICOLON                {: return new Atomic(a); :}
     //|
     ID.n ASG    expr.b SEMICOLON              {: return new Assignment(n, b); :}

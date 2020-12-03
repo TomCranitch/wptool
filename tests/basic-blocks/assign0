@@ -1,0 +1,22 @@
+global var a:
+_L: FALSE
+
+_Rely: TRUE
+_Guar: TRUE
+
+_Entry: b1
+
+b1:		a = 1;
+		a = 3;
+		if (a == 3) goto b3;
+		goto b2;
+
+b2:		a = 4;
+		a = 5;
+		goto exit;
+
+b3:		a = 6;
+		a = 7;
+		goto exit;
+
+exit;
