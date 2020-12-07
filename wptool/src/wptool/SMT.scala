@@ -36,6 +36,7 @@ object SMT {
     } catch {
       case e: java.lang.UnsatisfiedLinkError if e.getMessage.equals("com.microsoft.z3.Native.INTERNALgetErrorMsgEx(JI)Ljava/lang/String;")=>
         // weird unintuitive error z3 can have when an input type is incorrect in a way it doesn't check
+        // REMEMBER: can be caused by incorrect types (e.g. gamma vars should be of type bool)
         throw error.Z3Error("Z3 failed", cond, given.PStr, "incorrect z3 expression type, probably involving ForAll/Exists")
       case e: Throwable =>
         throw error.Z3Error("Z3 failed", cond, given.PStr, e)
@@ -208,8 +209,11 @@ object SMT {
 
     case MultiSwitch(n: Int) => ctx.mkConst("MultiSwitch" + n, ctx.getIntSort)
 
-    case x: Var => ctx.mkConst(x.toString, ctx.getIntSort)
-    case x: Id => throw new Error("unresolvd id")
+    case x: Var => {
+      if (x.ident.gamma) ctx.mkConst(x.toString, ctx.getBoolSort)
+      else ctx.mkConst(x.toString, ctx.getIntSort)
+    }
+    case x: Id => throw new Error("unresolved id")
 
     case BinOp("==", arg1, arg2) => ctx.mkEq(translate(arg1), translate(arg2))
     case BinOp("!=", arg1, arg2) => ctx.mkNot(ctx.mkEq(translate(arg1), translate(arg2)))

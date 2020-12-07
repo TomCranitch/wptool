@@ -99,7 +99,7 @@ object WPTool {
     }
     val gammaSubstr = {
       for (i <- gammaDom) yield {
-        i.toVar(state) -> gamma.getOrElse(i, High).toTruth
+        i.toGamma.toVar(state) -> gamma.getOrElse(i, High).toTruth
       }
     }.toMap[Var, Expression]
 

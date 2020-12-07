@@ -28,7 +28,7 @@ trait Identifier {}
 
 // id parsed from input - need to convert to Var before use in predicates etc.
 case class Id (name: String, prime: Boolean, gamma: Boolean) extends Expression with Identifier {
-  override def toString: String = name
+  override def toString: String = (if (gamma) "Gamma_" else "") + name + (if (prime) "'" else "")
   override def vars: Set[Var] = throw new Error("Tried to get var from id")
   override def ids: Set[Id] = Set(this)
   override def subst(su: Subst): Expression = throw new Error("tried to subst id") // su.getOrElse(this, this)
@@ -42,7 +42,7 @@ case class Id (name: String, prime: Boolean, gamma: Boolean) extends Expression 
 }
 
 case class Var (ident: Id, index: Int) extends Expression {
-  override def toString: String = (if (ident.gamma) "Gamma_" else "") + ident.toString __ index //+ (if (ident.prime) "'" else "") __ index
+  override def toString: String = ident.toString __ index
   override def vars: Set[Var] = Set(this)
   override def ids: Set[Id] = Set(this.ident)
   override def subst(su: Subst): Expression = su.getOrElse(this, this)

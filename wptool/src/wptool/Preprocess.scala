@@ -40,13 +40,13 @@ object PreProcess {
       val after = currBlock.prepend(Assume(PreOp("!", whileStmt.test)))
       val body = new Block("while body", List(Assert(whileStmt.invariant)), List(after))
       val _body =  exec(whileStmt.body, state, body).prepend(Guard(whileStmt.test))
-      val branchGamma = computeGamma(whileStmt.test.vars.toList, state)
+      // val branchGamma = computeGamma(whileStmt.test.vars.toList, state)
       val inv = whileStmt.invariant // TODO
       val head = new Block("while head", List(
         Assert(whileStmt.invariant, true),
         Havoc(),
         Assume(whileStmt.invariant),
-        Assert(branchGamma)
+        // Assert(branchGamma)
       ), List(body))
       head
     case _ => 

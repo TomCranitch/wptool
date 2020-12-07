@@ -13,8 +13,8 @@ case class State (
                    guar: Expression,
                    indicies: Map[Id, Int]
                  ) {
-                   def incPrimeIndicies = this.copy(indicies = indicies.filter(x => x._1.name.endsWith("'")).map(x => (x._1, x._2 + 1)).toMap)
-                   def incNonPrimeIndicies = this.copy(indicies = indicies.filter(x => !x._1.name.endsWith("'")).map(x => (x._1, x._2 + 1)).toMap)
+                   def incPrimeIndicies = this.copy(indicies = indicies ++ indicies.filter(x => x._1.prime).map(x => (x._1, x._2 + 1)).toMap)
+                   def incNonPrimeIndicies = this.copy(indicies = indicies ++ indicies.filter(x => !x._1.prime).map(x => (x._1, x._2 + 1)).toMap)
 }
 
 object State {
