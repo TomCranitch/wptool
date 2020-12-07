@@ -82,10 +82,11 @@ object WPTool {
     }
 
     val state = State(variables, debug, gamma_0, rely, guar)
-    printBlocks(PreProcess.process(statements, state))
+    // printBlocks(PreProcess.process(statements, state))
 
-    true
-    /* val _state = Exec.exec(statements, state)
+    if (debug) PreProcess.printGraphvis(PreProcess.process(statements, state))
+
+    val _state = Exec.exec(PreProcess.process(statements, state), state)
 
 
     val gammaDom: Set[Id] = state.ids
@@ -98,9 +99,9 @@ object WPTool {
     }
     val gammaSubstr = {
       for (i <- gammaDom) yield {
-        GammaId(i) -> gamma.getOrElse(i, High).toTruth
+        i.toVar(state) -> gamma.getOrElse(i, High).toTruth
       }
-    }.toMap[Identifier, Expression]
+    }.toMap[Var, Expression]
 
     val vcs = _state.Q.subst(gammaSubstr)
 
@@ -109,7 +110,6 @@ object WPTool {
     if (debug) println("L: " + state.L)
 
     SMT.prove(vcs, List[Expression](), debug = debug)
-     */
   }
 
   def printTime(start: Long): Unit = {
@@ -134,7 +134,7 @@ object WPTool {
 
   def printBlocks (block: Block): Unit = {
     println(block)
-    block.parents.foreach(b => printBlocks(b))
+    block.children.foreach(b => printBlocks(b))
   }
 
 

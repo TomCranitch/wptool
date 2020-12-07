@@ -1,7 +1,5 @@
 package wptool
 
-import wptool.Helper.constructForall
-
 case class State (
                    Q: Expression,
                    debug: Boolean,
@@ -13,9 +11,10 @@ case class State (
                    globals: Set[Id],
                    rely: Expression,
                    guar: Expression,
-                   primeIndicies: Map[Id, Int]
+                   indicies: Map[Id, Int]
                  ) {
-  def incIndicies = this.copy(primeIndicies = primeIndicies.map(x => (x._1, x._2 + 1)).toMap)
+                   def incPrimeIndicies = this.copy(indicies = indicies.filter(x => x._1.name.endsWith("'")).map(x => (x._1, x._2 + 1)).toMap)
+                   def incNonPrimeIndicies = this.copy(indicies = indicies.filter(x => !x._1.name.endsWith("'")).map(x => (x._1, x._2 + 1)).toMap)
 }
 
 object State {
@@ -34,7 +33,7 @@ object State {
     val ids: Set[Id] = {for (v <- variables) yield v.name}
 
     for (v <- variables) {
-      val controlling: Set[Id] = v.pred.ids.map(id => Id(id.name))
+      val controlling: Set[Id] = v.pred.ids
 
       if (controlling.nonEmpty) {
         controlled += v.name
@@ -71,19 +70,19 @@ object State {
       println("controlled by: " + controlledBy)
     }
 
-    val subst = ids.map(id => id -> id.prime).toMap[Identifier, Expression]
+    val subst = ids.map(id => id -> id.toPrime).toMap[Identifier, Expression]
     // val _rely = constructForall(List(rely.getOrElse(Rely(Const._true)).exp) ++ locals.map(id => BinOp("&&", BinOp("==", id, id.prime), BinOp("==", id.gamma, id.prime.gamma))) ++ globals.map(id => BinOp("&&", BinOp("=>", BinOp("==", id, id.prime), BinOp("==", id.gamma, id.prime.gamma)), BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.prime.gamma))))
     val _rely = constructForall(List(rely.getOrElse(Rely(Const._true)).exp) 
       ++ locals.map(id => BinOp(
         "&&", 
-        BinOp("==", id, id.prime), 
-        BinOp("==", id.gamma, id.prime.gamma)
+        BinOp("==", id, id.toPrime), 
+        BinOp("==", id.toGamma, id.toPrime.toGamma)
       ))
-      ++ globals.map(id => BinOp(
-        "&&", 
-        BinOp("=>", BinOp("==", id, id.prime), BinOp("==", id.gamma, id.prime.gamma)), 
-        BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.prime.gamma)
-      ))
+      ++ globals.map(id => //BinOp(
+        //"&&", 
+        BinOp("=>", BinOp("==", id, id.toPrime), BinOp("==", id.toGamma, id.toPrime.toGamma)), 
+        // TODO!!!!: BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.toPrime.toGamma)
+      )//)
     )
     val _guar = constructForall(List(guar.getOrElse(Guar(Const._true)).exp)
       /* 
@@ -95,7 +94,7 @@ object State {
       */
     )
 
-    val primeIndicies = ids.map(x => x.prime -> 0).toMap
+    val primeIndicies = ids.map(x => x.toPrime -> 0).toMap ++ ids.map(x => (x -> 0))
 
     State(Const._true, debug, controls, controlled, controlledBy, L, ids, globals, _rely, _guar, primeIndicies)
   }

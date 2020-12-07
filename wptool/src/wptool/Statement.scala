@@ -18,20 +18,21 @@ case object Malformed extends Statement {
   def self: Malformed.type = this
 }
 
-case class Block(label: String, name: String, statements: List[Statement], parents: List[Block]) extends Statement {
+case class Block(label: String, name: String, statements: List[Statement], children: List[Block]) extends Statement {
   def this(label: String, statements: Array[Statement]) = this(label, Block.nextName, statements.toList, List())
-  def append(statement: Statement) = this.copy(statements = statements :+ statement)
+  def this(label: String, statements: List[Statement], children: List[Block]) = this(label, Block.nextName, statements.toList, children)
+  def prepend(statement: Statement) = this.copy(statements = statement +: statements)
 
-  override def toString: String = label + ": [" + parents.map(b => b.name).mkString(", ") + "] {\n" + statements.mkString(";\n") + "\n}"
+  override def toString: String = name + "(" + label + "): [" + children.map(b => b.name).mkString(", ") + "] {\n" + statements.mkString(";\n") + "\n}"
 }
 
 case class Assignment(lhs: Id, expression: Expression) extends Statement {
-  def this(lhs: String, expression: Expression) = this(new Id(lhs), expression)
+  def this(lhs: String, expression: Expression) = this(new Id(lhs, false, false), expression)
   override def toString: String = lhs + " = " + expression
 }
 
 case class ArrayAssignment(name: Id, index: Expression, expression: Expression) extends Statement {
-  def this(name: String, index: Expression, expression: Expression) = this(new Id(name), index, expression)
+  def this(name: String, index: Expression, expression: Expression) = this(new Id(name, false, false), index, expression)
   override def toString: String = name + "[" + index + "]" + " = " + expression
 }
 
@@ -66,10 +67,8 @@ case class If(test: Expression, left: Block, right: Option[Block]) extends State
   def this(test: Expression, left: Block, right: Block) = this(test, left, Some(right))
 }
 
-case class Goto() extends Statement {
-  def self = this
-  // override def toString: String = "goto " + children.map(b => b.name).mkString(" ,")
-  override def toString: String = "goto"
+case class Guard(test: Expression) extends Statement {
+  override def toString: String = "guard " + test
 }
 
 
@@ -91,10 +90,14 @@ case class Atomic(statements: List[Statement]) extends Statement {
   override def toString: String = "<" + statements.mkString(",") + ">"
 }
 
-case class Assume(expression: Expression) extends Statement {
+case class Assume (expression: Expression) extends Statement {
   def self: Assume = this
 }
 
-case class Assert(expression: Expression) extends Statement {
+case class Assert (expression: Expression, checkStableR: Boolean = false) extends Statement {
   def self: Assert = this
+}
+
+case class Havoc () extends Statement {
+  def self = this
 }

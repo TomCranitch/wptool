@@ -23,10 +23,10 @@ import wptool.Parser.Terminals;
           return newToken(Terminals.ID,   name);
     }
 	Symbol resolvePrime(String name) {
-		return newToken(Terminals.PRIMEID, name);
+		return newToken(Terminals.PRIMEID, name.substring(0, name.length() - 1));
 	}
 	Symbol resolveGamma(String name) {
-		return newToken(Terminals.GAMMAID, name);
+		return newToken(Terminals.GAMMAID, name.substring(6));
 	}
 	Symbol newToken(short id)
 	{
@@ -90,7 +90,7 @@ WS = {NL} | [ \t\f]
 ","         { return newToken(Terminals.COMMA);    }
 ";"         { return newToken(Terminals.SEMICOLON);}
 
-"CAS"       { return newToken(Terminals.CAS);     }
+//"CAS"       { return newToken(Terminals.CAS);     }
 
 //"break"     { return newToken(Terminals.BREAK);    }
 //"return"    { return newToken(Terminals.RETURN);   }

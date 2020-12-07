@@ -18,7 +18,7 @@ class IntegrationTestsRG extends  AnyFunSuite {
     assert(!WPTool.run(testNegDir + "assign4", debug = false))
   }
 
-  test("CAS") {
+  ignore("CAS") {
     assert(WPTool.run(testDir + "cas1", debug = false))
   }
 
@@ -31,22 +31,24 @@ class IntegrationTestsRG extends  AnyFunSuite {
     assert(WPTool.run(testDir + "if3", debug = false))
   }
 
-  ignore("If (Negative)") {
+  test("If (Negative)") {
+    assert(!WPTool.run(testNegDir + "if1", debug = false))
   }
 
   test("While") {
     assert(WPTool.run(testDir + "while1", debug = false))
   }
 
-  ignore("While (Negative)") {
+  test("While (Negative)") {
+    assert(!WPTool.run(testNegDir + "while1", debug = false))
   }
 
-  test("Spin Read") {
+  ignore("Spin Read") {
     assert(WPTool.run(testDir + "spinread/sync_read", debug = false))
     assert(WPTool.run(testDir + "spinread/sync_write", debug = false))
   }
 
-  test("Spin Read (Negative)") {
+  ignore("Spin Read (Negative)") {
     assert(!WPTool.run(testNegDir + "sync_read1", debug = false))
     assert(!WPTool.run(testNegDir + "sync_write1", debug = false))
   }

@@ -47,7 +47,7 @@ object SMT {
       println(res)
       if (res == z3.Status.SATISFIABLE) {
         val model = solver.getModel
-        println("Model: [" + cond.ids.toList.sortWith((x, y) => x.toString < y.toString).map(x => x + " -> " + model.eval(translate(x), false)).mkString(", ") + "]")
+        println("Model: [" + cond.vars.toList.sortWith((x, y) => x.toString < y.toString).map(x => x + " -> " + model.eval(translate(x), false)).mkString(", ") + "]")
       }
       println(solverSimplify(cond))
     }
@@ -208,8 +208,8 @@ object SMT {
 
     case MultiSwitch(n: Int) => ctx.mkConst("MultiSwitch" + n, ctx.getIntSort)
 
-    case x: Id => ctx.mkConst(x.toString, ctx.getIntSort)
-    case x: GammaId => ctx.mkConst(x.toString, ctx.getBoolSort)
+    case x: Var => ctx.mkConst(x.toString, ctx.getIntSort)
+    case x: Id => throw new Error("unresolvd id")
 
     case BinOp("==", arg1, arg2) => ctx.mkEq(translate(arg1), translate(arg2))
     case BinOp("!=", arg1, arg2) => ctx.mkNot(ctx.mkEq(translate(arg1), translate(arg2)))
@@ -244,11 +244,13 @@ object SMT {
 
     case Question(test, arg1, arg2) => ctx.mkITE(formula(test), translate(arg1), translate(arg2))
 
+    /*
     case ForAll(bound, body) =>
       ctx.mkForall(bound.toArray map translate, translate(body), 0, scala.Array(), null, null, null)
 
     case Exists(bound, body) =>
       ctx.mkExists(bound.toArray map translate, translate(body), 0, scala.Array(), null, null, null)
+    */
 
       // array index
     // case VarAccess(name, index) => ctx.mkSelect(ctx.mkArrayConst(name.toString, ctx.getIntSort, ctx.getIntSort), translate(index))
