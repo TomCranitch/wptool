@@ -27,15 +27,15 @@ object PreProcess {
       // val goto = ifStmt.
       // Parse to if (...) goto ...
       // when setting path into c1, set c1 to have the parent (as opposed to the parent having the child) this will make going back easier
-      val left = exec(ifStmt.left, state, new Block("if left", List(), List(currBlock))).prepend(Guard(ifStmt.test))
+      val test = evalExp(ifStmt.test)
+      val left = exec(ifStmt.left, state, new Block("if left", List(), List(currBlock))).prepend(Guard(test))
       val right = ifStmt.right match {
         case Some(s) =>
-          exec(s, state, new Block("if right", List(), List(currBlock))).prepend(Guard(PreOp("!", ifStmt.test)))
+          exec(s, state, new Block("if right", List(), List(currBlock))).prepend(Guard(PreOp("!", test)))
         case None =>
-          new Block("if empty", List(Guard(PreOp("!", ifStmt.test))), List(currBlock))
+          new Block("if empty", List(Guard(PreOp("!", test))), List(currBlock))
       }
-      val first = new Block("pre if", List(), List(left, right))
-      first
+      evalBlock(ifStmt.test, new Block("pre if", List(), List(left, right)))
     case whileStmt: While => 
       val after = currBlock.prepend(Assume(PreOp("!", whileStmt.test)))
       val body = new Block("while body", List(Assert(whileStmt.invariant)), List(after))
@@ -52,6 +52,32 @@ object PreProcess {
     case _ => 
       println("Unhandled statement (preprocessor): " + stmt)
       currBlock.prepend(Malformed)
+  }
+
+  def evalBlock (exp: Expression, currBlock: Block): Block = exp match {
+    case cas: CompareAndSwap => 
+      val tmp = Id.tmpId
+      val left = new Block("cas left", List(
+        Guard(BinOp("==", cas.x, cas.e1)),
+        Assignment(cas.x, cas.e2),
+        Assignment(tmp, Lit(1)),
+        ), List(currBlock))
+      val right = new Block("cas right", List(
+        Guard(BinOp("!=", cas.x, cas.e1)),
+        Assignment(tmp, Lit(0)),
+        ), List(currBlock))
+      val before = new Block("before cas", List(), List(left, right))
+      before
+    case BinOp(_, _, _: CompareAndSwap) => throw new Error("currently unsupported")
+    case binop: BinOp => currBlock // TODO
+    // TODO binop
+    case _ => currBlock
+  }
+
+  def evalExp (exp: Expression): Expression = exp match {
+    case cas: CompareAndSwap => Id.tmpId
+    case BinOp(op, arg1, arg2) => BinOp(op, evalExp(arg1), evalExp(arg2))
+    case _ => exp
   }
 
   def removeLoops (block: Block, state: State) = {

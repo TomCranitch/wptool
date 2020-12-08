@@ -1,7 +1,7 @@
 package wptool
 
 object Block {
-  def empty: Block = Block("empty", "?", Nil, Nil)
+  def empty: Block = Block("empty", "?", Nil, Nil, false)
 
   private var currName = 'A'
   def nextName = {
@@ -18,9 +18,9 @@ case object Malformed extends Statement {
   def self: Malformed.type = this
 }
 
-case class Block(label: String, name: String, statements: List[Statement], children: List[Block]) extends Statement {
-  def this(label: String, statements: Array[Statement]) = this(label, Block.nextName, statements.toList, List())
-  def this(label: String, statements: List[Statement], children: List[Block]) = this(label, Block.nextName, statements.toList, children)
+case class Block(label: String, name: String, statements: List[Statement], children: List[Block], atomic: Boolean) extends Statement {
+  def this(label: String, statements: Array[Statement]) = this(label, Block.nextName, statements.toList, List(), false)
+  def this(label: String, statements: List[Statement], children: List[Block], atomic: Boolean = false) = this(label, Block.nextName, statements.toList, children, atomic)
   def prepend(statement: Statement) = this.copy(statements = statement +: statements)
 
   override def toString: String = name + "(" + label + "): [" + children.map(b => b.name).mkString(", ") + "] {\n" + statements.mkString(";\n") + "\n}"

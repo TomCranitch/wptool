@@ -2,19 +2,23 @@ package wptool
 
 object Exec {
   @scala.annotation.tailrec
-  def exec(statements: List[Statement], state: State): State = statements match {
+  def exec(statements: List[Statement], state: State, RG: Boolean = true): State = statements match {
     case rest :+ last =>
-      val _state = exec(last, state)
+      val _state = exec(last, state, RG)
       exec(rest, _state)
     case Nil => state
   }
 
-  def exec (stmt: Statement, state: State, RG: Boolean = true): State = stmt match {
+  def exec (block: Block, state: State): State = exec(block, state, !block.atomic)
+
+  def exec (stmt: Statement, state: State, RG: Boolean): State = stmt match {
     case block: Block =>
       // TODO do we need to join over the primeIndicies (i think we do)
-      exec(block.statements, state.copy(
-        Q = constructForall(block.children.map(c => exec(c, state).Q)
-      )))
+      // TODO need to handle atomic blocks
+      val pred = constructForall(block.children.map(c => exec(c, state).Q))
+      val _state = exec(block.statements, state.copy(Q = pred))
+      if (block.atomic) _state.copy(Q = constructForall(List(_state.Q, stableR(_state.Q, _state))))
+      else _state
     case assume: Assume =>
       state.copy(Q = eval(BinOp("=>", assume.expression, state.Q), state))
     case Assert(exp, checkStableR) =>
@@ -30,10 +34,15 @@ object Exec {
     case Guard(test: Expression) =>
       // TODO
       // TODO handle havoc -> true
-      val gamma = computeGamma(eval(test, state).vars.toList, state)
-      val stabR = stableR(gamma, state)
-      val stabRB = stableR(test, state)
-      state.copy(Q = eval(constructForall(List(gamma, stabR, BinOp("=>", BinOp("&&", stabRB, test), state.Q), BinOp("=>", PreOp("!", stabRB), state.Q))), state))
+      // TODO not RG
+      if (RG) {
+        val gamma = computeGamma(eval(test, state).vars.toList, state)
+        val stabR = stableR(gamma, state)
+        val stabRB = stableR(test, state)
+        state.copy(Q = eval(constructForall(List(gamma, stabR, BinOp("=>", BinOp("&&", stabRB, test), state.Q), BinOp("=>", PreOp("!", stabRB), state.Q))), state))
+      } else {
+        state.copy(Q = eval(BinOp("=>", test, state.Q), state))
+      }
     case assign: Assignment =>
       val globalPred = if (state.globals.contains(assign.lhs)) BinOp("=>", getL(assign.lhs, state), computeGamma(eval(assign.expression, state).vars.toList, state)) else Const._true
       val controlPred = if (state.controls.contains(assign.lhs)) {
@@ -91,6 +100,7 @@ object Exec {
       val rhsGamma = computeGamma(eval(a.expression, state).vars.toList, state)
       val idsNoLHS = state.ids.filter(id => id != a.lhs)
       val subst = idsNoLHS.map(id => id.toPrime.toVar(state) -> id).toMap[Var, Expression] ++ idsNoLHS.map(id => id.toPrime.toGamma.toVar(state) -> id.toGamma.toVar(state)).toMap[Var, Expression]
+      println(eval(state.guar, state))
       eval(state.guar, state)
         .subst(Map(a.lhs.toPrime.toVar(state) -> a.expression, a.lhs.toPrime.toGamma.toVar(state) -> rhsGamma))
         .subst(subst)

@@ -81,6 +81,7 @@ object State {
       ++ globals.map(id => //BinOp(
         //"&&", 
         BinOp("=>", BinOp("==", id, id.toPrime), BinOp("==", id.toGamma, id.toPrime.toGamma)), 
+        // This can be done in exec so that it genrates only the necassary relies 
         // TODO!!!!: BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.toPrime.toGamma)
       )//)
     )

@@ -31,7 +31,10 @@ case class Id (name: String, prime: Boolean, gamma: Boolean) extends Expression 
   override def toString: String = (if (gamma) "Gamma_" else "") + name + (if (prime) "'" else "")
   override def vars: Set[Var] = throw new Error("Tried to get var from id")
   override def ids: Set[Id] = Set(this)
-  override def subst(su: Subst): Expression = throw new Error("tried to subst id") // su.getOrElse(this, this)
+  override def subst(su: Subst): Expression = {
+    println(this)
+    throw new Error("tried to subst id") // su.getOrElse(this, this)
+  }
   override def subst(su: Subst, num: Int): Expression = this.subst(su)
   def toVar (state: State) = {
     if (!gamma) Var(this, state.indicies.getOrElse(this, -1))
@@ -41,8 +44,12 @@ case class Id (name: String, prime: Boolean, gamma: Boolean) extends Expression 
   def toGamma = this.copy(gamma = true)
 }
 
-case class Var (ident: Id, index: Int) extends Expression {
-  override def toString: String = ident.toString __ index
+object Id {
+  val tmpId = Id("tmp", false, false)
+}
+
+case class Var (ident: Id, index: Int, tmp: Boolean = false) extends Expression {
+  override def toString: String = (if (tmp) "tmp_" else "") + ident.toString __ index
   override def vars: Set[Var] = Set(this)
   override def ids: Set[Id] = Set(this.ident)
   override def subst(su: Subst): Expression = su.getOrElse(this, this)
@@ -188,12 +195,11 @@ case class Gamma (vars: Set[Var]) extends Expression {
 }
  */
 
-/*
 case class CompareAndSwap(x: Id, e1: Expression, e2: Expression) extends Expression {
-  def this(x: String, e1: Expression, e2: Expression) = this(new Id(x), e1, e2)
+  def this(x: String, e1: Expression, e2: Expression) = this(new Id(x, false, false), e1, e2)
   override def toString: String = "CAS(" + x + ", " + e1 + ", " + e2 + ")"
   override def vars: Set[Var] = Set()
+  override def ids: Set[Id] = Set()
   override def subst(su: Subst): Expression = this
   override def subst(su: Subst, num: Int): Expression = this
 }
-*/
