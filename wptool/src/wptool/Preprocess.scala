@@ -37,17 +37,20 @@ object PreProcess {
       }
       evalBlock(ifStmt.test, new Block("pre if", List(), List(left, right)))
     case whileStmt: While => 
-      val after = currBlock.prepend(Assume(PreOp("!", whileStmt.test)))
-      val body = new Block("while body", List(Assert(whileStmt.invariant)), List(after))
-      val _body =  exec(whileStmt.body, state, body).prepend(Guard(whileStmt.test))
+      println("preprocess while loop")
+      val after = currBlock.prepend(Assume(PreOp("!", evalExp(whileStmt.test))))
+      // TODO why does the body not go to after ?? (as per paper/PASTE05)
+      val body = new Block("while body", List(Assert(whileStmt.invariant)), List())
+      val _body =  exec(whileStmt.body, state, body).prepend(Guard(evalExp(whileStmt.test)))
       // val branchGamma = computeGamma(whileStmt.test.vars.toList, state)
       val inv = whileStmt.invariant // TODO
-      val head = new Block("while head", List(
-        Assert(whileStmt.invariant, true),
-        Havoc(),
-        Assume(whileStmt.invariant),
+      // what wa this todo for ???
+      
+      val head = evalBlock(whileStmt.test, (new Block("while head", List(), List(_body, after))))
+        .prepend(Assert(whileStmt.invariant, true))
+        .prepend(Havoc())
+        .prepend(Assume(whileStmt.invariant))
         // Assert(branchGamma)
-      ), List(body))
       head
     case _ => 
       println("Unhandled statement (preprocessor): " + stmt)
@@ -61,15 +64,15 @@ object PreProcess {
         Guard(BinOp("==", cas.x, cas.e1)),
         Assignment(cas.x, cas.e2),
         Assignment(tmp, Lit(1)),
-        ), List(currBlock))
+        ), List(currBlock), true)
       val right = new Block("cas right", List(
         Guard(BinOp("!=", cas.x, cas.e1)),
         Assignment(tmp, Lit(0)),
-        ), List(currBlock))
+        ), List(currBlock), true)
       val before = new Block("before cas", List(), List(left, right))
       before
     case BinOp(_, _, _: CompareAndSwap) => throw new Error("currently unsupported")
-    case binop: BinOp => currBlock // TODO
+    case BinOp(op, arg1, arg2) => evalBlock(arg1, evalBlock(arg2, currBlock)) // TODO
     // TODO binop
     case _ => currBlock
   }
@@ -104,7 +107,7 @@ object PreProcess {
 
     printBlock(block)
     // TODO changed parents to children. need to fix
-    block.children.foldLeft(_visitedNodes) {(s, b) => printGraphvis(b, block.name + (block.statements.length - 1), s)}
+    block.children.foldLeft(_visitedNodes) {(s, b) => printGraphvis(b, block.name + math.max((block.statements.length - 1), 0), s)}
   }
 
   def printBlock (block: Block): Unit = {

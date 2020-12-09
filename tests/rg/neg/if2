@@ -1,0 +1,13 @@
+global var secret:
+_L: z == 0
+
+global var z:
+_L: TRUE
+
+_Gamma_0: z -> LOW, secret -> HIGH
+_Rely: TRUE
+_Guar: TRUE
+
+if (z == 0) {
+	z = secret;
+}

@@ -36,16 +36,19 @@ case class Id (name: String, prime: Boolean, gamma: Boolean) extends Expression 
     throw new Error("tried to subst id") // su.getOrElse(this, this)
   }
   override def subst(su: Subst, num: Int): Expression = this.subst(su)
-  def toVar (state: State) = {
-    if (!gamma) Var(this, state.indicies.getOrElse(this, -1))
-    else Var(this, state.indicies.getOrElse(this.copy(gamma = false), -1))
-  }
+  def toVar (state: State) = Var(this, getIndex(state))
   def toPrime = this.copy(prime = true)
   def toGamma = this.copy(gamma = true)
+
+  def getIndex (state: State) = {
+    if (!gamma) state.indicies.getOrElse(this, -1)
+    else state.indicies.getOrElse(this.copy(gamma = false), -1)
+  }
 }
 
 object Id {
   val tmpId = Id("tmp", false, false)
+
 }
 
 case class Var (ident: Id, index: Int, tmp: Boolean = false) extends Expression {
@@ -54,8 +57,10 @@ case class Var (ident: Id, index: Int, tmp: Boolean = false) extends Expression 
   override def ids: Set[Id] = Set(this.ident)
   override def subst(su: Subst): Expression = su.getOrElse(this, this)
   override def subst(su: Subst, num: Int): Expression = this.subst(su)
-  def toPrime = this.copy(ident = ident.toPrime)
-  def toGamma = this.copy(ident = ident.toGamma)
+  def toPrime(state: State) = this.copy(ident = ident.toPrime).updateIndex(state)
+  def toGamma(state: State) = this.copy(ident = ident.toGamma).updateIndex(state)
+
+  private def updateIndex(state: State) = this.copy(index = this.ident.getIndex(state))
 }
 
 // object CFence extends Id("cfence", false)

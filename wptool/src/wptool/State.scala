@@ -71,29 +71,8 @@ object State {
     }
 
     val subst = ids.map(id => id -> id.toPrime).toMap[Identifier, Expression]
-    // val _rely = constructForall(List(rely.getOrElse(Rely(Const._true)).exp) ++ locals.map(id => BinOp("&&", BinOp("==", id, id.prime), BinOp("==", id.gamma, id.prime.gamma))) ++ globals.map(id => BinOp("&&", BinOp("=>", BinOp("==", id, id.prime), BinOp("==", id.gamma, id.prime.gamma)), BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.prime.gamma))))
-    val _rely = constructForall(List(rely.getOrElse(Rely(Const._true)).exp) 
-      ++ locals.map(id => BinOp(
-        "&&", 
-        BinOp("==", id, id.toPrime), 
-        BinOp("==", id.toGamma, id.toPrime.toGamma)
-      ))
-      ++ globals.map(id => //BinOp(
-        //"&&", 
-        BinOp("=>", BinOp("==", id, id.toPrime), BinOp("==", id.toGamma, id.toPrime.toGamma)), 
-        // This can be done in exec so that it genrates only the necassary relies 
-        // TODO!!!!: BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.toPrime.toGamma)
-      )//)
-    )
-    val _guar = constructForall(List(guar.getOrElse(Guar(Const._true)).exp)
-      /* 
-      G1 is for interaction between local vars and can be ommited
-      G2 causes issues with simple assignment if Gamma_0 is not specified
-      ++ ids.map(id => BinOp("=>", BinOp("==", id, id.prime), BinOp("==", id.gamma, id.prime.gamma)))
-      G3 is checked by the rules
-      ++ globals.map(id => BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.prime.gamma))
-      */
-    )
+    val _guar = guar.getOrElse(Guar(Const._true)).exp
+    val _rely = rely.getOrElse(Rely(Const._true)).exp
 
     val primeIndicies = ids.map(x => x.toPrime -> 0).toMap ++ ids.map(x => (x -> 0))
 

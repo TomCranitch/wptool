@@ -1,0 +1,14 @@
+local var y:
+
+global var z:
+_L: TRUE
+
+_Gamma_0: y -> LOW, z -> LOW
+_Rely: ((z == 2) => ((z' == z)))
+_Guar: TRUE
+
+
+
+if (CAS(z, 0, 2) == 1) {
+	z = y;
+}

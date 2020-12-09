@@ -1,11 +1,14 @@
 package wptool
 
+// TODO i dont think prime variables are getting incremented often enough
+
+
 object Exec {
   @scala.annotation.tailrec
   def exec(statements: List[Statement], state: State, RG: Boolean = true): State = statements match {
     case rest :+ last =>
       val _state = exec(last, state, RG)
-      exec(rest, _state)
+      exec(rest, _state, RG)
     case Nil => state
   }
 
@@ -13,28 +16,23 @@ object Exec {
 
   def exec (stmt: Statement, state: State, RG: Boolean): State = stmt match {
     case block: Block =>
-      // TODO do we need to join over the primeIndicies (i think we do)
-      // TODO need to handle atomic blocks
-      val pred = constructForall(block.children.map(c => exec(c, state).Q))
-      val _state = exec(block.statements, state.copy(Q = pred))
-      if (block.atomic) _state.copy(Q = constructForall(List(_state.Q, stableR(_state.Q, _state))))
-      else _state
+      // TODO I think we need to check the whole block is stable after an atomic block
+      val _state = exec(block.statements, joinStates(block.children.map(c => exec(c, state)), state), RG)
+      _state
     case assume: Assume =>
       state.copy(Q = eval(BinOp("=>", assume.expression, state.Q), state))
     case Assert(exp, checkStableR) =>
-      if (checkStableR) state.copy(Q = constructForall(List(exp, state.Q, stableR(exp, state))))
-      else state.copy(Q = BinOp("&&", exp, state.Q))
+      // if (checkStableR) state.copy(Q = constructForall(List(exp, state.Q, stableR(exp, state))))
+      // else state.copy(Q = BinOp("&&", exp, state.Q))
+      state.copy(Q = BinOp("&&", exp, state.Q))
     case havoc: Havoc =>
-      // TODO replace variables with fresh variables (wp(havoc x, Q) = Q[x -> x.fresh])
-      // Q.subst(Q.ids.fresh)
       // TODO should this resolve to true/false ??
       // TODO need to somehow remove stableR (as per paper) - lazy hack is to set a boolean flag in the preprocessor 
-      state.incNonPrimeIndicies
+      // state.incNonPrimeIndicies
+      state
     // Ignore
     case Guard(test: Expression) =>
-      // TODO
       // TODO handle havoc -> true
-      // TODO not RG
       if (RG) {
         val gamma = computeGamma(eval(test, state).vars.toList, state)
         val stabR = stableR(gamma, state)
@@ -61,7 +59,6 @@ object Exec {
 
       val Q = state.Q.subst(Map((assign.lhs.toGamma.toVar(state) -> rhsGamma), (assign.lhs.toVar(state) -> assign.expression)))
 
-
       if (RG) {
         val guarantee = guar(assign, state)
         val pred = constructForall(List(PO, Q, guarantee))
@@ -81,37 +78,62 @@ object Exec {
     case BinOp(op, arg1, arg2) => BinOp(op, eval(arg1, state), eval(arg2, state))
     case PreOp(op, arg) => PreOp(op, eval(arg, state))
     case _: Lit | _: Const | _: Var => expr
-    // case _: CompareAndSwap => throw new Error("Unexpected compare and swap")
     case expr =>
       println("Unhandled expression: " + expr)
       expr
   }
 
+  def getRely (ids: Set[Id], state: State) = {
+    // TODO!!!!: BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.toPrime.toGamma)
+    // Not sure what this meant
+    // think it was for globals
+    
+    eval(constructForall(ids.toList.map(i => 
+        if (state.globals.contains(i)) {
+          BinOp("=>", BinOp("==", i, i.toPrime), BinOp("==", i.toGamma, i.toPrime.toGamma))
+        } else {
+          BinOp(
+            "&&", 
+            BinOp("==", i, i.toPrime), 
+            BinOp("==", i.toGamma, i.toPrime.toGamma)
+          )
+        }
+      ) :+ state.rely), state)
+  }
 
   def getL (id: Id, state: State): Expression = eval(state.L.getOrElse(id, throw new Error("L not defined for " + id)), state)
   def primed (p: Expression, state: State) = eval(p, state).subst(state.ids.map(id => id.toVar(state) -> id.toPrime.toVar(state)).toMap)
   // TODO maybe only use relevant parts of the axioms
   // TODO take havoc statements into account
-  def stableR (p: Expression, state: State) = eval(BinOp("=>", BinOp("&&", state.rely, p), primed(p, state)), state)
-  def rImplies (p: Expression, state: State) = eval(BinOp("=>", state.rely, primed(p, state)), state)
+  def stableR (p: Expression, state: State) = eval(BinOp("=>", BinOp("&&", getRely(p.ids, state), p), primed(p, state)), state)
+  def rImplies (p: Expression, state: State) = eval(BinOp("=>", getRely(p.ids, state), primed(p, state)), state)
+  
 
   def guar (a: Assignment, state: State) = {
       // TODO detect x ~ y
       val rhsGamma = computeGamma(eval(a.expression, state).vars.toList, state)
       val idsNoLHS = state.ids.filter(id => id != a.lhs)
       val subst = idsNoLHS.map(id => id.toPrime.toVar(state) -> id).toMap[Var, Expression] ++ idsNoLHS.map(id => id.toPrime.toGamma.toVar(state) -> id.toGamma.toVar(state)).toMap[Var, Expression]
-      println(eval(state.guar, state))
-      eval(state.guar, state)
-        .subst(Map(a.lhs.toPrime.toVar(state) -> a.expression, a.lhs.toPrime.toGamma.toVar(state) -> rhsGamma))
+
+      eval(eval(state.guar, state)
+        .subst(Map(a.lhs.toPrime.toVar(state) -> a.expression, a.lhs.toPrime.toGamma.toVar(state) -> rhsGamma)), state)
         .subst(subst)
   }
 
   def computeGamma (vars: List[Var], state: State): Expression = vars match {
-    case v :: Nil => eval(BinOp("||", v.toGamma, state.L.getOrElse(v.ident, Const._false)), state) // Default to high
+    case v :: Nil => eval(BinOp("||", v.toGamma(state), state.L.getOrElse(v.ident, Const._false)), state) // Default to high
     case v :: rest => eval(BinOp("&&", computeGamma(List(v), state), computeGamma(rest, state)), state)
     case Nil => Const._true
   }
 
+  def joinStates (states: List[State], state: State) = {
+    state.copy(
+      Q = constructForall(states.map(s => s.Q)), 
+      indicies = states.foldLeft(state.indicies) { (a, i) => 
+        i.indicies.map{ case (k, v) => k -> math.max(v, a.getOrElse(k, -1)) }
+      }
+    )
+  }
   
 
 }

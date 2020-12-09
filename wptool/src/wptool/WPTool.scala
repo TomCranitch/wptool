@@ -101,13 +101,14 @@ object WPTool {
       for (i <- gammaDom) yield {
         i.toGamma.toVar(state) -> gamma.getOrElse(i, High).toTruth
       }
-    }.toMap[Var, Expression]
+    }.toMap[Var, Expression] ++ Map(Id.tmpId.toGamma.toVar(state) -> Const._true)
 
     val vcs = _state.Q.subst(gammaSubstr)
 
     //if (debug) println("VCs: " + vcs)
     if (debug) println("Gamma0: " + gammaSubstr)
     if (debug) println("L: " + state.L)
+    if (debug) println("Indicies: " + state.indicies)
 
     SMT.prove(vcs, List[Expression](), debug = debug)
   }

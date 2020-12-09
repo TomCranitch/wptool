@@ -1,0 +1,18 @@
+global var c:
+_L: TRUE
+
+global var x:
+_L: FALSE
+
+global var z:
+_L: c != 1
+
+_Gamma_0: z -> LOW, x -> HIGH, c -> LOW
+_Rely: c == 1 => c == c'
+_Guar: TRUE
+
+while (c != 1) {
+	while (x == 1) {}
+}
+
+z = x;
