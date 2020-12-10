@@ -8,7 +8,7 @@ _L: TRUE
 
 _Gamma_0: z -> LOW, x -> LOW
 _Rely: ((z == 2) => ((z' == z) && (Gamma_x => Gamma_x')))
-_Guar: (x' == x) && ((z == 1) => (z' == z))
+_Guar: TRUE
 
 if (CAS(z, 0, 2) == 1) {
 	y = x;

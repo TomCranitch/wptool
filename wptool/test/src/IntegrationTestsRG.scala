@@ -31,14 +31,16 @@ class IntegrationTestsRG extends  AnyFunSuite {
     assert(WPTool.run(testDir + "if3", debug = false))
   }
 
-  ignore("If (Negative)") {
+  test("If (Negative)") {
+    assert(!WPTool.run(testNegDir + "if1", debug = false))
   }
 
   test("While") {
     assert(WPTool.run(testDir + "while1", debug = false))
   }
 
-  ignore("While (Negative)") {
+  test("While (Negative)") {
+    assert(!WPTool.run(testNegDir + "while1", debug = false))
   }
 
   test("Spin Read") {

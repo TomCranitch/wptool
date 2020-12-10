@@ -1,7 +1,13 @@
 package wptool
 
 object Block {
-  def empty: Block = Block(Nil)
+  def empty: Block = Block("empty", "?", Nil, Nil, false)
+
+  private var currName = 'A'
+  def nextName = {
+    currName = (currName + 1).toChar
+    currName.toString
+  }
 }
 
 sealed trait Statement extends beaver.Symbol {
@@ -12,17 +18,21 @@ case object Malformed extends Statement {
   def self: Malformed.type = this
 }
 
-case class Block(statements: List[Statement]) extends Statement {
-  def this(statements: Array[Statement]) = this(statements.toList)
+case class Block(label: String, name: String, statements: List[Statement], children: List[Block], atomic: Boolean) extends Statement {
+  def this(label: String, statements: Array[Statement]) = this(label, Block.nextName, statements.toList, List(), false)
+  def this(label: String, statements: List[Statement], children: List[Block], atomic: Boolean = false) = this(label, Block.nextName, statements.toList, children, atomic)
+  def prepend(statement: Statement) = this.copy(statements = statement +: statements)
+
+  override def toString: String = name + "(" + label + "): [" + children.map(b => b.name).mkString(", ") + "] {\n" + statements.mkString(";\n") + "\n}"
 }
 
 case class Assignment(lhs: Id, expression: Expression) extends Statement {
-  def this(lhs: String, expression: Expression) = this(new Id(lhs), expression)
+  def this(lhs: String, expression: Expression) = this(new Id(lhs, false, false), expression)
   override def toString: String = lhs + " = " + expression
 }
 
 case class ArrayAssignment(name: Id, index: Expression, expression: Expression) extends Statement {
-  def this(name: String, index: Expression, expression: Expression) = this(new Id(name), index, expression)
+  def this(name: String, index: Expression, expression: Expression) = this(new Id(name, false, false), index, expression)
   override def toString: String = name + "[" + index + "]" + " = " + expression
 }
 
@@ -53,10 +63,13 @@ case object ControlFence extends Statement {
 }
 
 case class If(test: Expression, left: Block, right: Option[Block]) extends Statement {
-  def this(test: Expression, left: Block) = this(test, left, Some(Block(List())))
+  def this(test: Expression, left: Block) = this(test, left, None)
   def this(test: Expression, left: Block, right: Block) = this(test, left, Some(right))
 }
 
+case class Guard(test: Expression) extends Statement {
+  override def toString: String = "guard " + test
+}
 
 
 case class While(test: Expression, invariant: Expression, gamma: List[GammaMapping], nonblocking: Option[Set[Id]], body: Statement) extends Statement {
@@ -77,10 +90,14 @@ case class Atomic(statements: List[Statement]) extends Statement {
   override def toString: String = "<" + statements.mkString(",") + ">"
 }
 
-case class Assume(expression: Expression) extends Statement {
+case class Assume (expression: Expression) extends Statement {
   def self: Assume = this
 }
 
-case class Assert(expression: Expression) extends Statement {
+case class Assert (expression: Expression, checkStableR: Boolean = false) extends Statement {
   def self: Assert = this
+}
+
+case class Havoc () extends Statement {
+  def self = this
 }

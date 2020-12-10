@@ -41,7 +41,7 @@ package object wptool {
 
   }
 
-  type Subst = Map[Identifier, Expression]
+  type Subst = Map[Var, Expression]
 
   /*
   object Subst {
@@ -57,7 +57,8 @@ package object wptool {
     def prime = self + "'"
 
     def __(index: Int): String = {
-      self + (index.toString map (n => sub(n - '0')))
+      if (index < 0) self + "__" + index
+      else self + (index.toString map (n => sub(n - '0')))
     }
 
     def __(index: Option[Int]): String = index match {
@@ -88,5 +89,12 @@ package object wptool {
 
   implicit class GammaToString(gamma: Map[Id, Security]) {
     def gammaStr = gamma.mkString(", ")
+  }
+
+  def constructForall (exprs: List[Expression]): Expression = exprs match {
+    case expr :: Nil => expr
+    case expr :: rest =>
+      BinOp("&&", expr, constructForall(rest))
+    case Nil => Const._true
   }
 }

@@ -36,6 +36,7 @@ object SMT {
     } catch {
       case e: java.lang.UnsatisfiedLinkError if e.getMessage.equals("com.microsoft.z3.Native.INTERNALgetErrorMsgEx(JI)Ljava/lang/String;")=>
         // weird unintuitive error z3 can have when an input type is incorrect in a way it doesn't check
+        // REMEMBER: can be caused by incorrect types (e.g. gamma vars should be of type bool)
         throw error.Z3Error("Z3 failed", cond, given.PStr, "incorrect z3 expression type, probably involving ForAll/Exists")
       case e: Throwable =>
         throw error.Z3Error("Z3 failed", cond, given.PStr, e)
@@ -47,7 +48,7 @@ object SMT {
       println(res)
       if (res == z3.Status.SATISFIABLE) {
         val model = solver.getModel
-        println("Model: [" + cond.ids.toList.sortWith((x, y) => x.toString < y.toString).map(x => x + " -> " + model.eval(translate(x), false)).mkString(", ") + "]")
+        println("Model: [" + cond.vars.toList.sortWith((x, y) => x.toString < y.toString).map(x => x + " -> " + model.eval(translate(x), false)).mkString(", ") + "]")
       }
       println(solverSimplify(cond))
     }
@@ -208,8 +209,11 @@ object SMT {
 
     case MultiSwitch(n: Int) => ctx.mkConst("MultiSwitch" + n, ctx.getIntSort)
 
-    case x: Id => ctx.mkConst(x.toString, ctx.getIntSort)
-    case x: GammaId => ctx.mkConst(x.toString, ctx.getBoolSort)
+    case x: Var => {
+      if (x.ident.gamma) ctx.mkConst(x.toString, ctx.getBoolSort)
+      else ctx.mkConst(x.toString, ctx.getIntSort)
+    }
+    case x: Id => throw new Error("unresolved id")
 
     case BinOp("==", arg1, arg2) => ctx.mkEq(translate(arg1), translate(arg2))
     case BinOp("!=", arg1, arg2) => ctx.mkNot(ctx.mkEq(translate(arg1), translate(arg2)))
@@ -244,11 +248,13 @@ object SMT {
 
     case Question(test, arg1, arg2) => ctx.mkITE(formula(test), translate(arg1), translate(arg2))
 
+    /*
     case ForAll(bound, body) =>
       ctx.mkForall(bound.toArray map translate, translate(body), 0, scala.Array(), null, null, null)
 
     case Exists(bound, body) =>
       ctx.mkExists(bound.toArray map translate, translate(body), 0, scala.Array(), null, null, null)
+    */
 
       // array index
     // case VarAccess(name, index) => ctx.mkSelect(ctx.mkArrayConst(name.toString, ctx.getIntSort, ctx.getIntSort), translate(index))

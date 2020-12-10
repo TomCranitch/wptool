@@ -99,15 +99,14 @@ definition
 
 defs = definition *;
 
-block = LBRACE locals.ss RBRACE {: return new Block(ss); :};
+block = LBRACE locals.ss RBRACE {: return new Block("unprocessed", ss); :};
 
 local
     =
-    //LBRACE locals.ss RBRACE          {: return new Block(ss); :}
+    //LBRACE locals.ss RBRACE          {: return new Block("unprocessed", ss); :}
     //| expr.a   SEMICOLON                {: return new Atomic(a); :}
     //|
     ID.n ASG    expr.b SEMICOLON              {: return new Assignment(n, b); :}
-    // | ID.n ASG CAS SEMICOLON {: System.out.println("here"); :}
     | ID.n LBRACK expr.i RBRACK ASG    expr.b SEMICOLON        {: return new ArrayAssignment(n, i, b); :}
     //| RETURN   SEMICOLON                {: return Return.none(); :}
     //| RETURN expr.a SEMICOLON           {: return new Return(a); :}
@@ -127,9 +126,9 @@ locals  = local *;
 
 expr
     = PREFIX | POSTFIX /* unused */
-	| GAMMAID.n                        {: return new GammaId(new Id(n));  :}
-    | ID.n                              {: return new Id(n);  :}
-    | PRIMEID.n                              {: return new Id(n);  :}
+	| GAMMAID.n                        {: return new Id(n, false, true);  :}
+    | PRIMEID.n                              {: return new Id(n, true, false);  :}
+    | ID.n                              {: return new Id(n, false, false);  :}
     // | ID.n LBRACK expr.i RBRACK       {: return new Access(n, i); :}
     | NUM.n                             {: return new Lit(n); :}
 	| CAS LPAREN ID.x COMMA expr.y COMMA expr.z RPAREN {: return new CompareAndSwap(x, y, z); :}
