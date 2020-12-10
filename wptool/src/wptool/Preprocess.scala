@@ -22,7 +22,9 @@ object PreProcess {
     case block: Block =>
       // TODO incorrect
       exec(block.statements, state, currBlock)
-    case _: Assignment => currBlock.prepend(stmt)
+    case assign: Assignment => {
+      evalBlock(assign.expression, currBlock.prepend(assign.copy(expression = evalExp(assign.expression))))
+    }
     case ifStmt: If => 
       // val goto = ifStmt.
       // Parse to if (...) goto ...
@@ -37,7 +39,6 @@ object PreProcess {
       }
       evalBlock(ifStmt.test, new Block("pre if", List(), List(left, right)))
     case whileStmt: While => 
-      println("preprocess while loop")
       val after = currBlock.prepend(Assume(PreOp("!", evalExp(whileStmt.test))))
       // TODO why does the body not go to after ?? (as per paper/PASTE05)
       val body = new Block("while body", List(Assert(whileStmt.invariant)), List())

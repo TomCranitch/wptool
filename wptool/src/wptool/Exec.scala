@@ -2,7 +2,6 @@ package wptool
 
 // TODO i dont think prime variables are getting incremented often enough
 
-
 object Exec {
   @scala.annotation.tailrec
   def exec(statements: List[Statement], state: State, RG: Boolean = true): State = statements match {
@@ -16,21 +15,23 @@ object Exec {
 
   def exec (stmt: Statement, state: State, RG: Boolean): State = stmt match {
     case block: Block =>
-      // TODO I think we need to check the whole block is stable after an atomic block
-      val _state = exec(block.statements, joinStates(block.children.map(c => exec(c, state)), state), RG)
+      val _state = exec(block.statements, joinStates(block.children.map(c => {
+        val res = exec(c, state)
+        if (c.atomic) res.copy(Q = BinOp("&&", stableR(res.Q, state), res.Q))
+        else res
+      }), state), RG)
       _state
     case assume: Assume =>
       state.copy(Q = eval(BinOp("=>", assume.expression, state.Q), state))
     case Assert(exp, checkStableR) =>
-      // if (checkStableR) state.copy(Q = constructForall(List(exp, state.Q, stableR(exp, state))))
-      // else state.copy(Q = BinOp("&&", exp, state.Q))
-      state.copy(Q = BinOp("&&", exp, state.Q))
+      if (checkStableR) state.copy(Q = constructForall(List(exp, state.Q, stableR(exp, state))))
+      else state.copy(Q = BinOp("&&", exp, state.Q))
     case havoc: Havoc =>
       // TODO should this resolve to true/false ??
       // TODO need to somehow remove stableR (as per paper) - lazy hack is to set a boolean flag in the preprocessor 
+      // TODO: this fails in the case of nested loops (or more specifically the join operation does)
       // state.incNonPrimeIndicies
       state
-    // Ignore
     case Guard(test: Expression) =>
       // TODO handle havoc -> true
       if (RG) {
@@ -103,7 +104,6 @@ object Exec {
 
   def getL (id: Id, state: State): Expression = eval(state.L.getOrElse(id, throw new Error("L not defined for " + id)), state)
   def primed (p: Expression, state: State) = eval(p, state).subst(state.ids.map(id => id.toVar(state) -> id.toPrime.toVar(state)).toMap)
-  // TODO maybe only use relevant parts of the axioms
   // TODO take havoc statements into account
   def stableR (p: Expression, state: State) = eval(BinOp("=>", BinOp("&&", getRely(p.ids, state), p), primed(p, state)), state)
   def rImplies (p: Expression, state: State) = eval(BinOp("=>", getRely(p.ids, state), primed(p, state)), state)

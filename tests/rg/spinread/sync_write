@@ -11,12 +11,12 @@ _L: FALSE
 
 _Gamma_0: z -> LOW, x -> LOW, t -> LOW, secret -> HIGH
 _Rely: (Gamma_x => Gamma_x') && (z == 1 => z == z')
-_Guar: TRUE // (z == 2 => (z' == z && x' == x))
+_Guar: (z == 2 => (z' == z && x' == x))
 
 while (CAS(z, 0, 1) == 0) {
 	while (z != 0) {}
 }
 
 x = secret;
-// x = 0;
-// z = 0;
+x = 0;
+z = 0;
