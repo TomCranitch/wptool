@@ -22,16 +22,16 @@ object Exec {
       }), state), RG)
       _state
     case assume: Assume =>
-      state.copy(Q = eval(BinOp("=>", assume.expression, state.Q), state))
+      state.copy(Q = eval(BinOp("=>", eval(assume.expression, state), state.Q), state))
     case Assert(exp, checkStableR) =>
-      if (checkStableR) state.copy(Q = constructForall(List(exp, state.Q, stableR(exp, state))))
-      else state.copy(Q = BinOp("&&", exp, state.Q))
+      if (checkStableR) state.copy(Q = constructForall(List(eval(exp, state), state.Q, stableR(exp, state))))
+      else state.copy(Q = BinOp("&&", eval(exp, state), state.Q))
     case havoc: Havoc =>
       // TODO should this resolve to true/false ??
       // TODO need to somehow remove stableR (as per paper) - lazy hack is to set a boolean flag in the preprocessor 
       // TODO: this fails in the case of nested loops (or more specifically the join operation does)
-      // state.incNonPrimeIndicies
-      state
+      state.incNonPrimeIndicies
+      // state
     case Guard(test: Expression) =>
       // TODO handle havoc -> true
       if (RG) {
@@ -49,7 +49,7 @@ object Exec {
           BinOp(
             "=>",
             getL(contr, state).subst(Map(assign.lhs.toVar(state) -> assign.expression)),
-            BinOp("||", contr.toGamma, getL(contr, state))
+            BinOp("||", eval(contr.toGamma, state), getL(contr, state))
           )
         ).toList)
       } 
@@ -127,11 +127,24 @@ object Exec {
   }
 
   def joinStates (states: List[State], state: State) = {
-    state.copy(
-      Q = constructForall(states.map(s => s.Q)), 
-      indicies = states.foldLeft(state.indicies) { (a, i) => 
-        i.indicies.map{ case (k, v) => k -> math.max(v, a.getOrElse(k, -1)) }
+    val indicies = states.foldLeft(state.indicies) { (a, i) => 
+      i.indicies.map{ case (k, v) => k -> math.max(v, a.getOrElse(k, -1)) }
+    }
+
+    val preds = states.map(s => {
+      if (s.indicies == indicies) s.Q
+      else {
+        val conds = s.indicies.filter{ case (id, int) => indicies.get(id) match {
+          case Some(i) => i != int
+          case None => true
+        }}.map{ case (id, ind) => BinOp("==", Var(id, ind), Var(id, indicies.getOrElse(id, -1))) }.toList
+
+        BinOp("=>", constructForall(conds), s.Q)
       }
+    })
+
+    state.copy(
+      Q = constructForall(preds), indicies = indicies
     )
   }
   

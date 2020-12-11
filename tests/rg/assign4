@@ -1,0 +1,23 @@
+global var x:
+_L: TRUE
+
+global var y:
+_L: TRUE
+
+global var lock:
+_L: TRUE
+
+global var access:
+_L: x != 1 || y != 1
+
+local var secret:
+
+_Gamma_0: secret -> HIGH
+_Rely: (y == y' && x == x')
+_Guar: TRUE
+
+
+y = 1;
+x = 1;
+
+access = secret;

@@ -48,9 +48,9 @@ object PreProcess {
       // what wa this todo for ???
       
       val head = evalBlock(whileStmt.test, (new Block("while head", List(), List(_body, after))))
-        .prepend(Assert(whileStmt.invariant, true))
-        .prepend(Havoc())
         .prepend(Assume(whileStmt.invariant))
+        .prepend(Havoc())
+        .prepend(Assert(whileStmt.invariant, true))
         // Assert(branchGamma)
       head
     case _ => 

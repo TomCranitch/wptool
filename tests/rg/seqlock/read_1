@@ -13,10 +13,8 @@ global var output:
 _L: TRUE
 
 _Gamma_0: r1 -> LOW, r2 -> LOW
-_Rely: z' >= z
-// I'm not sure that the guarantee of Gamma_x is stable under R
-// _Guar: Gamma_x && (z' == z)
-_Guar: (z' == z)
+_Rely: z' >= z && Gamma_x == Gamma_x'
+_Guar: Gamma_x && (z' == z)
 
 while (z != r1)
 _invariant: TRUE

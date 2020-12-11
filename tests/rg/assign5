@@ -1,0 +1,11 @@
+global var x:
+_L: TRUE
+
+global var y:
+_L: TRUE
+
+_Rely: x == 1
+_Guar: y == y'
+
+
+x = 1;

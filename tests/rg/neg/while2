@@ -7,14 +7,12 @@ _L: FALSE
 global var z:
 _L: c != 1
 
-local var low:
-
-_Gamma_0: z -> LOW, x -> HIGH, c -> LOW, low -> LOW
+_Gamma_0: z -> LOW, x -> HIGH, c -> LOW
 _Rely: c == 1 => c == c'
 _Guar: TRUE
 
 while (c != 1) {
-	while (low + 1 > 0) {}
+	while (x == 1) {}
 }
 
 z = x;

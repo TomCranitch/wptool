@@ -1,0 +1,19 @@
+global var x:
+_L: (z % 2) == 0
+
+global var z:
+_L: TRUE
+
+local var secret:
+
+_Gamma_0: secret -> HIGH
+_Rely: Gamma_x && z' == z
+_Guar: z' >= z
+
+z = z + 1;
+x = secret;
+
+// wait for x to be read
+
+x = 0;
+z = z + 1;

@@ -1,0 +1,11 @@
+global var lock:
+_L: FALSE
+
+global var access:
+_L: FALSE
+
+_Rely: (lock == 2) => (lock == lock')
+_Guar: (lock != 2) => (access == access')
+
+lock = 2;
+access = 1;
