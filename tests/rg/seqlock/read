@@ -1,5 +1,7 @@
 // This is not quite the example
 
+// TODO i think we need a stronger invariant and proper do-while support
+
 global var x:
 _L: (z % 2) == 0
 
@@ -18,16 +20,16 @@ _Rely: z' >= z
 // _Guar: Gamma_x && (z' == z)
 _Guar: (z' == z)
 
-while (z != r1)
-_invariant: TRUE
+do
+_invariant: Gamma_r1
 {
-	while (r1 % 2 != 0)
-	_invariant: TRUE
+	do
+	_invariant: Gamma_r1
 	{
 		r1 = z;
-	}
+	} while (r1 % 2 != 0)
 
 	r2 = x;
-}
+} while (z != r1)
 
 output = r2;

@@ -65,4 +65,9 @@ class IntegrationTestsRG extends  AnyFunSuite {
     assert(!WPTool.run(testNegDir + "sync_write1", debug = false))
     assert(!WPTool.run(testNegDir + "sync_write2", debug = false))
   }
+
+  test("SeqLock") {
+    assert(WPTool.run(testDir + "seqlock/read", debug = false))
+    assert(WPTool.run(testDir + "seqlock/sync_write", debug = false))
+  }
 }

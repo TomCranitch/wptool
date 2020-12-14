@@ -24,21 +24,19 @@ object Exec {
     case assume: Assume =>
       state.copy(Q = eval(BinOp("=>", eval(assume.expression, state), state.Q), state))
     case Assert(exp, checkStableR) =>
-      if (checkStableR) state.copy(Q = constructForall(List(eval(exp, state), state.Q, stableR(exp, state))))
+      if (checkStableR) state.copy(Q = constructForall(eval(exp, state), state.Q, stableR(exp, state)))
       else state.copy(Q = BinOp("&&", eval(exp, state), state.Q))
     case havoc: Havoc =>
       // TODO should this resolve to true/false ??
       // TODO need to somehow remove stableR (as per paper) - lazy hack is to set a boolean flag in the preprocessor 
-      // TODO: this fails in the case of nested loops (or more specifically the join operation does)
       state.incNonPrimeIndicies
-      // state
     case Guard(test: Expression) =>
       // TODO handle havoc -> true
       if (RG) {
         val gamma = computeGamma(eval(test, state).vars.toList, state)
         val stabR = stableR(gamma, state)
         val stabRB = stableR(test, state)
-        state.copy(Q = eval(constructForall(List(gamma, stabR, BinOp("=>", BinOp("&&", stabRB, test), state.Q), BinOp("=>", PreOp("!", stabRB), state.Q))), state))
+        state.copy(Q = eval(constructForall(gamma, stabR, BinOp("=>", BinOp("&&", stabRB, test), state.Q), BinOp("=>", PreOp("!", stabRB), state.Q)), state))
       } else {
         state.copy(Q = eval(BinOp("=>", test, state.Q), state))
       }
@@ -62,7 +60,7 @@ object Exec {
 
       if (RG) {
         val guarantee = guar(assign, state)
-        val pred = constructForall(List(PO, Q, guarantee))
+        val pred = constructForall(PO, Q, guarantee)
 
         //state.copy(Q = BinOp("&&", guarantee, rImplies(pred, state))).incPrimeIndicies
         state.copy(Q = rImplies(pred, state)).incPrimeIndicies

@@ -97,4 +97,6 @@ package object wptool {
       BinOp("&&", expr, constructForall(rest))
     case Nil => Const._true
   }
+
+  def constructForall (exprs: Expression*): Expression = constructForall(exprs.toList)
 }

@@ -38,14 +38,14 @@ object PreProcess {
           new Block("if empty", List(Guard(PreOp("!", test))), List(currBlock))
       }
       evalBlock(ifStmt.test, new Block("pre if", List(), List(left, right)))
+    // TODO do-while rule
+    // not too sure what this looks like
     case whileStmt: While => 
       val after = currBlock.prepend(Assume(PreOp("!", evalExp(whileStmt.test))))
       // TODO why does the body not go to after ?? (as per paper/PASTE05)
       val body = new Block("while body", List(Assert(whileStmt.invariant)), List())
       val _body =  exec(whileStmt.body, state, body).prepend(Guard(evalExp(whileStmt.test)))
-      // val branchGamma = computeGamma(whileStmt.test.vars.toList, state)
-      val inv = whileStmt.invariant // TODO
-      // what wa this todo for ???
+      val inv = whileStmt.invariant
       
       val head = evalBlock(whileStmt.test, (new Block("while head", List(), List(_body, after))))
         .prepend(Assume(whileStmt.invariant))
@@ -53,6 +53,14 @@ object PreProcess {
         .prepend(Assert(whileStmt.invariant, true))
         // Assert(branchGamma)
       head
+    case doWhile: DoWhile =>
+      val after = currBlock.prepend(Assume(PreOp("!", evalExp(doWhile.test))))
+      val repeat = new Block("do-while repeat", List(Guard(doWhile.test), Assert(doWhile.invariant)), List())
+      val block = new Block("do-while block", List(), List(after, repeat))
+      exec(doWhile.body, state, block)
+        .prepend(Assume(doWhile.invariant))
+        .prepend(Havoc())
+        .prepend(Assert(doWhile.invariant))
     case _ => 
       println("Unhandled statement (preprocessor): " + stmt)
       currBlock.prepend(Malformed)

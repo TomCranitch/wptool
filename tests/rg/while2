@@ -13,8 +13,12 @@ _Gamma_0: z -> LOW, x -> HIGH, c -> LOW, low -> LOW
 _Rely: c == 1 => c == c'
 _Guar: TRUE
 
-while (c != 1) {
-	while (low + 1 > 0) {}
+while (c != 1) 
+_invariant: Gamma_low
+{
+	while (low + 1 > 0) 
+	_invariant: Gamma_low
+	{}
 }
 
 z = x;

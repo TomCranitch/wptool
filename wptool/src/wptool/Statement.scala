@@ -76,12 +76,11 @@ case class While(test: Expression, invariant: Expression, gamma: List[GammaMappi
   def this(test: Expression, body: Statement) = this(test, Const._true, List(), None, body)
   def this(test: Expression, invariant: Expression, body: Statement) = this(test, invariant, List(), None, body)
   def this(test: Expression, invariant: Expression, gamma: Array[GammaMapping], body: Statement) = this(test, invariant, gamma.toList, None, body)
-  def this(test: Expression, invariant: Expression, gamma: Array[GammaMapping], nonblocking: Array[Id], body: Statement) = this(test, invariant, gamma.toList, Some(nonblocking.toSet), body)
 }
 
 case class DoWhile(test: Expression, invariant: Expression, gamma: List[GammaMapping], nonblocking: Option[Set[Id]], body: Statement) extends Statement {
+  def this(test: Expression, invariant: Expression, body: Statement) = this(test, invariant, List(), None, body)
   def this(test: Expression, invariant: Expression, gamma: Array[GammaMapping], body: Statement) = this(test, invariant, gamma.toList, None, body)
-  def this(test: Expression, invariant: Expression, gamma: Array[GammaMapping], nonblocking: Array[Id], body: Statement) = this(test, invariant, gamma.toList, Some(nonblocking.toSet), body)
 }
 
 case class Atomic(statements: List[Statement]) extends Statement {

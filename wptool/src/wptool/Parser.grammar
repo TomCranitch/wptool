@@ -119,7 +119,7 @@ local
     | WHILE LPAREN expr.a RPAREN INVARIANT COLON expr.i block.b      {: return new While(a, i, b);   :}
     | WHILE LPAREN expr.a RPAREN block.b      {: return new While(a, b);   :}
     | WHILE LPAREN expr.a RPAREN INVARIANT COLON expr.i GAMMA COLON gamma_mappings.g block.b      {: return new While(a, i, g, b);   :}
-    | DO INVARIANT COLON expr.i GAMMA COLON gamma_mappings.g local.b WHILE LPAREN expr.a RPAREN    {: return new DoWhile(a, i, g, b);   :}
+    | DO INVARIANT COLON expr.i block.b WHILE LPAREN expr.a RPAREN    {: return new DoWhile(a, i, b);   :}
     | error SEMICOLON {: return Malformed.self(); :}
     ;
 locals  = local *;

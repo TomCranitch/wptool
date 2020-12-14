@@ -89,7 +89,7 @@ object WPTool {
     val _state = Exec.exec(PreProcess.process(statements, state), state)
 
 
-    val gammaDom: Set[Id] = state.ids
+    val gammaDom: Set[Id] = _state.ids
     val gamma: Map[Id, Security] = gamma_0 match {
       // security high by default if user hasn't provided
       case None => Map()
@@ -99,16 +99,16 @@ object WPTool {
     }
     val gammaSubstr = {
       for (i <- gammaDom) yield {
-        i.toGamma.toVar(state) -> gamma.getOrElse(i, High).toTruth
+        i.toGamma.toVar(_state) -> gamma.getOrElse(i, High).toTruth
       }
-    }.toMap[Var, Expression] ++ Map(Id.tmpId.toGamma.toVar(state) -> Const._true)
+    }.toMap[Var, Expression] ++ Map(Id.tmpId.toGamma.toVar(_state) -> Const._true)
 
     val vcs = _state.Q.subst(gammaSubstr)
 
     //if (debug) println("VCs: " + vcs)
     if (debug) println("Gamma0: " + gammaSubstr)
-    if (debug) println("L: " + state.L)
-    if (debug) println("Indicies: " + state.indicies)
+    if (debug) println("L: " + _state.L)
+    if (debug) println("Indicies: " + _state.indicies)
 
     SMT.prove(vcs, List[Expression](), debug = debug)
   }
