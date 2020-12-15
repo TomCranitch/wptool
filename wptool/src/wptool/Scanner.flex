@@ -111,7 +111,7 @@ WS = {NL} | [ \t\f]
 "local var"      { return newToken(Terminals.LOCALVAR);     }
 "_Rely" {return newToken(Terminals.RELY);}
 "_Guar" {return newToken(Terminals.GUAR);}
-//"_array"    { return newToken(Terminals.ARRAY);     }
+// "_array"    { return newToken(Terminals.ARRAY);     }
 
 "TRUE" { return newToken(Terminals.TRUE);    }
 "FALSE" { return newToken(Terminals.FALSE);    }

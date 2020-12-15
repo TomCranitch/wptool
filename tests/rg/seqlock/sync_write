@@ -10,7 +10,10 @@ _Gamma_0: secret -> HIGH
 _Rely: Gamma_x && z' == z
 _Guar: z' >= z
 
-z = z + 1;
+// if (z % 2 != 0) { z = z + 1; }  // z must be initially even
+
+z = 0;
+z = z + 3;
 x = secret;
 
 // wait for x to be read

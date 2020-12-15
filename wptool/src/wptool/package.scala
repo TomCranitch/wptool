@@ -39,6 +39,8 @@ package object wptool {
       override def toString = "line " + line + ": ARRAY ASSIGNC rule not valid for " + a + "[" + index + "] = " + rhs + " as " + message
     }
 
+    case class FailsAtHavoc() extends Exception
+
   }
 
   type Subst = Map[Var, Expression]
@@ -99,4 +101,24 @@ package object wptool {
   }
 
   def constructForall (exprs: Expression*): Expression = constructForall(exprs.toList)
+
+  def checkVcs (preds: List[PredInfo], debug: Boolean): Option[List[PredInfo]] = preds.filter(p => {
+    if (debug) println(s"passing ${p.stmt} ${p.label} to SMT")
+    !SMT.prove(p.pred, List(), debug = debug)
+  }) match {
+    case List() => None
+    case l => Some(l)
+  }
+  def checkVcs (preds: List[PredInfo], gammas: Subst, debug: Boolean): Option[List[PredInfo]] = checkVcs(preds.map(p => {
+    p.copy(pred = p.pred.subst(gammas))
+  }), debug)
+
+  def printFalseVcs (preds: List[PredInfo]) = {
+    println("Failing VCs")
+    preds.foreach(p => {
+      println(s"    ${p.stmt} (${p.stmt.line}): ${p.label}")
+      println(p.pred)
+    })
+  }
+  
 }

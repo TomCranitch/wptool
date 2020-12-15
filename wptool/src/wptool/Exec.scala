@@ -17,59 +17,103 @@ object Exec {
     case block: Block =>
       val _state = exec(block.statements, joinStates(block.children.map(c => {
         val res = exec(c, state)
-        if (c.atomic) res.copy(Q = BinOp("&&", stableR(res.Q, state), res.Q))
-        else res
+        // TODO if (c.atomic) res.addQs(PreInfo(stableR(res.Q, state), c, "stableR"))
+        // else res
+        res
       }), state), RG)
       _state
-    case assume: Assume =>
-      state.copy(Q = eval(BinOp("=>", eval(assume.expression, state), state.Q), state))
-    case Assert(exp, checkStableR) =>
-      if (checkStableR) state.copy(Q = constructForall(eval(exp, state), state.Q, stableR(exp, state)))
-      else state.copy(Q = BinOp("&&", eval(exp, state), state.Q))
+    case assume: Assume => evalWp(assume, state)
+    case assert: Assert =>
+      val _state = evalWp(assert, state)
+      // TODO would adding assert.expression to Qs allow to check if its correct
+      if (assert.checkStableR) _state.addQs(PredInfo(
+        stableR(assert.expression, state),
+        assert,
+        "StableR"
+      ))
+      else _state
     case havoc: Havoc =>
       // TODO should this resolve to true/false ??
       // TODO need to somehow remove stableR (as per paper) - lazy hack is to set a boolean flag in the preprocessor 
-      state.incNonPrimeIndicies
-    case Guard(test: Expression) =>
+      val _state = checkVcs(state.Qs, state.debug) match {
+        case Some(p) =>
+          if (state.debug) println("error found at havoc")
+          state.copy(error = true)
+        case None => 
+          if (state.debug) println("conditions verified")
+          state
+      }
+
+      _state.copy(Qs = List(PredInfo(Const._true, Malformed, "intial havoc"))).incNonPrimeIndicies
+    case guard: Guard =>
       // TODO handle havoc -> true
+      val _state = evalWp(guard, state)
       if (RG) {
-        val gamma = computeGamma(eval(test, state).vars.toList, state)
+        val gamma = computeGamma(eval(guard.test, state).vars.toList, state)
         val stabR = stableR(gamma, state)
-        val stabRB = stableR(test, state)
-        state.copy(Q = eval(constructForall(gamma, stabR, BinOp("=>", BinOp("&&", stabRB, test), state.Q), BinOp("=>", PreOp("!", stabRB), state.Q)), state))
+        _state.addQs(
+          PredInfo(gamma, guard, "Gamma"),
+          PredInfo(stabR, guard, "StableR")
+        )
+        // TODO!!!! handling the two implies
+        // and also how to get this working with WP
+        // state.copy(Q = eval(constructForall(gamma, stabR, BinOp("=>", BinOp("&&", stabRB, test), state.Q), BinOp("=>", PreOp("!", stabRB), state.Q)), state))
       } else {
-        state.copy(Q = eval(BinOp("=>", test, state.Q), state))
+        _state
       }
     case assign: Assignment =>
       val globalPred = if (state.globals.contains(assign.lhs)) BinOp("=>", getL(assign.lhs, state), computeGamma(eval(assign.expression, state).vars.toList, state)) else Const._true
       val controlPred = if (state.controls.contains(assign.lhs)) {
-        constructForall(state.controlledBy.getOrElse(assign.lhs, Set()).map(contr =>
+        constructForall(state.controlledBy.getOrElse(assign.lhs, Set()).map(contr => {
           BinOp(
             "=>",
-            getL(contr, state).subst(Map(assign.lhs.toVar(state) -> assign.expression)),
+            getL(contr, state).subst(Map(assign.lhs.toVar(state) -> eval(assign.expression, state))),
             BinOp("||", eval(contr.toGamma, state), getL(contr, state))
           )
-        ).toList)
-      } 
-      else Const._true
-      val PO = BinOp("&&", globalPred, controlPred)
+        }).toList)
+      } else Const._true
 
-      val rhsGamma = computeGamma(eval(assign.expression, state).vars.toList, state)
 
-      val Q = state.Q.subst(Map((assign.lhs.toGamma.toVar(state) -> rhsGamma), (assign.lhs.toVar(state) -> assign.expression)))
+      val _state = evalWp(assign, state).addQs(
+        PredInfo(rImplies(globalPred, state), assign, "Global"),
+        PredInfo(rImplies(controlPred, state), assign, "Control")
+      )
 
       if (RG) {
         val guarantee = guar(assign, state)
-        val pred = constructForall(PO, Q, guarantee)
 
-        //state.copy(Q = BinOp("&&", guarantee, rImplies(pred, state))).incPrimeIndicies
-        state.copy(Q = rImplies(pred, state)).incPrimeIndicies
+        _state.addQs(
+          PredInfo(rImplies(guarantee, state), assign, "Guarantee")
+        ).incPrimeIndicies
+
+        // TODO
+        // state.copy(Q = rImplies(pred, state)).incPrimeIndicies
       } else {
-        state.copy(Q = eval(BinOp("&&", PO, Q), state)).incPrimeIndicies
+        _state.incPrimeIndicies
       }
     case stmt =>
       println("Unhandled statement(exec): " + stmt)
       state.incPrimeIndicies
+  }
+
+  def evalWp (stmt: Statement, state: State) = state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
+
+  def wp (Q: Expression, stmt: Statement, state: State): Expression = stmt match {
+    case Assume(exp) => BinOp("=>", eval(exp, state), Q)
+    case Guard(exp) => 
+      val stabRB = stableR(exp, state)
+      BinOp("&&", 
+        BinOp("=>", BinOp("&&", eval(exp, state), eval(exp, state)), Q),
+        BinOp("=>", PreOp("!", stabRB), eval(exp, state))
+      )
+    case Assert(exp, checkStableR) => BinOp("&&", eval(exp, state), Q)
+    case havoc: Havoc => Q
+    case assign: Assignment =>
+      val rhsGamma = computeGamma(eval(assign.expression, state).vars.toList, state)
+      Q.subst(Map((assign.lhs.toGamma.toVar(state) -> rhsGamma), (assign.lhs.toVar(state) -> eval(assign.expression, state))))
+    case stmt =>
+      println("Unhandled statement(exec): " + stmt)
+      Q
   }
 
   def eval (expr: Expression, state: State): Expression = expr match {
@@ -111,11 +155,11 @@ object Exec {
       // TODO detect x ~ y
       val rhsGamma = computeGamma(eval(a.expression, state).vars.toList, state)
       val idsNoLHS = state.ids.filter(id => id != a.lhs)
-      val subst = idsNoLHS.map(id => id.toPrime.toVar(state) -> id).toMap[Var, Expression] ++ idsNoLHS.map(id => id.toPrime.toGamma.toVar(state) -> id.toGamma.toVar(state)).toMap[Var, Expression]
+      val subst = idsNoLHS.map(id => id.toPrime.toVar(state) -> id.toVar(state)).toMap[Var, Expression] ++ idsNoLHS.map(id => id.toPrime.toGamma.toVar(state) -> id.toGamma.toVar(state)).toMap[Var, Expression]
 
-      eval(eval(state.guar, state)
+      eval(eval(eval(state.guar, state)
         .subst(Map(a.lhs.toPrime.toVar(state) -> a.expression, a.lhs.toPrime.toGamma.toVar(state) -> rhsGamma)), state)
-        .subst(subst)
+        .subst(subst), state)
   }
 
   def computeGamma (vars: List[Var], state: State): Expression = vars match {
@@ -130,19 +174,21 @@ object Exec {
     }
 
     val preds = states.map(s => {
-      if (s.indicies == indicies) s.Q
+      if (s.indicies == indicies) s.Qs
       else {
         val conds = s.indicies.filter{ case (id, int) => indicies.get(id) match {
           case Some(i) => i != int
           case None => true
         }}.map{ case (id, ind) => BinOp("==", Var(id, ind), Var(id, indicies.getOrElse(id, -1))) }.toList
 
-        BinOp("=>", constructForall(conds), s.Q)
+        s.Qs.map(info => info.copy(pred = BinOp("=>", constructForall(conds), info.pred)))
       }
-    })
+    }).flatten
+
+    val error = states.foldLeft(state.error) { case (a, i) => if (a || i.error) true else false }
 
     state.copy(
-      Q = constructForall(preds), indicies = indicies
+      Qs = preds, indicies = indicies, error = error
     )
   }
   

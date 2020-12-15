@@ -63,7 +63,7 @@ object WPTool {
     println(urls.mkString("\n"))
   }
 
-  def run (file: String, debug: Boolean): Boolean = {
+  def run (file: String, debug: Boolean, silent: Boolean = false): Boolean = {
     val res = parse(file)
     val variables = res.variables
 
@@ -103,14 +103,19 @@ object WPTool {
       }
     }.toMap[Var, Expression] ++ Map(Id.tmpId.toGamma.toVar(_state) -> Const._true)
 
-    val vcs = _state.Q.subst(gammaSubstr)
-
     //if (debug) println("VCs: " + vcs)
     if (debug) println("Gamma0: " + gammaSubstr)
     if (debug) println("L: " + _state.L)
     if (debug) println("Indicies: " + _state.indicies)
 
-    SMT.prove(vcs, List[Expression](), debug = debug)
+    checkVcs(_state.Qs, gammaSubstr, debug) match {
+      case Some(s) =>
+        if (!silent) printFalseVcs(s)
+        false
+      case None => 
+        if (_state.error) false
+        else true
+    }
   }
 
   def printTime(start: Long): Unit = {

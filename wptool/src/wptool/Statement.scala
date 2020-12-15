@@ -11,7 +11,8 @@ object Block {
 }
 
 sealed trait Statement extends beaver.Symbol {
-  def line: Int = beaver.Symbol.getLine(this.getStart)
+  var line: (String, Int) = ("", 0)
+  def setLine (block: Block, line: Int) = this.line = (block.label, line)
 }
 
 case object Malformed extends Statement {

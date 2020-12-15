@@ -12,12 +12,10 @@ _L: TRUE
 
 _Gamma_0: r1 -> LOW, r2 -> LOW
 _Rely: z' >= z
-// I'm not sure that the guarantee of Gamma_x is stable under R
-// _Guar: Gamma_x && (z' == z)
 _Guar: (z' == z)
 
 do
-_invariant: Gamma_r1
+_invariant: Gamma_r2
 {
 	do
 	_invariant: Gamma_r1

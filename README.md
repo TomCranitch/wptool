@@ -67,6 +67,29 @@ if (x == 0) {
 }
 ```
 
+### Loops
+The tool supports while and do-while loops. In both cases, an invariant should be specified. 
+```
+while(TRUE)
+_invariant: z % 2 == 0
+{
+  z = z + 1;
+  fence;
+  x = r_secret;
+  x = 0;
+  fence;
+  z = z + 1;
+}
+```
+
+```
+do
+_invariant: TRUE
+{
+  r1 = z;
+} while ((r1 % 2) != 0)
+```
+
 ### Supported operations
 * `=` assignment
 * `==` equal to
@@ -91,7 +114,6 @@ if (x == 0) {
 ## TODOs
 ### Unsupported language features
 Below is an inconclusive list of unsupported language features.
- * Do-while loops
  * Pointers
  * Arrays
  

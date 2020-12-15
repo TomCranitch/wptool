@@ -1,20 +1,25 @@
 package wptool
 
+case class PredInfo (pred: Expression, stmt: Statement, label: String)
+
 case class State (
-                   Q: Expression,
-                   debug: Boolean,
-                   controls: Set[Id],
-                   controlled: Set[Id],
-                   controlledBy: Map[Id, Set[Id]],
-                   L: Map[Id, Expression],
-                   ids: Set[Id],
-                   globals: Set[Id],
-                   rely: Expression,
-                   guar: Expression,
-                   indicies: Map[Id, Int]
-                 ) {
-                   def incPrimeIndicies = this.copy(indicies = indicies ++ indicies.filter(x => x._1.prime).map(x => (x._1, x._2 + 1)).toMap)
-                   def incNonPrimeIndicies = this.copy(indicies = indicies ++ indicies.filter(x => !x._1.prime).map(x => (x._1, x._2 + 1)).toMap)
+    Qs: List[PredInfo],
+    debug: Boolean,
+    controls: Set[Id],
+    controlled: Set[Id],
+    controlledBy: Map[Id, Set[Id]],
+    L: Map[Id, Expression],
+    ids: Set[Id],
+    globals: Set[Id],
+    rely: Expression,
+    guar: Expression,
+    indicies: Map[Id, Int],
+    error: Boolean = false
+  ) {
+      def incPrimeIndicies = this.copy(indicies = indicies ++ indicies.filter(x => x._1.prime).map(x => (x._1, x._2 + 1)).toMap)
+      def incNonPrimeIndicies = this.copy(indicies = indicies ++ indicies.filter(x => !x._1.prime).map(x => (x._1, x._2 + 1)).toMap)
+      def incGamma(id: Id) = this.copy(indicies = indicies + (id -> (indicies.getOrElse(id, -1) + 1)))
+      def addQs (Qss: PredInfo*) = this.copy(Qs = Qs ::: Qss.toList)
 }
 
 object State {
@@ -74,8 +79,9 @@ object State {
     val _guar = guar.getOrElse(Guar(Const._true)).exp
     val _rely = rely.getOrElse(Rely(Const._true)).exp
 
-    val primeIndicies = ids.map(x => x.toPrime -> 0).toMap ++ ids.map(x => (x -> 0))
+    val primeIndicies = ids.map(x => x.toPrime -> 0).toMap ++ ids.map(x => x -> 0)
 
-    State(Const._true, debug, controls, controlled, controlledBy, L, ids, globals, _rely, _guar, primeIndicies)
+    // TODO malformed probs insto the best
+    State(List(PredInfo(Const._true, Malformed, "initial predicate")), debug, controls, controlled, controlledBy, L, ids, globals, _rely, _guar, primeIndicies)
   }
 }

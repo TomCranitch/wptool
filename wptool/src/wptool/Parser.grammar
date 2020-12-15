@@ -92,9 +92,9 @@ definition
     =     GLOBALVAR ID.n COLON lpred.l              {:  return new VarDef(n, l, GlobalVar.instance()); :} // TODO: does this make them appear as global (i.e. are vars without right permissions global)
           | GLOBALVAR ID.n COLON                     {: return new VarDef(n, GlobalVar.instance()); :}
           | LOCALVAR ID.n COLON                     {: return new VarDef(n, LocalVar.instance()); :}
-          //| ARRAY ID.n LBRACK NUM.s RBRACK COLON lpred.l mode.m {: return new ArrayDef(n, s, l, m); :}
-          //| ARRAY ID.n LBRACK NUM.s RBRACK COLON lpredindexes.l mode.m {: return new ArrayDef(n, s, l, m); :}
-          //| ARRAY ID.n LBRACK NUM.s RBRACK COLON mode.m {: return new ArrayDef(n, s, m); :}
+          // | ARRAY ID.n LBRACK NUM.s RBRACK COLON lpred.l {: return new ArrayDef(n, s, l); :}
+          // | ARRAY ID.n LBRACK NUM.s RBRACK COLON lpredindexes.l mode.m {: return new ArrayDef(n, s, l, m); :}
+          // | ARRAY ID.n LBRACK NUM.s RBRACK COLON {: return new ArrayDef(n, s); :}
           ;
 
 defs = definition *;
