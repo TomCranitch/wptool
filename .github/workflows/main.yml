@@ -30,8 +30,9 @@ jobs:
       
       - name: z3 dependency 
         run: |
-          echo $PWD
-          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/runner/work/TomCranitch/wptool/wptool/lib/libz3java.so
+          ls /home/runner/work/wptool/wptool
+          ls /home/runner/work/wptool/wptool/wptool
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/runner/work/wptool/wptool/wptool/lib/libz3java.so
 
       # Runs a single command using the runners shell
       - name: Run the tests
