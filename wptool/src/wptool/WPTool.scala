@@ -81,7 +81,7 @@ object WPTool {
       println(guar)
     }
 
-    val state = State(variables, debug, gamma_0, rely, guar)
+    val state = State(variables, debug, silent, gamma_0, rely, guar)
     // printBlocks(PreProcess.process(statements, state))
 
     if (debug) PreProcess.printGraphvis(PreProcess.process(statements, state))

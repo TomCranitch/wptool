@@ -2,6 +2,7 @@ package wptool
 
 import com.microsoft.z3
 import com.microsoft.z3.BoolExpr
+import com.microsoft.z3.enumerations.Z3_decl_kind
 
 object SMT {
   val intSize = 32 // size of bitvectors used
@@ -43,6 +44,8 @@ object SMT {
     } finally {
       solver.pop()
     }
+    
+    // solverSimplify(cond).getSubgoals.map(g => println("val: " + translateBack(g.AsBoolExpr)))
 
     if (debug) {
       println(res)
@@ -53,126 +56,6 @@ object SMT {
       println(solverSimplify(cond))
     }
     res == z3.Status.UNSATISFIABLE
-  }
-
-  def proveSat(cond: Expression, given: List[Expression], debug: Boolean) = {
-    if (debug)
-      println("smt checking " + cond + " given " + given.PStr)
-    solver.push()
-    val res = try {
-      for (p <- given) {
-        solver.add(formula(p))
-      }
-      // check that cond AND P is satisfiable
-      solver.add(formula(cond))
-
-      solver.check
-    } catch {
-      case e: java.lang.UnsatisfiedLinkError if e.getMessage.equals("com.microsoft.z3.Native.INTERNALgetErrorMsgEx(JI)Ljava/lang/String;")=>
-        // weird unintuitive error z3 can have when an input type is incorrect in a way it doesn't check
-        throw error.Z3Error("Z3 failed", cond, given.PStr, "incorrect z3 expression type, probably involving ForAll/Exists")
-      case e: Throwable =>
-        throw error.Z3Error("Z3 failed", cond, given.PStr, e)
-    } finally {
-      solver.pop()
-    }
-
-    if (debug) {
-      println(res)
-      if (res == z3.Status.SATISFIABLE) {
-        println(solver.getModel)
-      }
-    }
-    res == z3.Status.SATISFIABLE
-  }
-
-  def proveP(given: List[Expression], debug: Boolean) = {
-    if (debug)
-      println("smt checking " + given.PStr)
-    solver.push()
-    val res = try {
-      for (p <- given) {
-        solver.add(formula(p))
-      }
-      solver.check
-    } catch {
-      case e: java.lang.UnsatisfiedLinkError if e.getMessage.equals("com.microsoft.z3.Native.INTERNALgetErrorMsgEx(JI)Ljava/lang/String;")=>
-        // weird unintuitive error z3 can have when an input type is incorrect in a way it doesn't check
-        throw error.Z3Error("Z3 failed", given.PStr, "incorrect z3 expression type, probably involving ForAll/Exists")
-      case e: Throwable =>
-        throw error.Z3Error("Z3 failed", given.PStr, e)
-    } finally {
-      solver.pop()
-    }
-
-    if (debug) {
-      println(res)
-      if (res == z3.Status.SATISFIABLE) {
-        println(solver.getModel)
-      }
-    }
-    res == z3.Status.SATISFIABLE
-  }
-
-  def proveImplies(strong: List[Expression], weak: List[Expression], debug: Boolean) = {
-    if (debug)
-      println("smt checking !(" + strong.PStr + newline + " implies " + weak.PStr + ")")
-    solver.push()
-    val res = try {
-      solver.add(ctx.mkNot(ctx.mkImplies(PToAnd(strong), PToAnd(weak))))
-      solver.check
-    } catch {
-      case e: Throwable =>
-        throw error.Z3Error("Z3 failed", strong, weak, e)
-    } finally {
-      solver.pop()
-    }
-    if (debug) {
-      println(res)
-      if (res == z3.Status.SATISFIABLE) {
-        println(solver.getModel)
-      }
-    }
-    res == z3.Status.UNSATISFIABLE
-  }
-
-  def proveExpression(cond: Expression, debug: Boolean) = {
-    if (debug)
-      println("smt checking (" + cond + ")")
-    solver.push()
-    val res = try {
-      // check that (NOT cond) is unsatisfiable
-      solver.add(formula(cond))
-      solver.check
-    } catch {
-      case e: java.lang.UnsatisfiedLinkError if e.getMessage.equals("com.microsoft.z3.Native.INTERNALgetErrorMsgEx(JI)Ljava/lang/String;")=>
-        // weird unintuitive error z3 can have when an input type is incorrect in a way it doesn't check
-        throw error.Z3Error("Z3 failed", cond, "incorrect z3 expression type, probably involving ForAll/Exists")
-      case e: Throwable =>
-        throw error.Z3Error("Z3 failed", cond, e)
-    } finally {
-      solver.pop()
-    }
-
-    if (debug) {
-      println(res)
-      if (res == z3.Status.SATISFIABLE) {
-        val model = solver.getModel
-        println(model)
-      }
-    }
-    res == z3.Status.SATISFIABLE
-  }
-
-  // recursively convert expression list into AND structure
-  def PToAnd(exprs: List[Expression]): z3.BoolExpr = exprs match {
-    case Nil =>
-      ctx.mkTrue
-
-    case expr :: rest =>
-      val xs = PToAnd(rest)
-      val x = ctx.mkAnd(formula(expr), xs)
-      x
   }
 
   def formula(prop: Expression): z3.BoolExpr = translate(prop) match {
@@ -194,6 +77,26 @@ object SMT {
     case arith: z3.IntExpr => ctx.mkInt2BV(intSize, arith)
     case e =>
       throw error.InvalidProgram("not a bitwise expression", prop, e)
+  }
+
+  def translateBack (exp: z3.Expr): Expression = {
+    if (exp.isConst()) {
+      if (exp.getSort == ctx.getIntSort) { println(exp) }
+    } else if (exp.isApp) {
+      exp.getFuncDecl().getDeclKind() match {
+        case Z3_decl_kind.Z3_OP_TRUE => Const._true
+        case Z3_decl_kind.Z3_OP_FALSE => {
+          println("false")
+          Const._false
+        }
+        case Z3_decl_kind.Z3_OP_AND => BinOp("&&", translateBack(exp.getArgs()(0)), translateBack(exp.getArgs()(1)))
+        case _ => throw new Error(s"Unexpected binop ${exp}")
+      }
+    } else {
+        throw new Error(s"Unexpected expr ${exp}")
+    }
+
+    Const._false
   }
 
   /* currently doing all arithmetic operations on ints - may want to switch to bitvectors

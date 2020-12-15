@@ -120,5 +120,3 @@ Below is an inconclusive list of unsupported language features.
 ### Weak memory model
 The logic for the weak memory model is currently not implemented
 
-### Improved feedback
-The tool currently provides no feedback when it fails. This should be modified to, at a minimum, provide feedback on things like the loop invariant.

@@ -40,6 +40,8 @@ class IntegrationTestsRG extends  AnyFunSuite {
   test("If (Negative)") {
     assert(!WPTool.run(testNegDir + "if1", debug = false, silent = true))
     assert(!WPTool.run(testNegDir + "if2", debug = false, silent = true))
+    assert(!WPTool.run(testNegDir + "if6", debug = false, silent = true))
+    assert(!WPTool.run(testNegDir + "if7", debug = false, silent = true))
   }
 
   test("While") {
@@ -53,14 +55,15 @@ class IntegrationTestsRG extends  AnyFunSuite {
     assert(!WPTool.run(testNegDir + "while1", debug = false, silent = true))
     assert(!WPTool.run(testNegDir + "while2", debug = false, silent = true))
     assert(!WPTool.run(testNegDir + "while3", debug = false, silent = true))
+    assert(!WPTool.run(testNegDir + "while4", debug = false, silent = true))
   }
 
-  test("Spin Read") {
+  test("SpinLock") {
     assert(WPTool.run(testDir + "spinread/sync_read", debug = false, silent = true))
     assert(WPTool.run(testDir + "spinread/sync_write", debug = false, silent = true))
   }
 
-  test("Spin Read (Negative)") {
+  test("SpinLock (Negative)") {
     assert(!WPTool.run(testNegDir + "sync_read1", debug = false, silent = true))
     assert(!WPTool.run(testNegDir + "sync_write1", debug = false, silent = true))
     assert(!WPTool.run(testNegDir + "sync_write2", debug = false, silent = true))
@@ -69,5 +72,10 @@ class IntegrationTestsRG extends  AnyFunSuite {
   test("SeqLock") {
     assert(WPTool.run(testDir + "seqlock/read", debug = false, silent = true))
     assert(WPTool.run(testDir + "seqlock/sync_write", debug = false, silent = true))
+  }
+
+  test("SeqLock (Negative)") {
+    assert(!WPTool.run(testNegDir + "seqlock_read_1", debug = false, silent = true))
+    assert(!WPTool.run(testNegDir + "seqlock_read_2", debug = false, silent = true))
   }
 }

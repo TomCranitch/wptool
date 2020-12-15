@@ -37,6 +37,7 @@ object Exec {
       // TODO need to somehow remove stableR (as per paper) - lazy hack is to set a boolean flag in the preprocessor 
       val _state = checkVcs(state.Qs, state.debug) match {
         case Some(p) =>
+          if (!state.silent) printFalseVcs(p)
           if (state.debug) println("error found at havoc")
           state.copy(error = true)
         case None => 
