@@ -32,6 +32,8 @@ jobs:
         run: |
           ls
           ls wptool
+          echo next
+          ls /home/$USER
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/${USER}/wptool/wptool/lib/libz3java.so
 
       # Runs a single command using the runners shell
