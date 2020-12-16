@@ -112,15 +112,15 @@ object SMT {
 
     case Lit(n: Int) => ctx.mkInt(n)
 
-    case Switch(n: Int) => ctx.mkBoolConst("Switch" + n)
-
-    case MultiSwitch(n: Int) => ctx.mkConst("MultiSwitch" + n, ctx.getIntSort)
-
-    case x: Var => {
+    case x: Var =>
       if (x.ident.gamma) ctx.mkConst(x.toString, ctx.getBoolSort)
       else ctx.mkConst(x.toString, ctx.getIntSort)
-    }
     case x: Id => throw new Error("unresolved id")
+
+    case x: VarAccess =>  
+      if (x.name.ident.gamma) ctx.mkSelect(ctx.mkArrayConst(x.name.toString, ctx.getIntSort, ctx.getBoolSort), translate(x.index))
+      else ctx.mkSelect(ctx.mkArrayConst(x.name.toString, ctx.getIntSort, ctx.getIntSort), translate(x.index))
+    case x: IdAccess =>  throw new Error("unresolved id")
 
     case BinOp("==", arg1, arg2) => ctx.mkEq(translate(arg1), translate(arg2))
     case BinOp("!=", arg1, arg2) => ctx.mkNot(ctx.mkEq(translate(arg1), translate(arg2)))

@@ -1,7 +1,5 @@
 package wptool
 
-// TODO i dont think prime variables are getting incremented often enough
-
 object Exec {
   @scala.annotation.tailrec
   def exec(statements: List[Statement], state: State, RG: Boolean = true): State = statements match {
@@ -17,9 +15,8 @@ object Exec {
     case block: Block =>
       val _state = exec(block.statements, joinStates(block.children.map(c => {
         val res = exec(c, state)
-        // TODO if (c.atomic) res.addQs(PreInfo(stableR(res.Q, state), c, "stableR"))
-        // else res
-        res
+        if (c.atomic) res.addQs(res.Qs.map(Q => PredInfo(stableR(Q.pred,state), c, "atomic stableR")))
+        else res
       }), state), RG)
       _state
     case assume: Assume => evalWp(assume, state)
@@ -45,7 +42,7 @@ object Exec {
           state
       }
 
-      _state.copy(Qs = List(PredInfo(Const._true, Malformed, "intial havoc"))).incNonPrimeIndicies
+      _state.copy(Qs = List(PredInfo(Const._true, Malformed, "intial havoc")))
     case guard: Guard =>
       // TODO handle havoc -> true
       val _state = evalWp(guard, state)
@@ -103,7 +100,8 @@ object Exec {
           BinOp(
             "=>",
             // TODO 
-            getL(contr, state).subst(Map(assign.name.toVar(state) -> eval(assign.expression, state))),
+            getL(contr, state).subst(Map(VarAccess(assign.name.toVar(state), assign.index) -> eval(assign.expression, state))),
+            // TODO what if contr is an array (need to fix normal assignment as well) (i.e. fix contr.toGamma)
             BinOp("||", eval(contr.toGamma, state), getL(contr, state))
           )
         }).toList)

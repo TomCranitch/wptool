@@ -8,7 +8,7 @@ case class State (
     silent: Boolean,
     controls: Set[Id],
     controlled: Set[Id],
-    controlledBy: Map[Id, Set[Id]],
+    controlledBy: Map[Id, Set[Id]], // TODO check
     L: Map[Id, Expression],
     ids: Set[Id],
     globals: Set[Id],
@@ -18,9 +18,9 @@ case class State (
     error: Boolean = false
   ) {
       def incPrimeIndicies = this.copy(indicies = indicies ++ indicies.filter(x => x._1.prime).map(x => (x._1, x._2 + 1)).toMap)
-      def incNonPrimeIndicies = this.copy(indicies = indicies ++ indicies.filter(x => !x._1.prime).map(x => (x._1, x._2 + 1)).toMap)
       def incGamma(id: Id) = this.copy(indicies = indicies + (id -> (indicies.getOrElse(id, -1) + 1)))
       def addQs (Qss: PredInfo*) = this.copy(Qs = Qs ::: Qss.toList)
+      def addQs (Qss: List[PredInfo]) = this.copy(Qs = Qs ::: Qss)
 }
 
 object State {
@@ -29,11 +29,9 @@ object State {
     var controlled: Set[Id] = Set()
     var controlledBy: Map[Id, Set[Id]] = Map()
 
-    val variables: Set[VarDef] = definitions flatMap {
-      case a: ArrayDef =>
-        println("Arrays not yet supported")
-        a.toVarDefs
-      case v: VarDef => Seq(v)
+    val variables: Set[VarDef] = definitions map {
+      case a: ArrayDef => a.toVarDefs
+      case v: VarDef => v
     }
 
     val ids: Set[Id] = {for (v <- variables) yield v.name}
@@ -64,7 +62,7 @@ object State {
       for (v <- variables) yield {
         if (v.access == GlobalVar) v.name -> v.pred
         else v.name -> Const._false
-      }
+      }  
     }.toMap
 
     val globals = variables.filter(v => v.access == GlobalVar).map(v => v.name)
@@ -76,11 +74,11 @@ object State {
       println("controlled by: " + controlledBy)
     }
 
-    val subst = ids.map(id => id -> id.toPrime).toMap[Identifier, Expression]
+    val subst = ids.map(id => id -> id.toPrime).toMap[Id, Expression]
     val _guar = guar.getOrElse(Guar(Const._true)).exp
     val _rely = rely.getOrElse(Rely(Const._true)).exp
 
-    val primeIndicies = ids.map(x => x.toPrime -> 0).toMap ++ ids.map(x => x -> 0)
+    val primeIndicies = ids.map(x => x.toPrime -> 0).toMap
 
     // TODO malformed probs insto the best
     State(List(PredInfo(Const._true, Malformed, "initial predicate")), debug, silent, controls, controlled, controlledBy, L, ids, globals, _rely, _guar, primeIndicies)
