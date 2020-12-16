@@ -7,8 +7,8 @@ on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  # pull_request:
+    # branches: [ master ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -16,7 +16,7 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  build:
+  test:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
@@ -28,9 +28,12 @@ jobs:
       - name: Install jflex
         run: sudo apt-get install -y jflex
       
-      - name: Link z3
-        run: java -Djava.library.path="./wptool/lib/libz3java.so"
+      - name: z3 dependency 
+        run: |
+          ls /home/runner/work/wptool/wptool
+          ls /home/runner/work/wptool/wptool/wptool
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/runner/work/wptool/wptool/wptool/lib/libz3java.so
 
       # Runs a single command using the runners shell
       - name: Run the tests
-        run: make test
+        run: make && make test
