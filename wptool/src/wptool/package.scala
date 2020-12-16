@@ -93,6 +93,13 @@ package object wptool {
     def gammaStr = gamma.mkString(", ")
   }
 
+  def constructMutliOp (op: String, exprs: List[Expression]): Expression = exprs match {
+    case expr :: Nil => expr
+    case expr :: rest =>
+      BinOp(op, expr, constructForall(rest))
+    case Nil => Const._true
+  }
+
   def constructForall (exprs: List[Expression]): Expression = exprs match {
     case expr :: Nil => expr
     case expr :: rest =>

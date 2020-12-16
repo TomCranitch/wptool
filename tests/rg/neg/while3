@@ -15,7 +15,7 @@ local var secret:
 _Gamma_0: secret -> HIGH
 // _Rely: (lock == 2) => (y == y' && x == x')
 _Rely: (y == y' && x == x')
-_Guar: TRUE // (lock != 2) => (access == access')
+_Guar: TRUE
 
 lock = 2;
 while (x != 1 && y != 1) {

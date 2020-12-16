@@ -79,24 +79,28 @@ object SMT {
       throw error.InvalidProgram("not a bitwise expression", prop, e)
   }
 
-  def translateBack (exp: z3.Expr): Expression = {
-    if (exp.isConst()) {
-      if (exp.getSort == ctx.getIntSort) { println(exp) }
-    } else if (exp.isApp) {
-      exp.getFuncDecl().getDeclKind() match {
-        case Z3_decl_kind.Z3_OP_TRUE => Const._true
-        case Z3_decl_kind.Z3_OP_FALSE => {
-          println("false")
-          Const._false
-        }
-        case Z3_decl_kind.Z3_OP_AND => BinOp("&&", translateBack(exp.getArgs()(0)), translateBack(exp.getArgs()(1)))
-        case _ => throw new Error(s"Unexpected binop ${exp}")
-      }
-    } else {
-        throw new Error(s"Unexpected expr ${exp}")
-    }
+  def parseVarName (name: String) = {
+    val prime = name.contains("'")
+    val gamma = name.startsWith("Gamma_")
+    val n = name.filter(l => !sub.contains(l)).stripPrefix("Gamma_").stripSuffix("'")
+    Id(n, prime, gamma)
+  }
 
-    Const._false
+  // TODO AND/OR can have multiple args
+  // TODO can other operations have multiple args
+  def translateBack (exp: z3.Expr): Expression = exp.getFuncDecl.getDeclKind match {
+    case Z3_decl_kind.Z3_OP_TRUE => Const._true
+    case Z3_decl_kind.Z3_OP_FALSE => Const._false
+    case Z3_decl_kind.Z3_OP_LABEL => 
+      parseVarName(exp.getFuncDecl.getName.toString)
+    case Z3_decl_kind.Z3_OP_ANUM => 
+      // TODO this is so dodge
+      Lit(exp.toString.toInt)
+    case Z3_decl_kind.Z3_OP_AND => constructMutliOp("&&", exp.getArgs.map(a => translateBack(a)).toList)
+    case Z3_decl_kind.Z3_OP_OR => constructMutliOp("||", exp.getArgs.map(a => translateBack(a)).toList)
+    case Z3_decl_kind.Z3_OP_EQ => BinOp("==", translateBack(exp.getArgs()(0)), translateBack(exp.getArgs()(1)))
+    case Z3_decl_kind.Z3_OP_NOT => PreOp("!", translateBack(exp.getArgs()(0)))
+    case _ => throw new Error(s"Unexpected exp ${exp} of kind ${exp.getFuncDecl.getDeclKind}")
   }
 
   /* currently doing all arithmetic operations on ints - may want to switch to bitvectors
