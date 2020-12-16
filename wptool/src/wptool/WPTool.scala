@@ -101,7 +101,7 @@ object WPTool {
       for (i <- gammaDom) yield {
         i.toGamma.toVar(_state) -> gamma.getOrElse(i, High).toTruth
       }
-    }.toMap[Var, Expression] ++ Map(Id.tmpId.toGamma.toVar(_state) -> Const._true)
+    }.toMap[Variable, Expression] ++ Map(Id.tmpId.toGamma.toVar(_state) -> Const._true)
 
     //if (debug) println("VCs: " + vcs)
     if (debug) println("Gamma0: " + gammaSubstr)

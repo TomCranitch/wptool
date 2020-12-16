@@ -22,9 +22,10 @@ object PreProcess {
     case block: Block =>
       // TODO incorrect
       exec(block.statements, state, currBlock)
-    case assign: Assignment => {
+    case assign: Assignment =>
       evalBlock(assign.expression, currBlock.prepend(assign.copy(expression = evalExp(assign.expression))))
-    }
+    case assign: ArrayAssignment =>
+      evalBlock(assign.expression, currBlock.prepend(assign.copy(expression = evalExp(assign.expression))))
     case ifStmt: If => 
       // val goto = ifStmt.
       // Parse to if (...) goto ...

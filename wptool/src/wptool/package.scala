@@ -43,7 +43,7 @@ package object wptool {
 
   }
 
-  type Subst = Map[Var, Expression]
+  type Subst = Map[Variable, Expression]
 
   /*
   object Subst {
