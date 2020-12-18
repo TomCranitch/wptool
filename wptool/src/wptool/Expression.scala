@@ -22,10 +22,12 @@ case class Lit(arg: Int) extends Expression {
 trait Identifier extends Expression {
   def toPrime: Identifier
   def toGamma: Identifier
+  def toVar (state: State): Variable
 }
 trait Variable extends Expression {
   def toPrime (state: State): Variable
   def toGamma (state: State): Variable
+  def ident: Id
 }
 
 // id parsed from input - need to convert to Var before use in predicates etc.
@@ -69,17 +71,19 @@ case class IdAccess (name: Id, index: Expression) extends Expression with Identi
   override def toString = name + "[" + index + "]"
   def toGamma = this.copy(name = name.toGamma)
   def toPrime = this.copy(name = name.toPrime)
+  def toVar (state: State) = VarAccess(name.toVar(state), index)
 }
 
 // array access with Var for use in logical predicates
 case class VarAccess(name: Var, index: Expression) extends Expression with Variable {
-  def vars: Set[Var] = index.vars
+  def vars: Set[Var] = index.vars + name
   def ids: Set[Id] = index.ids
   // TODO we may want to modify this to include substiuting whole arrays but im not sure if that is useful
   def subst(su: Subst) = su.getOrElse(this, this)
   override def toString = name + "[" + index + "]"
   def toGamma (state: State) = this.copy(name = name.toGamma(state))
   def toPrime (state: State) = this.copy(name = name.toPrime(state))
+  def ident = name.ident
 }
 
 case class PreOp(op: String, arg: Expression) extends Expression {

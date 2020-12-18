@@ -1,0 +1,7 @@
+global array a[2]:
+_L: FALSE
+
+_Rely: TRUE
+_Guar: TRUE
+
+a[0] = 1;

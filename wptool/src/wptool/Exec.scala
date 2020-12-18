@@ -1,5 +1,8 @@
 package wptool
 
+// TODO include gamma of i in gamma computations
+// TODO gamma i should be low when making an assignment
+
 object Exec {
   @scala.annotation.tailrec
   def exec(statements: List[Statement], state: State, RG: Boolean = true): State = statements match {
@@ -72,7 +75,8 @@ object Exec {
         }).toList)
       } else Const._true
 
-
+      // TODO should we be using rImplies when RG is false
+      // TODO audit when RG is actually being used
       val _state = evalWp(assign, state).addQs(
         PredInfo(rImplies(globalPred, state), assign, "Global"),
         PredInfo(rImplies(controlPred, state), assign, "Control")
@@ -92,29 +96,43 @@ object Exec {
       }
     case assign: ArrayAssignment =>
       val indexSub = Map[Variable, Expression](Id.indexId.toVar(state) -> assign.index)
-      val globalPred = if (state.globals.contains(assign.name)) BinOp("=>", getL(assign, state).subst(indexSub), computeGamma(eval(assign.expression, state).vars.toList, state)) else Const._true
+      val globalPred = if (state.globals.contains(assign.name)) BinOp("=>", getL(assign, state), computeGamma(eval(assign.expression, state).vars.toList, state)) else Const._true
       val controlPred = if (state.controls.contains(assign.name)) {
         constructForall(state.controlledBy.getOrElse(assign.name, Set()).map(contr => {
-          // TODO one more implies which checks if the it current index is indeed the controlling index
-          // dont need to bc this is already handled by rule
           BinOp(
             "=>",
             // TODO 
-            getL(contr, state).subst(Map(VarAccess(assign.name.toVar(state), assign.index) -> eval(assign.expression, state))),
+            getL(contr, state),
             // TODO what if contr is an array (need to fix normal assignment as well) (i.e. fix contr.toGamma)
             BinOp("||", eval(contr.toGamma, state), getL(contr, state))
           )
         }).toList)
       } else Const._true
 
+      var gammaPred = computeGamma(eval(assign.index, state).vars.toList, state)
+
       val _state = evalWp(assign, state).addQs(
         PredInfo(rImplies(globalPred, state), assign, "Global"),
-        PredInfo(rImplies(controlPred, state), assign, "Control")
+        PredInfo(rImplies(controlPred, state), assign, "Control"),
+        PredInfo(rImplies(gammaPred, state), assign, "Index Gamma")
       )
 
-      state
+
+      if (RG) {
+        /* TODO
+        val guarantee = guar(assign, state)
+
+        _state.addQs(
+          PredInfo(rImplies(guarantee, state), assign, "Guarantee")
+        ).incPrimeIndicies
+        */
+
+        _state
+      } else {
+        _state.incPrimeIndicies
+      }
     case stmt =>
-      println("Unhandled statement(exec): " + stmt)
+      println(s"Unhandled statement(wpif exec): $stmt")
       state.incPrimeIndicies
   }
 
@@ -133,13 +151,18 @@ object Exec {
     case assign: Assignment =>
       val rhsGamma = computeGamma(eval(assign.expression, state).vars.toList, state)
       Q.subst(Map((assign.lhs.toGamma.toVar(state) -> rhsGamma), (assign.lhs.toVar(state) -> eval(assign.expression, state))))
+    case assign: ArrayAssignment =>
+      val rhsGamma = computeGamma(eval(assign.expression, state).vars.toList, state)
+      // TODO this doesnt account of the index
+      Q.subst(Map((assign.name.toGamma.toVar(state) -> rhsGamma), (assign.name.toVar(state) -> eval(assign.expression, state))))
     case stmt =>
-      println("Unhandled statement(exec): " + stmt)
+      println("Unhandled statement(wp exec): " + stmt)
       Q
   }
 
   def eval (expr: Expression, state: State): Expression = expr match {
     case id: Id => id.toVar(state)
+    case id: IdAccess => id.toVar(state).copy(index = eval(id.index, state))
     case BinOp(op, arg1, arg2) => BinOp(op, eval(arg1, state), eval(arg2, state))
     case PreOp(op, arg) => PreOp(op, eval(arg, state))
     case _: Lit | _: Const | _: Var => expr
@@ -166,8 +189,12 @@ object Exec {
       ) :+ state.rely), state)
   }
 
-  def getL (id: Id, state: State): Expression = eval(state.L.getOrElse(id, throw new Error("L not defined for " + id)), state)
-  def getL (id: ArrayAssignment, state: State): Expression = getL(id.name, state) // TODO subst index with actual index (id.index)
+  def getL (id: Id, state: State): Expression = 
+    if (id == Id.tmpId) Const._true
+    else eval(state.L.getOrElse(id, throw new Error("L not defined for " + id)), state)
+  // TODO should subst acutally be one on the VarAccess ??
+  // TODO handle both a and a[i]
+  def getL (id: ArrayAssignment, state: State): Expression = getL(id.name, state).subst(Map(Id.indexId.toVar(state) -> eval(id.index, state)))
   def primed (p: Expression, state: State) = eval(p, state).subst(state.ids.map(id => id.toVar(state) -> id.toPrime.toVar(state)).toMap)
   // TODO take havoc statements into account
   def stableR (p: Expression, state: State) = eval(BinOp("=>", BinOp("&&", getRely(p.ids, state), p), primed(p, state)), state)
@@ -175,7 +202,7 @@ object Exec {
   
 
   def guar (a: Assignment, state: State) = {
-      // TODO detect x ~ y
+      // TODO update to allow guarantee to talk about specific indices 
       val rhsGamma = computeGamma(eval(a.expression, state).vars.toList, state)
       val idsNoLHS = state.ids.filter(id => id != a.lhs)
       val subst = idsNoLHS.map(id => id.toPrime.toVar(state) -> id.toVar(state)).toMap[Variable, Expression] ++ idsNoLHS.map(id => id.toPrime.toGamma.toVar(state) -> id.toGamma.toVar(state)).toMap[Variable, Expression]
@@ -185,9 +212,13 @@ object Exec {
         .subst(subst), state)
   }
 
-  def computeGamma (vars: List[Var], state: State): Expression = vars match {
+  def guar (a: ArrayAssignment, state: State) = {
+
+  }
+
+  def computeGamma (vars: List[Variable], state: State): Expression = vars match {
     // TODO v.toGamma should be array load (from gamma array) in case of array  
-    case v :: Nil => eval(BinOp("||", v.toGamma(state), state.L.getOrElse(v.ident, Const._false)), state) // Default to high
+    case v :: Nil => eval(BinOp("||", v.toGamma(state), getL(v.ident, state)), state) // Default to high
     case v :: rest => eval(BinOp("&&", computeGamma(List(v), state), computeGamma(rest, state)), state)
     case Nil => Const._true
   }

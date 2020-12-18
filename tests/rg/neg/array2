@@ -1,0 +1,16 @@
+global array a[2]:
+_L: _i == 0
+
+global var secret:
+_L: FALSE
+
+global var i:
+_L: FALSE
+
+_Gamma_0: secret -> HIGH
+_Rely: TRUE
+_Guar: TRUE
+
+
+i = 1;
+a[i] = secret;
