@@ -1,0 +1,19 @@
+global array a[2]:
+_L: (_i % 2) == 0
+
+global var secret:
+_L: FALSE
+
+global var i:
+_L: TRUE
+
+_Gamma_0: secret -> HIGH
+_Rely: i ==  i'
+_Guar: TRUE
+
+
+if ((i % 2) == 0) {
+	i = i + 1;
+}
+
+a[i] = secret;

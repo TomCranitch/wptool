@@ -97,11 +97,13 @@ object WPTool {
         gs flatMap {g => g.toPair}
       }.toMap
     }
+
+    // TODO handle arrays
     val gammaSubstr = {
       for (i <- gammaDom) yield {
-        i.toGamma.toVar(_state) -> gamma.getOrElse(i, High).toTruth
+        i.toGamma.toVar(_state) -> Left(gamma.getOrElse(i, High).toTruth)
       }
-    }.toMap[Variable, Expression] ++ Map(Id.tmpId.toGamma.toVar(_state) -> Const._true)
+    }.toMap ++ Map(Id.tmpId.toGamma.toVar(_state) -> Left(Const._true))
 
     //if (debug) println("VCs: " + vcs)
     if (debug) println("Gamma0: " + gammaSubstr)

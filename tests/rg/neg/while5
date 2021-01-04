@@ -1,0 +1,23 @@
+global var z:
+_L: TRUE
+
+global var x:
+_L: TRUE
+
+global var q:
+_L: TRUE
+
+local var secret:
+
+_Gamma_0: secret -> LOW
+_Rely: z' == z && q' >= q
+_Guar: z' >= z
+
+while(TRUE)
+_invariant: z % 2 == 0 && q == 0 && Gamma_z && Gamma_x && !Gamma_secret
+{
+    z = z + 1;
+    x = secret;
+    x = 0;
+    z = z + 1;
+}

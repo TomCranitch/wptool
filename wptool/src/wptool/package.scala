@@ -43,7 +43,9 @@ package object wptool {
 
   }
 
-  type Subst = Map[Variable, Expression]
+  // TODO this doesnt feel like the best way to do this 
+  // Either[substitution, (index, substitution)]
+  type Subst = Map[Var, Either[Expression, (Expression, Expression)]]
 
   /*
   object Subst {

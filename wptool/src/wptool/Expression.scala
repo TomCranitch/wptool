@@ -55,23 +55,29 @@ case class Var (ident: Id, index: Int, tmp: Boolean = false) extends Expression 
   override def toString: String = (if (tmp) "tmp_" else "") + ident.toString __ index
   override def vars: Set[Var] = Set(this)
   override def ids: Set[Id] = Set(this.ident)
-  override def subst(su: Subst): Expression = su.getOrElse(this, this)
+  override def subst(su: Subst): Expression = su.get(this) match {
+    case Some(Left(e)) => e
+    case Some(Right(_)) => throw new Error(s"Tried to subst var $this with index")
+    case None => this
+  }
   def toPrime(state: State) = this.copy(ident = ident.toPrime).updateIndex(state)
   def toGamma(state: State) = this.copy(ident = ident.toGamma).updateIndex(state)
 
   private def updateIndex(state: State) = this.copy(index = this.ident.getIndex(state))
 }
 
-case class IdAccess (name: Id, index: Expression) extends Expression with Identifier {
+case class IdAccess (ident: Id, index: Expression) extends Expression with Identifier {
   def this (name: String, index: Expression) = this(Id(name, false, false), index)
   // TODO is this enough??? i feel like it should return the access
   def vars: Set[Var] = index.vars
   def ids: Set[Id] = index.ids
   def subst(su: Subst): Expression =  throw new Error("tried to subst var id")
-  override def toString = name + "[" + index + "]"
-  def toGamma = this.copy(name = name.toGamma)
-  def toPrime = this.copy(name = name.toPrime)
-  def toVar (state: State) = VarAccess(name.toVar(state), index)
+  override def toString = ident + "[" + index + "]"
+  def toGamma = this.copy(ident = ident.toGamma)
+  def toPrime = this.copy(ident = ident.toPrime)
+
+  // TODO index to var
+  def toVar (state: State) = VarAccess(ident.toVar(state), index)
 }
 
 // array access with Var for use in logical predicates
@@ -79,11 +85,32 @@ case class VarAccess(name: Var, index: Expression) extends Expression with Varia
   def vars: Set[Var] = index.vars + name
   def ids: Set[Id] = index.ids
   // TODO we may want to modify this to include substiuting whole arrays but im not sure if that is useful
-  def subst(su: Subst) = su.getOrElse(this, this)
+  // TODO this isnt great bc index is an expression so the expression needs to match exactly
+  // I think in the mean time maybe just support substituing the whole array
+  // def subst(su: Subst) = su.getOrElse(this, this) // su.getOrElse(name, this))
+  //
+  // TODO subst index
+  def subst(su: Subst) = su.get(name) match {
+    // TODO !!!!!!!!!
+    // change e, e to i, e
+    //
+    case Some(Right((e, i))) => VarStore(this, e, i, name.ident.name, name.ident.gamma)
+    case Some(Left(v: Var)) => this.copy(name = v)  // to handle priming
+    case Some(Left(_)) => throw new Error("Tried to subst varaccess without index")
+    case None => this
+  }
   override def toString = name + "[" + index + "]"
   def toGamma (state: State) = this.copy(name = name.toGamma(state))
   def toPrime (state: State) = this.copy(name = name.toPrime(state))
   def ident = name.ident
+}
+
+case class VarStore (array: Expression, index: Expression, exp: Expression, name: String, isBool: Boolean = false) extends Expression {
+  def vars: Set[Var] = array.vars ++ exp.vars
+  def ids: Set[Id] = array.ids ++ exp.ids
+  // TODO
+  // TODO maybe make it Map(Var -> (index, exp))
+  def subst(su: Subst) = VarStore(array.subst(su), index.subst(su), exp.subst(su), name, isBool)
 }
 
 case class PreOp(op: String, arg: Expression) extends Expression {

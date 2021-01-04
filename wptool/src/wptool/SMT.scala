@@ -103,6 +103,12 @@ object SMT {
     case _ => throw new Error(s"Unexpected exp ${exp} of kind ${exp.getFuncDecl.getDeclKind}")
   }
 
+  def handleStore (store: Expression, arr: z3.ArrayExpr): z3.Expr = store match {
+    case a: VarAccess => ctx.mkSelect(arr, translate(a.index))
+    case a: VarStore => handleStore(a.array, ctx.mkStore(arr, translate(a.index), translate(a.exp)))
+    case _ => throw new Error("Unexpected statement in VarStore")
+  }
+
   /* currently doing all arithmetic operations on ints - may want to switch to bitvectors
    and bitwise arithmetic operations for better simulation of the assembly semantics if this ends up being important
   https://z3prover.github.io/api/html/classcom_1_1microsoft_1_1z3_1_1_context.html */
@@ -117,10 +123,14 @@ object SMT {
       else ctx.mkConst(x.toString, ctx.getIntSort)
     case x: Id => throw new Error("unresolved id")
 
+    // TODO can these cases be merged together
     case x: VarAccess =>  
       if (x.name.ident.gamma) ctx.mkSelect(ctx.mkArrayConst(x.name.toString, ctx.getIntSort, ctx.getBoolSort), translate(x.index))
       else ctx.mkSelect(ctx.mkArrayConst(x.name.toString, ctx.getIntSort, ctx.getIntSort), translate(x.index))
     case x: IdAccess =>  throw new Error("unresolved id")
+
+    // TODO i dont think im too happy with this
+    case store: VarStore => handleStore(store, ctx.mkArrayConst(store.name.toString, ctx.getIntSort, if (store.isBool) ctx.getBoolSort else ctx.getIntSort))
 
     case BinOp("==", arg1, arg2) => ctx.mkEq(translate(arg1), translate(arg2))
     case BinOp("!=", arg1, arg2) => ctx.mkNot(ctx.mkEq(translate(arg1), translate(arg2)))
