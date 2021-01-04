@@ -132,6 +132,12 @@ object SMT {
     // TODO i dont think im too happy with this
     case store: VarStore => handleStore(store, ctx.mkArrayConst(store.name.toString, ctx.getIntSort, if (store.isBool) ctx.getBoolSort else ctx.getIntSort))
 
+    case const: ArrayConstDefault => 
+      // TODO i dont think this is correct (https://stackoverflow.com/questions/54863754/z3-set-default-value-of-array-to-zero)
+      if (const.name.ident.gamma) ctx.mkEq(ctx.mkArrayConst(const.name.toString, ctx.getIntSort, ctx.getBoolSort), ctx.mkConstArray(ctx.getIntSort, translate(const.const)))
+      else throw new Error("ArrayConstDefault is only for gamma values")
+      
+
     case BinOp("==", arg1, arg2) => ctx.mkEq(translate(arg1), translate(arg2))
     case BinOp("!=", arg1, arg2) => ctx.mkNot(ctx.mkEq(translate(arg1), translate(arg2)))
 
@@ -177,6 +183,6 @@ object SMT {
     // case VarAccess(name, index) => ctx.mkSelect(ctx.mkArrayConst(name.toString, ctx.getIntSort, ctx.getIntSort), translate(index))
 
     case _ =>
-      throw error.InvalidProgram("cannot translate to SMT", prop)
+      throw new Error(s"cannot translate to SMT $prop")
   }
 }

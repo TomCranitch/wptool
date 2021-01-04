@@ -118,8 +118,13 @@ package object wptool {
     case List() => None
     case l => Some(l)
   }
+
   def checkVcs (preds: List[PredInfo], gammas: Subst, debug: Boolean): Option[List[PredInfo]] = checkVcs(preds.map(p => {
     p.copy(pred = p.pred.subst(gammas))
+  }), debug)
+
+  def checkVcs (preds: List[PredInfo], gammas: Subst, arrayGamma: Expression, debug: Boolean): Option[List[PredInfo]] = checkVcs(preds.map(p => {
+    p.copy(pred = BinOp("=>", arrayGamma, p.pred.subst(gammas)))
   }), debug)
 
   def printFalseVcs (preds: List[PredInfo]) = {

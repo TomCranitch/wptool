@@ -113,6 +113,12 @@ case class VarStore (array: Expression, index: Expression, exp: Expression, name
   def subst(su: Subst) = VarStore(array.subst(su), index.subst(su), exp.subst(su), name, isBool)
 }
 
+case class ArrayConstDefault (name: Var, const: Expression) extends Expression {
+  def vars = const.vars
+  def ids = const.ids ++ name.ids
+  def subst(su: Subst) = ArrayConstDefault(name, const.subst(su))
+}
+
 case class PreOp(op: String, arg: Expression) extends Expression {
   override def toString: String = "(" + op + " " + arg + ")"
   override def vars: Set[Variable] = arg.vars

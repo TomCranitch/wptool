@@ -13,12 +13,13 @@ class IntegrationTestsRG extends  AnyFunSuite {
     assert(WPTool.run(testDir + "assign4", debug = false, silent = true))
     assert(WPTool.run(testDir + "assign5", debug = false, silent = true))
     assert(WPTool.run(testDir + "assign6", debug = false, silent = true))
+    assert(WPTool.run(testDir + "assign7", debug = false, silent = true))
+    assert(WPTool.run(testDir + "assign8", debug = false, silent = true))
   }
 
   test("Assignment (Negative)") {
     assert(!WPTool.run(testNegDir + "assign1", debug = false, silent = true))
     assert(!WPTool.run(testNegDir + "assign2", debug = false, silent = true))
-    assert(!WPTool.run(testNegDir + "assign3", debug = false, silent = true))
     assert(!WPTool.run(testNegDir + "assign4", debug = false, silent = true))
     assert(!WPTool.run(testNegDir + "assign5", debug = false, silent = true))
   }
