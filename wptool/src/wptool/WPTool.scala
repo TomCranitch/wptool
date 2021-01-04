@@ -89,7 +89,8 @@ object WPTool {
     val _state = Exec.exec(PreProcess.process(statements, state), state)
 
 
-    val gammaDom: Set[Id] = _state.ids
+  // TODO handle arrays https://stackoverflow.com/questions/54863754/z3-set-default-value-of-array-to-zero
+    val gammaDom: Set[Id] = _state.ids -- _state.arrayIds
     val gamma: Map[Id, Security] = gamma_0 match {
       // security high by default if user hasn't provided
       case None => Map()

@@ -155,9 +155,8 @@ object Exec {
       val rhsGamma = computeGamma(eval(assign.expression, state).vars.toList, state)
       // TODO this doesnt account of the index
       // TODO this is using the index, instead subst with a var updated with a store
-
-      // TODO gamma should -> right()
-      Q.subst(Map((assign.lhs.ident.toGamma.toVar(state) -> Right((assign.lhs.index, rhsGamma))), (assign.lhs.ident.toVar(state) -> Right(assign.lhs.index, eval(assign.expression, state)))))
+      
+      Q.subst(Map((assign.lhs.ident.toGamma.toVar(state) -> Right((eval(assign.lhs.index, state), rhsGamma))), (assign.lhs.ident.toVar(state) -> Right(eval(assign.lhs.index, state), eval(assign.expression, state)))))
     case stmt =>
       println("Unhandled statement(wp exec): " + stmt)
       Q
@@ -178,6 +177,9 @@ object Exec {
     // TODO!!!!: BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.toPrime.toGamma)
     // Not sure what this meant
     // think it was for globals
+    //
+
+    // TODO handle arrays....
     
     eval(constructForall(ids.toList.map(i => 
         if (state.globals.contains(i)) {

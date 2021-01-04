@@ -11,6 +11,7 @@ case class State (
     controlledBy: Map[Id, Set[Id]], // TODO check
     L: Map[Id, Expression],
     ids: Set[Id],
+    arrayIds: Set[Id],
     globals: Set[Id],
     rely: Expression,
     guar: Expression,
@@ -28,6 +29,10 @@ object State {
     var controls: Set[Id] = Set()
     var controlled: Set[Id] = Set()
     var controlledBy: Map[Id, Set[Id]] = Map()
+
+    val arrayIds = definitions collect {
+      case a: ArrayDef => a.toVarDefs.name
+    }
 
     val variables: Set[VarDef] = definitions map {
       case a: ArrayDef => a.toVarDefs
@@ -81,6 +86,6 @@ object State {
     val primeIndicies = ids.map(x => x.toPrime -> 0).toMap
 
     // TODO malformed probs insto the best
-    State(List(PredInfo(Const._true, Malformed, "initial predicate")), debug, silent, controls, controlled, controlledBy, L, ids, globals, _rely, _guar, primeIndicies)
+    State(List(PredInfo(Const._true, Malformed, "initial predicate")), debug, silent, controls, controlled, controlledBy, L, ids, arrayIds, globals, _rely, _guar, primeIndicies)
   }
 }
