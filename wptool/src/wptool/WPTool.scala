@@ -88,8 +88,6 @@ object WPTool {
 
     val _state = Exec.exec(PreProcess.process(statements, state), state)
 
-
-    // TODO handle arrays https://stackoverflow.com/questions/54863754/z3-set-default-value-of-array-to-zero
     val gammaDom: Set[Id] = _state.ids -- _state.arrayIds
     val gamma: Map[Id, Security] = gamma_0 match {
       // security high by default if user hasn't provided
@@ -101,15 +99,12 @@ object WPTool {
 
     val gammaArraySubst = constructForall(_state.arrayIds.map(a => ArrayConstDefault(a.toGamma.toVar(_state), gamma.getOrElse(a, High).toTruth)).toList)
 
-
-    // TODO handle arrays
     val gammaSubstr = {
       for (i <- gammaDom) yield {
         i.toGamma.toVar(_state) -> Left(gamma.getOrElse(i, High).toTruth)
       }
     }.toMap ++ Map(Id.tmpId.toGamma.toVar(_state) -> Left(Const._true))
 
-    //if (debug) println("VCs: " + vcs)
     if (debug) println("Gamma0: " + gammaSubstr)
     if (debug) println("L: " + _state.L)
     if (debug) println("Indicies: " + _state.indicies)

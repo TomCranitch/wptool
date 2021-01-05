@@ -1,9 +1,0 @@
-global var a:
-_L: TRUE
-
-local var b:
-
-_Gamma_0: a -> LOW
-
-a = b;
-

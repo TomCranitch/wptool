@@ -1,7 +1,5 @@
 package wptool
 
-// TODO include gamma of i in gamma computations
-
 object Exec {
   @scala.annotation.tailrec
   def exec(statements: List[Statement], state: State, RG: Boolean = true): State = statements match {
@@ -24,7 +22,6 @@ object Exec {
     case assume: Assume => evalWp(assume, state)
     case assert: Assert =>
       val _state = evalWp(assert, state)
-      // TODO would adding assert.expression to Qs allow to check if its correct
       if (assert.checkStableR) _state.addQs(
         PredInfo (
           stableR(assert.expression, state),
@@ -66,13 +63,12 @@ object Exec {
         _state
       }
     case assign: Assignment =>
-      // TODO should prob make preds a list and then just append if necessary 
       val globalPred = if (state.globals.contains(assign.lhs)) BinOp("=>", getL(assign.lhs, state), computeGamma(eval(assign.expression, state).vars.toList, state)) else Const._true
       val controlPred = if (state.controls.contains(assign.lhs)) {
         constructForall(state.controlledBy.getOrElse(assign.lhs, Set()).map(contr => {
           BinOp(
             "=>",
-            getL(contr, state), // .subst(Map(assign.lhs.toVar(state) -> Left(eval(assign.expression, state)))),
+            getL(contr, state),
             BinOp("||", eval(contr.toGamma, state), getL(contr, state))
           )
         }).toList)
@@ -101,8 +97,6 @@ object Exec {
         constructForall(state.controlledBy.getOrElse(assign.lhs.ident, Set()).map(contr => {
           BinOp(
             "=>",
-            // TODO subst ????
-            // subst main var with var updated with store
             getL(contr, state),
             BinOp("||", eval(contr.toGamma, state), getL(contr, state))
           )
@@ -112,22 +106,18 @@ object Exec {
       var gammaPred = computeGamma(eval(assign.lhs.index, state).vars.toList, state)
 
       val _state = evalWp(assign, state).addQs(
-        PredInfo(rImplies(globalPred, state), assign, "Global"),
-        PredInfo(rImplies(controlPred, state), assign, "Control"),
-        PredInfo(rImplies(gammaPred, state), assign, "Index Gamma")
+        PredInfo(rImplies(globalPred, assign.lhs.index, state), assign, "Global"),
+        PredInfo(rImplies(controlPred, assign.lhs.index, state), assign, "Control"),
+        PredInfo(rImplies(gammaPred, assign.lhs.index, state), assign, "Index Gamma")
       )
 
 
       if (RG) {
-        /* TODO
         val guarantee = guar(assign, state)
 
         _state.addQs(
-          PredInfo(rImplies(guarantee, state), assign, "Guarantee")
+          PredInfo(rImplies(guarantee, assign.lhs.index, state), assign, "Guarantee")
         ).incPrimeIndicies
-        */
-
-        _state
       } else {
         _state.incPrimeIndicies
       }
@@ -146,16 +136,13 @@ object Exec {
         BinOp("=>", BinOp("&&", eval(exp, state), stabRB), Q),
         BinOp("=>", PreOp("!", stabRB), eval(exp, state))
       )
-    case Assert(exp, checkStableR) => BinOp("&&", eval(exp, state), Q)
+    case Assert(exp, checkStableR) => BinOp("&&", eval(exp, state), Q) // Potentially move to exec to evaluate separately
     case havoc: Havoc => Q
     case assign: Assignment =>
       val rhsGamma = computeGamma(eval(assign.expression, state).vars.toList, state)
       Q.subst(Map((assign.lhs.toGamma.toVar(state) -> Left(rhsGamma)), (assign.lhs.toVar(state) -> Left(eval(assign.expression, state)))))
     case assign: ArrayAssignment =>
       val rhsGamma = computeGamma(eval(assign.expression, state).vars.toList, state)
-      // TODO this doesnt account of the index
-      // TODO this is using the index, instead subst with a var updated with a store
-      
       Q.subst(Map((assign.lhs.ident.toGamma.toVar(state) -> Right((eval(assign.lhs.index, state), rhsGamma))), (assign.lhs.ident.toVar(state) -> Right(eval(assign.lhs.index, state), eval(assign.expression, state)))))
     case stmt =>
       println("Unhandled statement(wp exec): " + stmt)
@@ -167,7 +154,7 @@ object Exec {
     case id: IdAccess => id.toVar(state).copy(index = eval(id.index, state))
     case BinOp(op, arg1, arg2) => BinOp(op, eval(arg1, state), eval(arg2, state))
     case PreOp(op, arg) => PreOp(op, eval(arg, state))
-    case _: Lit | _: Const | _: Var | _: VarAccess => expr
+    case _: Lit | _: Const | _: Var | _: VarAccess | _: VarStore => expr
     case expr =>
       println(s"Unhandled expression(eval): [${expr.getClass()}] $expr")
       expr
@@ -177,10 +164,10 @@ object Exec {
     // TODO!!!!: BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.toPrime.toGamma)
     // Not sure what this meant
     // think it was for globals
-    //
-
-    // TODO handle arrays....
     
+    
+    // TODO need to subst on _i
+
     eval(constructForall(ids.toList.map(i => 
         if (state.globals.contains(i)) {
           BinOp("=>", BinOp("==", i, i.toPrime), BinOp("==", i.toGamma, i.toPrime.toGamma))
@@ -202,8 +189,11 @@ object Exec {
   // TODO take havoc statements into account
   def stableR (p: Expression, state: State) = eval(BinOp("=>", BinOp("&&", getRely(p.ids, state), p), primed(p, state)), state)
   def rImplies (p: Expression, state: State) = eval(BinOp("=>", getRely(p.ids, state), primed(p, state)), state)
+  def stableR (p: Expression, index: Expression, state: State) = eval(BinOp("=>", BinOp("&&", getRely(p.ids, state).subst(Map(Id.indexId.toVar(state) -> Left(index))), p), primed(p, state)), state)
+  def rImplies (p: Expression, index: Expression, state: State) = eval(BinOp("=>", getRely(p.ids, state).subst(Map(Id.indexId.toVar(state) -> Left(index))), primed(p, state)), state)
   
 
+  // TODO also need to handle arrays on RHS
   def guar (a: Assignment, state: State) = {
       // TODO update to allow guarantee to talk about specific indices 
       val rhsGamma = computeGamma(eval(a.expression, state).vars.toList, state)
@@ -218,7 +208,13 @@ object Exec {
   def guar (a: ArrayAssignment, state: State) = {
     // TODO
     val rhsGamma = computeGamma(eval(a.expression, state).vars.toList, state)
+    val idsNoLHS = state.ids.filter(id => id != a.lhs.ident)
     // TODO not sure how to handle the second substitution
+    val subst = idsNoLHS.map(id => id.toPrime.toVar(state) -> Left(id.toVar(state))).toMap ++ idsNoLHS.map(id => id.toPrime.toGamma.toVar(state) -> Left(id.toGamma.toVar(state))).toMap
+    
+    eval(eval(eval(state.guar, state).subst(Map(Id.indexId.toVar(state) -> Left(eval(a.lhs.index, state))))
+      .subst(Map(a.lhs.ident.toPrime.toVar(state) -> Right(a.lhs.index, a.expression), a.lhs.ident.toPrime.toGamma.toVar(state) -> Right(a.lhs.index, rhsGamma))), state)
+      .subst(subst), state)
   }
 
   def computeGamma (vars: List[Variable], state: State): Expression = vars match {

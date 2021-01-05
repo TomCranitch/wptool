@@ -125,11 +125,10 @@ object SMT {
 
     // TODO can these cases be merged together
     case x: VarAccess =>  
-      if (x.name.ident.gamma) ctx.mkSelect(ctx.mkArrayConst(x.name.toString, ctx.getIntSort, ctx.getBoolSort), translate(x.index))
-      else ctx.mkSelect(ctx.mkArrayConst(x.name.toString, ctx.getIntSort, ctx.getIntSort), translate(x.index))
+      val sort = if (x.name.ident.gamma) ctx.getBoolSort else ctx.getIntSort
+      ctx.mkSelect(ctx.mkArrayConst(x.name.toString, ctx.getIntSort, sort), translate(x.index))
     case x: IdAccess =>  throw new Error("unresolved id")
 
-    // TODO i dont think im too happy with this
     case store: VarStore => handleStore(store, ctx.mkArrayConst(store.name.toString, ctx.getIntSort, if (store.isBool) ctx.getBoolSort else ctx.getIntSort))
 
     case const: ArrayConstDefault => 

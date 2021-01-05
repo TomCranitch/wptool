@@ -1,0 +1,7 @@
+global array a[2]:
+_L: TRUE
+
+_Rely: TRUE
+_Guar: (_i == 0) => (a[_i] == a'[_i])
+
+a[0] = 1;

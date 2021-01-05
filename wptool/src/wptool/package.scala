@@ -47,15 +47,6 @@ package object wptool {
   // Either[substitution, (index, substitution)]
   type Subst = Map[Var, Either[Expression, (Expression, Expression)]]
 
-  /*
-  object Subst {
-    val empty: Subst = Map()
-
-    def apply(xs: (Expression, Var)*): Subst = {
-      xs.toMap
-    }
-  } */
-
   val sub = "₀₁₂₃₄₅₆₇₈₉"
   implicit class StringOps(self: String) {
     def prime = self + "'"
@@ -130,8 +121,8 @@ package object wptool {
   def printFalseVcs (preds: List[PredInfo]) = {
     println("Failing VCs")
     preds.foreach(p => {
-      println(s"    ${p.stmt} (${p.stmt.line}): ${p.label}")
-      println(p.pred)
+      println(s"  ${p.stmt} (${p.stmt.line}): ${p.label}")
+      println(s"    ${p.pred}")
     })
   }
   

@@ -1,0 +1,15 @@
+global array a[2]:
+_L: TRUE
+
+global var c:
+
+_Gamma_0: array -> LOW
+_Rely: c == c' && (a[_i] == a'[_i])
+_Guar: (c == 1 && _i == 0) => (a[_i] == a'[_i])
+
+c = 0;
+a[0] = 1;
+a[1] = 1;
+c = 1;
+a[0] = 2;
+a[1] = 2;

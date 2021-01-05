@@ -68,6 +68,7 @@ case class Var (ident: Id, index: Int, tmp: Boolean = false) extends Expression 
 
 case class IdAccess (ident: Id, index: Expression) extends Expression with Identifier {
   def this (name: String, index: Expression) = this(Id(name, false, false), index)
+  def this (name: String, prime: Boolean, gamma: Boolean, index: Expression) = this(Id(name, prime, gamma), index)
   // TODO is this enough??? i feel like it should return the access
   def vars: Set[Variable] = index.vars
   def ids: Set[Id] = index.ids // TODO + ident
@@ -90,14 +91,17 @@ case class VarAccess(name: Var, index: Expression) extends Expression with Varia
   // def subst(su: Subst) = su.getOrElse(this, this) // su.getOrElse(name, this))
   //
   // TODO subst index
-  def subst(su: Subst) = su.get(name) match {
-    // TODO !!!!!!!!!
-    // change e, e to i, e
-    //
-    case Some(Right((e, i))) => VarStore(this, e, i, name.ident.name, name.ident.gamma)
-    case Some(Left(v: Var)) => this.copy(name = v)  // to handle priming
-    case Some(Left(_)) => throw new Error("Tried to subst varaccess without index")
-    case None => this
+  def subst(su: Subst) = {
+    val updatedArr = this.copy(index = index.subst(su))
+    su.get(name) match {
+      // TODO !!!!!!!!!
+      // change e, e to i, e
+      //
+      case Some(Right((e, i))) => VarStore(updatedArr, e, i, name.ident.name, name.ident.gamma)
+      case Some(Left(v: Var)) => updatedArr.copy(name = v)  // to handle priming
+      case Some(Left(_)) => throw new Error("Tried to subst varaccess without index")
+      case None => updatedArr
+    }
   }
   override def toString = name + "[" + index + "]"
   def toGamma (state: State) = this.copy(name = name.toGamma(state))

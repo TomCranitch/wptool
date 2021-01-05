@@ -30,6 +30,8 @@ class IntegrationTestsRG extends  AnyFunSuite {
     assert(WPTool.run(testDir + "array1", debug = false, silent = true))
     assert(WPTool.run(testDir + "array2", debug = false, silent = true))
     assert(WPTool.run(testDir + "array3", debug = false, silent = true))
+    assert(WPTool.run(testDir + "array4", debug = false, silent = true))
+    assert(WPTool.run(testDir + "array5", debug = false, silent = true))
   }
 
   test("Array (Negative)") {
@@ -38,6 +40,9 @@ class IntegrationTestsRG extends  AnyFunSuite {
     assert(!WPTool.run(testNegDir + "array3", debug = false, silent = true))
     assert(!WPTool.run(testNegDir + "array4", debug = false, silent = true))
     assert(!WPTool.run(testNegDir + "array5", debug = false, silent = true))
+    assert(!WPTool.run(testNegDir + "array6", debug = false, silent = true))
+    assert(!WPTool.run(testNegDir + "array7", debug = false, silent = true))
+    assert(!WPTool.run(testNegDir + "array8", debug = false, silent = true))
   }
 
   test("CAS") {

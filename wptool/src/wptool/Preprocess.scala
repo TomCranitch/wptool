@@ -20,7 +20,6 @@ object PreProcess {
 
   private def exec (stmt: Statement, state: State, currBlock: Block): Block = stmt match {
     case block: Block =>
-      // TODO incorrect
       exec(block.statements, state, currBlock)
     case assign: Assignment =>
       evalBlock(assign.expression, currBlock.prepend(assign.copy(expression = evalExp(assign.expression))))
@@ -39,8 +38,6 @@ object PreProcess {
           new Block("if empty", List(Guard(PreOp("!", test))), List(currBlock))
       }
       evalBlock(ifStmt.test, new Block("pre if", List(), List(left, right)))
-    // TODO do-while rule
-    // not too sure what this looks like
     case whileStmt: While => 
       val after = currBlock.prepend(Assume(PreOp("!", evalExp(whileStmt.test))))
       // TODO why does the body not go to after ?? (as per paper/PASTE05)
