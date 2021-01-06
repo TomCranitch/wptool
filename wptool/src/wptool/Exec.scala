@@ -154,7 +154,9 @@ object Exec {
     case id: IdAccess => id.toVar(state).copy(index = eval(id.index, state))
     case BinOp(op, arg1, arg2) => BinOp(op, eval(arg1, state), eval(arg2, state))
     case PreOp(op, arg) => PreOp(op, eval(arg, state))
-    case _: Lit | _: Const | _: Var | _: VarAccess | _: VarStore => expr
+    case s: VarStore => s.copy(array = eval(s.array, state), index = eval(s.index, state), exp = eval(s.exp, state))
+    case a: VarAccess => a.copy(index = eval(a.index, state))
+    case _: Lit | _: Const | _: Var => expr
     case expr =>
       println(s"Unhandled expression(eval): [${expr.getClass()}] $expr")
       expr
@@ -168,8 +170,8 @@ object Exec {
     
     // TODO need to subst on _i
 
-    eval(constructForall(ids.toList.map(i => 
-        if (state.globals.contains(i)) {
+    eval(constructForall(ids.toList.map(i => {
+        val pred = if (state.globals.contains(i)) {
           BinOp("=>", BinOp("==", i, i.toPrime), BinOp("==", i.toGamma, i.toPrime.toGamma))
         } else {
           BinOp(
@@ -178,7 +180,12 @@ object Exec {
             BinOp("==", i.toGamma, i.toPrime.toGamma)
           )
         }
-      ) :+ state.rely), state)
+        
+        // TODO this \/
+        // TODO this approach wont work if there are multiple arrrays (e.g. a[_i] + b[_i])
+        if (state.arrayIds.contains(i)) pred
+        else pred
+      }) :+ state.rely), state)
   }
 
   def getL (id: Id, state: State): Expression = 
@@ -205,8 +212,8 @@ object Exec {
         .subst(subst), state)
   }
 
+  // TODO fix subst when multiple arrays present (does this really matter tho or is it handled automatically)
   def guar (a: ArrayAssignment, state: State) = {
-    // TODO
     val rhsGamma = computeGamma(eval(a.expression, state).vars.toList, state)
     val idsNoLHS = state.ids.filter(id => id != a.lhs.ident)
     // TODO not sure how to handle the second substitution
