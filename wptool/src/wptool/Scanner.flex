@@ -116,6 +116,7 @@ WS = {NL} | [ \t\f]
 
 "TRUE" { return newToken(Terminals.TRUE);    }
 "FALSE" { return newToken(Terminals.FALSE);    }
+"FORALL" { return newToken(Terminals.FORALL);    }
 "LOW"   { return newToken(Terminals.LOW);    }
 "HIGH" { return newToken(Terminals.HIGH);    }
 

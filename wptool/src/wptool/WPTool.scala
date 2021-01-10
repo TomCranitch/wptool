@@ -6,13 +6,17 @@ import java.net.URLClassLoader
 
 import wptool.error._
 import com.microsoft.z3
+import scala.collection.mutable.ListBuffer
 
 object WPTool {
+  var relies: ListBuffer[(String, Expression)] = ListBuffer()
+  var guarantees: ListBuffer[(String, Expression)] = ListBuffer()
 
   def main(args: Array[String]): Unit = {
     var toLog: Boolean = false // whether to print P/Gamma/D state information for each rule application
     var debug: Boolean = false // whether to print further debug information
     var noInfeasible: Boolean = false // whether to not check infeasible paths
+
 
     if (args.isEmpty) {
       println("usage: ./wptool.sh file1 file2...")
@@ -81,6 +85,9 @@ object WPTool {
       println(guar)
     }
 
+    relies += file -> rely.get.exp
+    guarantees += file -> guar.get.exp
+
     val state = State(variables, debug, silent, gamma_0, rely, guar)
     // printBlocks(PreProcess.process(statements, state))
 
@@ -145,4 +152,13 @@ object WPTool {
   }
 
 
+  // TODO how to handle _i
+  // how to handle arrays
+  def checkRGs (relys: List[(String, Expression)], guars: List[(String, Expression)]) = {
+    
+  }
+
+  def checkGs (rely: Expression, guars: List[(String, Expression)]) = guars match {
+    // case (name, exp) :: Nil => 
+  }
 }

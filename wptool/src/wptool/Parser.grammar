@@ -28,6 +28,7 @@
 %terminals COLON;
 %terminals ASG;
 %terminals COMMA, SEMICOLON;
+%terminals FORALL;
 
 %terminals CAS;
 %terminals FENCE, CFENCE;
@@ -74,6 +75,8 @@
 %typeof gamma_mapping = "GammaMapping";
 %typeof rely = "Rely";
 %typeof guar = "Guar";
+%typeof arrrely = "Rely";
+%typeof arrguar = "Guar";
 %typeof security = "Security";
 //%typeof lpredindex = "Expression";
 
@@ -88,14 +91,17 @@ unit = defs.v locals.s {: return new Global(v, s); :}
 
 
 definition
-    =     GLOBALVAR ID.n COLON lpred.l              {:  return new VarDef(n, l, GlobalVar.instance()); :} // TODO: does this make them appear as global (i.e. are vars without right permissions global)
-          | GLOBALVAR ID.n COLON                     {: return new VarDef(n, GlobalVar.instance()); :}
-          | LOCALVAR ID.n COLON                     {: return new VarDef(n, LocalVar.instance()); :}
-          | GLOBALARRAY ID.n LBRACK NUM.s RBRACK COLON lpred.l {: return new ArrayDef(n, s, l, GlobalVar.instance()); :}
-          | GLOBALARRAY ID.n LBRACK NUM.s RBRACK COLON {: return new ArrayDef(n, s, GlobalVar.instance()); :}
-          | LOCALARRAY ID.n LBRACK NUM.s RBRACK COLON lpred.l {: return new ArrayDef(n, s, l, LocalVar.instance()); :}
-          | LOCALARRAY ID.n LBRACK NUM.s RBRACK COLON {: return new ArrayDef(n, s, LocalVar.instance()); :}
-          ;
+    = GLOBALVAR ID.n COLON lpred.l              {:  return new VarDef(n, l, GlobalVar.instance()); :} // TODO: does this make them appear as global (i.e. are vars without right permissions global)
+    | GLOBALVAR ID.n COLON                     {: return new VarDef(n, GlobalVar.instance()); :}
+    | LOCALVAR ID.n COLON                     {: return new VarDef(n, LocalVar.instance()); :}
+    | GLOBALARRAY ID.n LBRACK NUM.s RBRACK COLON lpred.l arrrely.r arrguar.g {: return new ArrayDef(n, s, l, GlobalVar.instance(), r, g); :}
+    | GLOBALARRAY ID.n LBRACK NUM.s RBRACK COLON arrrely.r arrguar.g {: return new ArrayDef(n, s, GlobalVar.instance(), r, g); :}
+    | LOCALARRAY ID.n LBRACK NUM.s RBRACK COLON lpred.l arrrely.r arrguar.g {: return new ArrayDef(n, s, l, LocalVar.instance(), r, g); :}
+    | LOCALARRAY ID.n LBRACK NUM.s RBRACK COLON arrrely.r arrguar.g {: return new ArrayDef(n, s, LocalVar.instance(), r, g); :}
+	;
+
+arrrely = RELY COLON expr.a {: return  new Rely(a); :};
+arrguar = GUAR COLON expr.a {: return new Guar(a); :};
 
 defs = definition *;
 
@@ -158,10 +164,16 @@ expr
     | expr.a PIPE   expr.b              {: return new BinOp("|", a, b); :}
     | expr.a AND    expr.b              {: return new BinOp("&&",a, b); :}
     | expr.a OR     expr.b              {: return new BinOp("||",a, b); :}
+	| FORALL LPAREN exprl.l COLON expr.e RPAREN        {: return new ForAll(l, e); :}
     | LPAREN expr.e RPAREN              {: return (Symbol) e;           :}
     | TRUE                              {: return new Const("True");  :}
     | FALSE                             {: return new Const("False");  :}
     ;
+
+exprl 
+    = expr
+    | exprl COMMA expr
+	;
 
 // for _L(x): pred construction to set predicate for variable security level
 lpred = LPRED COLON expr.a {: return (Symbol) a; :};

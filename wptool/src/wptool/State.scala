@@ -15,6 +15,8 @@ case class State (
     globals: Set[Id],
     rely: Expression,
     guar: Expression,
+    arrRelys: Map[Id, Expression],
+    arrGuars: Map[Id, Expression],
     indicies: Map[Id, Int],
     error: Boolean = false
   ) {
@@ -33,6 +35,14 @@ object State {
     val arrayIds = definitions collect {
       case a: ArrayDef => a.toVarDefs.name
     }
+
+    val arrRelys = definitions.collect{
+      case a: ArrayDef => a.toVarDefs.name -> a.rely.exp
+    }.toMap
+
+    val arrGuars = definitions.collect{
+      case a: ArrayDef => a.toVarDefs.name -> a.guar.exp
+    }.toMap
 
     val variables: Set[VarDef] = definitions map {
       case a: ArrayDef => a.toVarDefs
@@ -86,6 +96,6 @@ object State {
     val primeIndicies = ids.map(x => x.toPrime -> 0).toMap
 
     // TODO malformed probs insto the best
-    State(List(PredInfo(Const._true, Malformed, "initial predicate")), debug, silent, controls, controlled, controlledBy, L, ids, arrayIds, globals, _rely, _guar, primeIndicies)
+    State(List(PredInfo(Const._true, Malformed, "initial predicate")), debug, silent, controls, controlled, controlledBy, L, ids, arrayIds, globals, _rely, _guar, arrRelys, arrGuars, primeIndicies)
   }
 }

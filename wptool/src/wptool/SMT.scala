@@ -170,10 +170,12 @@ object SMT {
 
     case Question(test, arg1, arg2) => ctx.mkITE(formula(test), translate(arg1), translate(arg2))
 
-    /*
+
+    // boundConstraints, body, 0, scala.Arry(), null, null, null
     case ForAll(bound, body) =>
       ctx.mkForall(bound.toArray map translate, translate(body), 0, scala.Array(), null, null, null)
 
+    /*
     case Exists(bound, body) =>
       ctx.mkExists(bound.toArray map translate, translate(body), 0, scala.Array(), null, null, null)
     */

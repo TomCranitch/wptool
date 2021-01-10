@@ -99,8 +99,16 @@ package object wptool {
       BinOp("&&", expr, constructForall(rest))
     case Nil => Const._true
   }
+  def constructForallOpt (exprs: List[Option[Expression]]): Expression = exprs match {
+    case Some(expr) :: Nil => expr
+    case None :: Nil => Const._true
+    case Some(expr) :: rest => BinOp("&&", expr, constructForallOpt(rest))
+    case None :: rest => constructForallOpt(rest)
+    case Nil => Const._true
+  }
 
   def constructForall (exprs: Expression*): Expression = constructForall(exprs.toList)
+  def constructForallOpt (exprs: Option[Expression]*): Expression = constructForallOpt(exprs.toList)
 
   def checkVcs (preds: List[PredInfo], debug: Boolean): Option[List[PredInfo]] = preds.filter(p => {
     if (debug) println(s"passing ${p.stmt} ${p.label} to SMT")

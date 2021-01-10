@@ -156,36 +156,47 @@ object Exec {
     case PreOp(op, arg) => PreOp(op, eval(arg, state))
     case s: VarStore => s.copy(array = eval(s.array, state), index = eval(s.index, state), exp = eval(s.exp, state))
     case a: VarAccess => a.copy(index = eval(a.index, state))
+    case forall: ForAll => forall.copy( bound = forall.bound.map(b => eval(b, state)), body = eval(forall.body, state) )
     case _: Lit | _: Const | _: Var => expr
     case expr =>
       println(s"Unhandled expression(eval): [${expr.getClass()}] $expr")
       expr
   }
 
-  def getRely (ids: Set[Id], state: State) = {
-    // TODO!!!!: BinOp("=>", L.getOrElse(id, Const._false).subst(subst), id.toPrime.toGamma)
-    // Not sure what this meant
-    // think it was for globals
-    
-    
-    // TODO need to subst on _i
+  def getRely (exp: Expression, state: State) = eval(BinOp("&&", getRelyRec(eval(exp, state), state).getOrElse(Const._true), eval(state.rely, state)), state)
 
-    eval(constructForall(ids.toList.map(i => {
-        val pred = if (state.globals.contains(i)) {
-          BinOp("=>", BinOp("==", i, i.toPrime), BinOp("==", i.toGamma, i.toPrime.toGamma))
-        } else {
-          BinOp(
-            "&&", 
-            BinOp("==", i, i.toPrime), 
-            BinOp("==", i.toGamma, i.toPrime.toGamma)
-          )
-        }
-        
-        // TODO this \/
-        // TODO this approach wont work if there are multiple arrrays (e.g. a[_i] + b[_i])
-        if (state.arrayIds.contains(i)) pred
-        else pred
-      }) :+ state.rely), state)
+  // TODO: remove vars that have already been added
+  // this cant be done for arrays (with different indicies)
+  def getRelyRec (exp: Expression, state: State): Option[Expression] = exp match {
+    case BinOp(op, arg1, arg2) => Some(constructForallOpt(getRelyRec(arg1, state), getRelyRec(arg2, state)))
+    case PreOp(op, arg) => getRelyRec(arg, state)
+    case v: Var => 
+      if (state.globals.contains(v.ident)) {
+        Some(BinOp("=>", BinOp("==", v, v.toPrime(state)), BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))))
+      } else {
+        Some(BinOp(
+          "&&", 
+          BinOp("==", v, v.toPrime(state)), 
+          BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+        ))
+      }
+    case v: VarAccess =>
+      val pred = if (state.globals.contains(v.ident)) {
+        BinOp("=>", BinOp("==", v, v.toPrime(state)), BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state)))
+      } else {
+        BinOp(
+          "&&", 
+          BinOp("==", v, v.toPrime(state)), 
+          BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+        )
+      }
+
+      Some(BinOp("&&", pred, eval(state.arrRelys.getOrElse(v.ident, Const._true), state).subst(Map(Id.indexId.toVar(state) -> Left(eval(v.index, state))))))
+    case s: VarStore => getRelyRec(s.exp, state) // TODO do we need it for arr and index as well? (similarly for eval)
+    case _: Lit | _: Const => None
+    case expr =>
+      println(s"Unhandled expression(getRely): [${expr.getClass()}] $expr")
+      None
   }
 
   def getL (id: Id, state: State): Expression = 
@@ -194,10 +205,10 @@ object Exec {
   def getL (id: ArrayAssignment, state: State): Expression = getL(id.lhs.ident, state).subst(Map(Id.indexId.toVar(state) -> Left(eval(id.lhs.index, state))))
   def primed (p: Expression, state: State) = eval(p, state).subst(state.ids.map(id => id.toVar(state) -> Left(id.toPrime.toVar(state))).toMap)
   // TODO take havoc statements into account
-  def stableR (p: Expression, state: State) = eval(BinOp("=>", BinOp("&&", getRely(p.ids, state), p), primed(p, state)), state)
-  def rImplies (p: Expression, state: State) = eval(BinOp("=>", getRely(p.ids, state), primed(p, state)), state)
-  def stableR (p: Expression, index: Expression, state: State) = eval(BinOp("=>", BinOp("&&", getRely(p.ids, state).subst(Map(Id.indexId.toVar(state) -> Left(index))), p), primed(p, state)), state)
-  def rImplies (p: Expression, index: Expression, state: State) = eval(BinOp("=>", getRely(p.ids, state).subst(Map(Id.indexId.toVar(state) -> Left(index))), primed(p, state)), state)
+  def stableR (p: Expression, state: State) = eval(BinOp("=>", BinOp("&&", getRely(p, state), p), primed(p, state)), state)
+  def rImplies (p: Expression, state: State) = eval(BinOp("=>", getRely(p, state), primed(p, state)), state)
+  def stableR (p: Expression, index: Expression, state: State) = eval(BinOp("=>", BinOp("&&", getRely(p, state).subst(Map(Id.indexId.toVar(state) -> Left(index))), p), primed(p, state)), state)
+  def rImplies (p: Expression, index: Expression, state: State) = eval(BinOp("=>", getRely(p, state).subst(Map(Id.indexId.toVar(state) -> Left(index))), primed(p, state)), state)
   
 
   // TODO also need to handle arrays on RHS
@@ -219,7 +230,7 @@ object Exec {
     // TODO not sure how to handle the second substitution
     val subst = idsNoLHS.map(id => id.toPrime.toVar(state) -> Left(id.toVar(state))).toMap ++ idsNoLHS.map(id => id.toPrime.toGamma.toVar(state) -> Left(id.toGamma.toVar(state))).toMap
     
-    eval(eval(eval(state.guar, state).subst(Map(Id.indexId.toVar(state) -> Left(eval(a.lhs.index, state))))
+    eval(eval(BinOp("&&", eval(state.guar, state), eval(state.arrGuars.getOrElse(a.lhs.ident, Const._true), state).subst(Map(Id.indexId.toVar(state) -> Left(eval(a.lhs.index, state)))))
       .subst(Map(a.lhs.ident.toPrime.toVar(state) -> Right(a.lhs.index, a.expression), a.lhs.ident.toPrime.toGamma.toVar(state) -> Right(a.lhs.index, rhsGamma))), state)
       .subst(subst), state)
   }

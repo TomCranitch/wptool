@@ -81,12 +81,14 @@ object PreProcess {
     case BinOp(_, _, _: CompareAndSwap) => throw new Error("currently unsupported")
     case BinOp(op, arg1, arg2) => evalBlock(arg1, evalBlock(arg2, currBlock)) // TODO
     // TODO binop
+    case PreOp(op, arg) => evalBlock(arg, currBlock)
     case _ => currBlock
   }
 
   def evalExp (exp: Expression): Expression = exp match {
     case cas: CompareAndSwap => Id.tmpId
     case BinOp(op, arg1, arg2) => BinOp(op, evalExp(arg1), evalExp(arg2))
+    case PreOp(op, arg) => evalExp(arg)
     case _ => exp
   }
 

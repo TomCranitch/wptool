@@ -1,11 +1,13 @@
 global array a[2]:
 _L: TRUE
+_Rely: (a[_i] == a'[_i])
+_Guar: (c == 1 && _i == 0) => (a[_i] == a'[_i])
 
 global var c:
 
 _Gamma_0: array -> LOW
-_Rely: c == c' && (a[_i] == a'[_i])
-_Guar: (c == 1 && _i == 0) => (a[_i] == a'[_i])
+_Rely: c == c'  
+_Guar: TRUE
 
 c = 0;
 a[0] = 1;

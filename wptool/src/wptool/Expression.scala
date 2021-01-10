@@ -170,3 +170,11 @@ case class CompareAndSwap(x: Id, e1: Expression, e2: Expression) extends Express
   override def ids: Set[Id] = Set()
   override def subst(su: Subst): Expression = this
 }
+
+case class ForAll(bound: Set[_ <: Expression], body: Expression) extends BoolExpression {
+  def this (bound: Array[Expression], body: Expression) = this(bound.toSet, body)
+  override def ids = body.ids -- (bound.map(id => id.ids).flatten)
+  override def vars = body.vars -- (bound.map(v => v.vars).flatten)
+  override def subst(su: Subst) = ForAll(bound, body.subst(su))
+  override def toString = s"∀ ${bound.mkString(", ")} : $body"
+}

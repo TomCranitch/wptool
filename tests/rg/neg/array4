@@ -1,5 +1,7 @@
 global array a[2]:
 _L: _i == 0
+_Rely: TRUE
+_Guar: TRUE
 
 global var secret:
 _L: FALSE

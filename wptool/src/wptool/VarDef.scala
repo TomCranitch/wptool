@@ -59,9 +59,9 @@ case class VarDef(name: Id, pred: Expression, access: Access) extends Definition
   def this(name: String, access: Access) = this(new Id(name, false, false), Const._true, access)
 }
 
-case class ArrayDef(name: Id, size: Int, pred: Expression, access: Access) extends Definition {
-  def this(name: String, size: Int, lpred: Expression, access: Access) = this(new Id(name, false, false), size, lpred, access)
-  def this(name: String, size: Int, access: Access) = this(new Id(name, false, false), size, Const._true, access)
+case class ArrayDef(name: Id, size: Int, pred: Expression, access: Access, rely: Rely, guar: Guar) extends Definition {
+  def this(name: String, size: Int, lpred: Expression, access: Access, rely: Rely, guar: Guar) = this(new Id(name, false, false), size, lpred, access, rely: Rely, guar: Guar)
+  def this(name: String, size: Int, access: Access, rely: Rely, guar: Guar) = this(new Id(name, false, false), size, Const._true, access, rely: Rely, guar: Guar)
 
   def toVarDefs: VarDef = VarDef(name, pred, access)
 }
