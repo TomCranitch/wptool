@@ -1,0 +1,50 @@
+global var z:
+_L: TRUE
+
+global var tail:
+_L: TRUE
+
+global var head:
+_L: TRUE
+
+global var L:
+_L: TRUE
+
+global array tasks[1]:
+_L: levels[_i] == 1
+_Rely: TRUE
+_Guar: TRUE
+
+global array levels[1]:
+_L: TRUE
+_Rely: TRUE
+_Guar: (z % 2 == 0 && z' == z) => (levels[_i] == levels'[_i])
+
+local var t:
+local var h:
+local var task:
+
+global var level:
+_L: TRUE
+
+_Gamma_0: z -> LOW
+_Rely: TRUE
+_Guar: z' >= z
+
+
+
+t = tail - 1;
+tail = t;
+h = head;
+if (h <= t) {
+	task = tasks[t % L];
+	if (h == t) {
+		if (CAS(head, h, h + 1) == 1) {
+			task = 0;
+		}
+		tail = tail + 1;
+	}
+} else {
+	task = 0; // Empty task
+	tail = tail + 1;
+}
