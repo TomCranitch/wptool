@@ -8,9 +8,10 @@ import wptool.error._
 import com.microsoft.z3
 import scala.collection.mutable.ListBuffer
 
+case class RG (program: String, rely: Expression, guarantee: Expression, arrayRs: Map[Id, Expression], guarRs: Map[Id, Expression]) {}
+
 object WPTool {
-  var relies: ListBuffer[(String, Expression)] = ListBuffer()
-  var guarantees: ListBuffer[(String, Expression)] = ListBuffer()
+  var rgs: ListBuffer[RG] = ListBuffer()
 
   def main(args: Array[String]): Unit = {
     var toLog: Boolean = false // whether to print P/Gamma/D state information for each rule application
@@ -51,6 +52,8 @@ object WPTool {
               printTime(start)
           }
       }
+
+      if (!checkRGs(rgs.toList)) println("R/G do not agree")
     }
   }
 
@@ -85,15 +88,14 @@ object WPTool {
       println(guar)
     }
 
-    relies += file -> rely.get.exp
-    guarantees += file -> guar.get.exp
-
     val state = State(variables, debug, silent, gamma_0, rely, guar)
     // printBlocks(PreProcess.process(statements, state))
 
     if (debug) PreProcess.printGraphvis(PreProcess.process(statements, state))
 
     val _state = Exec.exec(PreProcess.process(statements, state), state)
+
+  rgs += new RG(file, rely.get.exp, guar.get.exp, _state.arrRelys, _state.arrGuars)
 
     val gammaDom: Set[Id] = _state.ids -- _state.arrayIds
     val gamma: Map[Id, Security] = gamma_0 match {
@@ -152,13 +154,31 @@ object WPTool {
   }
 
 
-  // TODO how to handle _i
-  // how to handle arrays
-  def checkRGs (relys: List[(String, Expression)], guars: List[(String, Expression)]) = {
-    
-  }
+  def checkRGs (RGs: List[RG]): Boolean = {
+    // TODO need to add in all the extra G1-G3
 
-  def checkGs (rely: Expression, guars: List[(String, Expression)]) = guars match {
-    // case (name, exp) :: Nil => 
+    RGs.foreach(r => {
+      // Check main rely
+      RGs.foreach(g => {
+        if (r != g && !SMT.prove(BinOp("=>", g.guarantee, r.rely), List(), false, true)) {
+          println(s"${g.guarantee} does not imply rely of ${r.rely}")
+          return false
+        }
+      })
+
+      // Check array rely
+      RGs.foreach(g => {
+        if (r != g) {
+          val cond = constructForall(g.guarRs.values.toList :+ g.guarantee)
+          if(!SMT.prove(BinOp("=>", cond, r.rely), List(), false, true)) {
+            println(s"${cond} does not imply rely of ${r.rely}")
+            return false
+          }
+        }
+      })
+      
+      // TODO this cannot handle the case arrR: a[_i] > 10, R: a[0] > 10
+    })
+    return true
   }
 }
