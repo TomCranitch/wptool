@@ -39,7 +39,16 @@ _L: TRUE
 
 local var d:
 ```
-Variables must be defined at the start of the file, before any statements. 
+Variables must be defined at the start of the file, before any statements. Arrays are similarly specified in the preamble, alongside the definitions for variables. Their definition should also include a corresponding rely and guarantee, which can include the variable `_i` to indicate the current index.
+
+```
+local array a[2]:
+
+global array b[z]:
+_L: TRUE
+_Rely: (_i % 2 == 0) => (a[_i] > 0)
+_Guar: a[_i] == a'[_i]
+```
 
 ### Gamma_0 definitions
 ```
@@ -49,9 +58,10 @@ Defining the Gamma_0 is optional, but can occur between the variable definitions
 
 ### Assignment
 ```
-x := 1
-y := x
-z := x + 2 - y
+x = 1;
+y = x;
+z = x + 2 - y;
+a[x] = y;
 ```
 
 ### If Statements
@@ -111,7 +121,6 @@ _invariant: TRUE
 ### Unsupported language features
 Below is an inconclusive list of unsupported language features.
  * Pointers
- * Arrays
  
 ### Weak memory model
 The logic for the weak memory model is currently not implemented

@@ -94,10 +94,10 @@ definition
     = GLOBALVAR ID.n COLON lpred.l              {:  return new VarDef(n, l, GlobalVar.instance()); :} // TODO: does this make them appear as global (i.e. are vars without right permissions global)
     | GLOBALVAR ID.n COLON                     {: return new VarDef(n, GlobalVar.instance()); :}
     | LOCALVAR ID.n COLON                     {: return new VarDef(n, LocalVar.instance()); :}
-    | GLOBALARRAY ID.n LBRACK NUM.s RBRACK COLON lpred.l arrrely.r arrguar.g {: return new ArrayDef(n, s, l, GlobalVar.instance(), r, g); :}
-    | GLOBALARRAY ID.n LBRACK NUM.s RBRACK COLON arrrely.r arrguar.g {: return new ArrayDef(n, s, GlobalVar.instance(), r, g); :}
-    | LOCALARRAY ID.n LBRACK NUM.s RBRACK COLON lpred.l arrrely.r arrguar.g {: return new ArrayDef(n, s, l, LocalVar.instance(), r, g); :}
-    | LOCALARRAY ID.n LBRACK NUM.s RBRACK COLON arrrely.r arrguar.g {: return new ArrayDef(n, s, LocalVar.instance(), r, g); :}
+    | GLOBALARRAY ID.n LBRACK expr.s RBRACK COLON lpred.l arrrely.r arrguar.g {: return new ArrayDef(n, s, l, GlobalVar.instance(), r, g); :}
+    | GLOBALARRAY ID.n LBRACK expr.s RBRACK COLON arrrely.r arrguar.g {: return new ArrayDef(n, s, GlobalVar.instance(), r, g); :}
+    | LOCALARRAY ID.n LBRACK expr.s RBRACK COLON lpred.l arrrely.r arrguar.g {: return new ArrayDef(n, s, l, LocalVar.instance(), r, g); :}
+    | LOCALARRAY ID.n LBRACK expr.s RBRACK COLON arrrely.r arrguar.g {: return new ArrayDef(n, s, LocalVar.instance(), r, g); :}
 	;
 
 arrrely = RELY COLON expr.a {: return  new Rely(a); :};
