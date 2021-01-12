@@ -3,8 +3,12 @@ package wptool
 import scala.util.Try
 
 trait Expression extends beaver.Symbol {
-  def vars: Set[Variable] // returns all vars in the expression, does NOT include array indices
-  def ids: Set[Id] // returns all vars in the expression, does NOT include array indices
+  def vars: Set[
+    Variable
+  ] // returns all vars in the expression, does NOT include array indices
+  def ids: Set[
+    Id
+  ] // returns all vars in the expression, does NOT include array indices
   def subst(su: Subst): Expression
 }
 

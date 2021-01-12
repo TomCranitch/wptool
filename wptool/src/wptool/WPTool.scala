@@ -20,11 +20,12 @@ object WPTool {
   var rgs: ListBuffer[RG] = ListBuffer()
 
   def main(args: Array[String]): Unit = {
-    var toLog: Boolean = false // whether to print P/Gamma/D state information for each rule application
+    var toLog: Boolean =
+      false // whether to print P/Gamma/D state information for each rule application
     var debug: Boolean = false // whether to print further debug information
     var noInfeasible: Boolean = false // whether to not check infeasible paths
-    var simplify
-        : Boolean = false // whether to output the simplified VC for failing VCs
+    var simplify: Boolean =
+      false // whether to output the simplified VC for failing VCs
 
     if (args.isEmpty) {
       println("usage: ./wptool.sh file1 file2...")
@@ -124,21 +125,21 @@ object WPTool {
     val gamma: Map[Id, Security] = gamma_0 match {
       // security high by default if user hasn't provided
       case None => Map()
-      case Some(gs) => {
-        gs flatMap { g =>
-          g.toPair
-        }
-      }.toMap
+      case Some(gs) =>
+        {
+          gs flatMap { g =>
+            g.toPair
+          }
+        }.toMap
     }
 
     val gammaArraySubst = constructForall(
       _state.arrayIds
-        .map(
-          a =>
-            ArrayConstDefault(
-              a.toGamma.toVar(_state),
-              gamma.getOrElse(a, High).toTruth
-            )
+        .map(a =>
+          ArrayConstDefault(
+            a.toGamma.toVar(_state),
+            gamma.getOrElse(a, High).toTruth
+          )
         )
         .toList
     )
@@ -233,7 +234,9 @@ object WPTool {
         )
       }
     case s: VarStore =>
-      getRelyRec(s.exp) // TODO do we need it for arr and index as well? (similarly for eval)
+      getRelyRec(
+        s.exp
+      ) // TODO do we need it for arr and index as well? (similarly for eval)
     case _: Lit | _: Const => None
     case expr =>
       println(s"Unhandled expression(getRely): [${expr.getClass()}] $expr")
@@ -246,21 +249,23 @@ object WPTool {
     RGs.foreach(r => {
       // Check main rely
       RGs.foreach(g => {
-        if (r != g && !SMT.prove(
+        if (
+          r != g && !SMT.prove(
+            BinOp(
+              "=>",
               BinOp(
-                "=>",
-                BinOp(
-                  "&&",
-                  g.guarantee,
-                  getRelyRec(r.rely).getOrElse(Const._true)
-                ),
-                r.rely
+                "&&",
+                g.guarantee,
+                getRelyRec(r.rely).getOrElse(Const._true)
               ),
-              List(),
-              false,
-              false,
-              true
-            )) {
+              r.rely
+            ),
+            List(),
+            false,
+            false,
+            true
+          )
+        ) {
           println(s"${g.guarantee} does not imply rely of ${r.rely}")
           println(s"    Additional constraints ${getRelyRec(r.rely)}")
           return false
@@ -271,17 +276,19 @@ object WPTool {
       RGs.foreach(g => {
         if (r != g) {
           val cond = constructForall(g.guarRs.values.toList :+ g.guarantee)
-          if (!SMT.prove(
-                BinOp(
-                  "=>",
-                  BinOp("&&", cond, getRelyRec(r.rely).getOrElse(Const._true)),
-                  r.rely
-                ),
-                List(),
-                false,
-                false,
-                true
-              )) {
+          if (
+            !SMT.prove(
+              BinOp(
+                "=>",
+                BinOp("&&", cond, getRelyRec(r.rely).getOrElse(Const._true)),
+                r.rely
+              ),
+              List(),
+              false,
+              false,
+              true
+            )
+          ) {
             println(s"${cond} does not imply rely of ${r.rely}")
             println(s"    Additional constraints ${getRelyRec(r.rely)}")
             return false

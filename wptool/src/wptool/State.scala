@@ -48,16 +48,16 @@ object State {
     var controlled: Set[Id] = Set()
     var controlledBy: Map[Id, Set[Id]] = Map()
 
-    val arrayIds = definitions collect {
-      case a: ArrayDef => a.toVarDefs.name
+    val arrayIds = definitions collect { case a: ArrayDef =>
+      a.toVarDefs.name
     }
 
-    val arrRelys = definitions.collect {
-      case a: ArrayDef => a.toVarDefs.name -> a.rely.exp
+    val arrRelys = definitions.collect { case a: ArrayDef =>
+      a.toVarDefs.name -> a.rely.exp
     }.toMap
 
-    val arrGuars = definitions.collect {
-      case a: ArrayDef => a.toVarDefs.name -> a.guar.exp
+    val arrGuars = definitions.collect { case a: ArrayDef =>
+      a.toVarDefs.name -> a.guar.exp
     }.toMap
 
     val variables: Set[VarDef] = definitions map {

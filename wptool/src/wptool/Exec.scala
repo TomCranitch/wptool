@@ -20,15 +20,20 @@ object Exec {
     case block: Block =>
       val _state = exec(
         block.statements,
-        joinStates(block.children.map(c => {
-          val res = exec(c, state)
-          if (c.atomic)
-            res.addQs(
-              res.Qs
-                .map(Q => PredInfo(stableR(Q.pred, state), c, "atomic stableR"))
-            )
-          else res
-        }), state),
+        joinStates(
+          block.children.map(c => {
+            val res = exec(c, state)
+            if (c.atomic)
+              res.addQs(
+                res.Qs
+                  .map(Q =>
+                    PredInfo(stableR(Q.pred, state), c, "atomic stableR")
+                  )
+              )
+            else res
+          }),
+          state
+        ),
         RG
       )
       _state
@@ -200,7 +205,11 @@ object Exec {
           BinOp("=>", PreOp("!", stabRB), eval(exp, state))
         )
       case Assert(exp, checkStableR) =>
-        BinOp("&&", eval(exp, state), Q) // Potentially move to exec to evaluate separately
+        BinOp(
+          "&&",
+          eval(exp, state),
+          Q
+        ) // Potentially move to exec to evaluate separately
       case havoc: Havoc => Q
       case assign: Assignment =>
         val rhsGamma =
@@ -316,7 +325,10 @@ object Exec {
           )
         )
       case s: VarStore =>
-        getRelyRec(s.exp, state) // TODO do we need it for arr and index as well? (similarly for eval)
+        getRelyRec(
+          s.exp,
+          state
+        ) // TODO do we need it for arr and index as well? (similarly for eval)
       case _: Lit | _: Const => None
       case expr =>
         println(s"Unhandled expression(getRely): [${expr.getClass()}] $expr")
@@ -378,8 +390,8 @@ object Exec {
     val subst = idsNoLHS
       .map(id => id.toPrime.toVar(state) -> Left(id.toVar(state)))
       .toMap ++ idsNoLHS
-      .map(
-        id => id.toPrime.toGamma.toVar(state) -> Left(id.toGamma.toVar(state))
+      .map(id =>
+        id.toPrime.toGamma.toVar(state) -> Left(id.toGamma.toVar(state))
       )
       .toMap
 
@@ -406,8 +418,8 @@ object Exec {
     val subst = idsNoLHS
       .map(id => id.toPrime.toVar(state) -> Left(id.toVar(state)))
       .toMap ++ idsNoLHS
-      .map(
-        id => id.toPrime.toGamma.toVar(state) -> Left(id.toGamma.toVar(state))
+      .map(id =>
+        id.toPrime.toGamma.toVar(state) -> Left(id.toGamma.toVar(state))
       )
       .toMap
 
@@ -436,7 +448,10 @@ object Exec {
   def computeGamma(vars: List[Variable], state: State): Expression =
     vars match {
       case v :: Nil =>
-        eval(BinOp("||", v.toGamma(state), getL(v.ident, state)), state) // Default to high
+        eval(
+          BinOp("||", v.toGamma(state), getL(v.ident, state)),
+          state
+        ) // Default to high
       case v :: rest =>
         eval(
           BinOp("&&", computeGamma(List(v), state), computeGamma(rest, state)),
@@ -455,29 +470,26 @@ object Exec {
         if (s.indicies == indicies) s.Qs
         else {
           val conds = s.indicies
-            .filter {
-              case (id, int) =>
-                indicies.get(id) match {
-                  case Some(i) => i != int
-                  case None    => true
-                }
+            .filter { case (id, int) =>
+              indicies.get(id) match {
+                case Some(i) => i != int
+                case None    => true
+              }
             }
-            .map {
-              case (id, ind) =>
-                BinOp("==", Var(id, ind), Var(id, indicies.getOrElse(id, -1)))
+            .map { case (id, ind) =>
+              BinOp("==", Var(id, ind), Var(id, indicies.getOrElse(id, -1)))
             }
             .toList
 
-          s.Qs.map(
-            info =>
-              info.copy(pred = BinOp("=>", constructForall(conds), info.pred))
+          s.Qs.map(info =>
+            info.copy(pred = BinOp("=>", constructForall(conds), info.pred))
           )
         }
       })
       .flatten
 
-    val error = states.foldLeft(state.error) {
-      case (a, i) => if (a || i.error) true else false
+    val error = states.foldLeft(state.error) { case (a, i) =>
+      if (a || i.error) true else false
     }
 
     state.copy(

@@ -188,9 +188,13 @@ package object wptool {
       debug: Boolean,
       simplify: Boolean
   ): Option[List[PredInfo]] =
-    checkVcs(preds.map(p => {
-      p.copy(pred = p.pred.subst(gammas))
-    }), debug, simplify)
+    checkVcs(
+      preds.map(p => {
+        p.copy(pred = p.pred.subst(gammas))
+      }),
+      debug,
+      simplify
+    )
 
   def checkVcs(
       preds: List[PredInfo],
@@ -199,9 +203,13 @@ package object wptool {
       debug: Boolean,
       simplify: Boolean
   ): Option[List[PredInfo]] =
-    checkVcs(preds.map(p => {
-      p.copy(pred = BinOp("=>", arrayGamma, p.pred.subst(gammas)))
-    }), debug, simplify)
+    checkVcs(
+      preds.map(p => {
+        p.copy(pred = BinOp("=>", arrayGamma, p.pred.subst(gammas)))
+      }),
+      debug,
+      simplify
+    )
 
   def printFalseVcs(preds: List[PredInfo]) = {
     println("Failing VCs")

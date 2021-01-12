@@ -7,9 +7,8 @@ object PreProcess {
     removeLoops(_statements, state)
   }
 
-  /**
-    *  Convert a while program into basic blocks
-   **/
+  /**  Convert a while program into basic blocks
+    */
   // @scala.annotation.tailrec
   private def exec(
       statements: List[Statement],

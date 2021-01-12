@@ -32,32 +32,33 @@ object SMT {
     if (debug)
       println("smt checking !(" + cond + ") given " + given.PStr)
     solver.push()
-    val res = try {
-      for (p <- given) {
-        solver.add(formula(p, expectIds))
-      }
-      // check that (NOT cond) AND P is unsatisfiable
-      solver.add(formula(PreOp("!", cond), expectIds))
+    val res =
+      try {
+        for (p <- given) {
+          solver.add(formula(p, expectIds))
+        }
+        // check that (NOT cond) AND P is unsatisfiable
+        solver.add(formula(PreOp("!", cond), expectIds))
 
-      solver.check
-    } catch {
-      case e: java.lang.UnsatisfiedLinkError
-          if e.getMessage.equals(
-            "com.microsoft.z3.Native.INTERNALgetErrorMsgEx(JI)Ljava/lang/String;"
-          ) =>
-        // weird unintuitive error z3 can have when an input type is incorrect in a way it doesn't check
-        // REMEMBER: can be caused by incorrect types (e.g. gamma vars should be of type bool)
-        throw error.Z3Error(
-          "Z3 failed",
-          cond,
-          given.PStr,
-          "incorrect z3 expression type, probably involving ForAll/Exists"
-        )
-      case e: Throwable =>
-        throw error.Z3Error("Z3 failed", cond, given.PStr, e)
-    } finally {
-      solver.pop()
-    }
+        solver.check
+      } catch {
+        case e: java.lang.UnsatisfiedLinkError
+            if e.getMessage.equals(
+              "com.microsoft.z3.Native.INTERNALgetErrorMsgEx(JI)Ljava/lang/String;"
+            ) =>
+          // weird unintuitive error z3 can have when an input type is incorrect in a way it doesn't check
+          // REMEMBER: can be caused by incorrect types (e.g. gamma vars should be of type bool)
+          throw error.Z3Error(
+            "Z3 failed",
+            cond,
+            given.PStr,
+            "incorrect z3 expression type, probably involving ForAll/Exists"
+          )
+        case e: Throwable =>
+          throw error.Z3Error("Z3 failed", cond, given.PStr, e)
+      } finally {
+        solver.pop()
+      }
 
     if (simplify && res == z3.Status.SATISFIABLE) println(solverSimplify(cond))
     // solverSimplify(cond).getSubgoals.map(g => println("val: " + translateBack(g.AsBoolExpr)))
