@@ -2,21 +2,21 @@
 
 MILL = ./mill
 
-WEMELT_JAVA = wptool/src/wptool/Parser.java \
+WPTOOL_JAVA = wptool/src/wptool/Parser.java \
             wptool/src/wptool/Scanner.java
 
-WEMELT_JAR = out/wptool/jar/dest/out.jar
-WEMELT_LAUNCHER = ./out/wptool/launcher/dest/run
-WEMELT_SH  = ./wptool.sh
+WPTOOL_JAR = out/wptool/jar/dest/out.jar
+WPTOOL_LAUNCHER = ./out/wptool/launcher/dest/run
+WPTOOL_SH  = ./wptool.sh
 
-all: parser $(WEMELT_JAR) $(WEMELT_SH)
+all: parser $(WPTOOL_JAR) $(WPTOOL_SH)
 
-parser: $(WEMELT_JAVA)
+parser: $(WPTOOL_JAVA)
 
 clean:
 	$(MILL) clean
-	rm -f $(WEMELT_JAVA)
-	rm -f $(WEMELT_SH)
+	rm -f $(WPTOOL_JAVA)
+	rm -f $(WPTOOL_SH)
 
 check-dependencies:
 	$(MILL) mill.scalalib.Dependency/updates
@@ -24,16 +24,16 @@ check-dependencies:
 test: all
 	$(MILL) wptool.test
 
-$(WEMELT_LAUNCHER): wptool/src/wptool/*.scala
+$(WPTOOL_LAUNCHER): wptool/src/wptool/*.scala
 	@echo $@
 	$(MILL) wptool.launcher
 
-$(WEMELT_JAR): wptool/src/wptool/*.scala
+$(WPTOOL_JAR): wptool/src/wptool/*.scala
 	@echo $@
 	$(MILL) wptool.jar
 
-$(WEMELT_SH): $(WEMELT_LAUNCHER)
-	@echo "[echo]  $@"; echo "#!/usr/bin/env bash" > $@; echo "export LD_LIBRARY_PATH=$(PWD)/wptool/lib" >> $@; echo "source $(WEMELT_LAUNCHER)" >> $@
+$(WPTOOL_SH): $(WPTOOL_LAUNCHER)
+	@echo "[echo]  $@"; echo "#!/usr/bin/env bash" > $@; echo "export LD_LIBRARY_PATH=$(PWD)/wptool/lib" >> $@; echo "source $(WPTOOL_LAUNCHER)" >> $@
 	@echo "[chmod] $@"; chmod +x $@
 
 %.java: %.grammar
@@ -42,8 +42,8 @@ $(WEMELT_SH): $(WEMELT_LAUNCHER)
 %.java: %.flex
 	jflex -nobak $^
 
-o: $(WEMELT_OBJ)
-	@echo $(WEMELT_OBJ)
+o: $(WPTOOL_OBJ)
+	@echo $(WPTOOL_OBJ)
 
 lib%.dylib: wptool/lib/lib%.dylib
 	ln -s $<
