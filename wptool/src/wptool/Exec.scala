@@ -74,20 +74,22 @@ object Exec {
         }).toList)
       } else Const._true
 
-      // TODO should we be using rImplies when RG is false
-      // TODO audit when RG is actually being used
-      val _state = evalWp(assign, state).addQs(
-        PredInfo(rImplies(globalPred, state), assign, "Global"),
-        PredInfo(rImplies(controlPred, state), assign, "Control")
-      )
-
       if (RG) {
         val guarantee = guar(assign, state)
+        val _state = evalWp(assign, state).addQs(
+          PredInfo(rImplies(globalPred, state), assign, "Global"),
+          PredInfo(rImplies(controlPred, state), assign, "Control")
+        )
+
 
         _state.addQs(
           PredInfo(rImplies(guarantee, state), assign, "Guarantee")
         ).incPrimeIndicies
       } else {
+        val _state = evalWp(assign, state).addQs(
+          PredInfo(globalPred, assign, "Global"),
+          PredInfo(controlPred, assign, "Control")
+        )
         _state.incPrimeIndicies
       }
     case assign: ArrayAssignment =>

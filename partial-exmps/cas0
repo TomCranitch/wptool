@@ -1,7 +1,0 @@
-global var a:
-_L: FALSE
-
-_Rely: TRUE
-_Guar: TRUE
-
-a = CAS;
