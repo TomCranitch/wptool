@@ -2,8 +2,9 @@ import mill._
 import mill.api.Loose
 import mill.define.Target
 import mill.scalalib._
+import scalafmt._
 
-object wptool extends ScalaModule {
+object wptool extends ScalaModule with ScalafmtModule {
     def scalaVersion = "2.13.3"
     override def mainClass = Some("wptool.WPTool")
 

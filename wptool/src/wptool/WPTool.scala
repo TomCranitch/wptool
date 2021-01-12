@@ -8,7 +8,13 @@ import wptool.error._
 import com.microsoft.z3
 import scala.collection.mutable.ListBuffer
 
-case class RG (program: String, rely: Expression, guarantee: Expression, arrayRs: Map[Id, Expression], guarRs: Map[Id, Expression]) {}
+case class RG(
+    program: String,
+    rely: Expression,
+    guarantee: Expression,
+    arrayRs: Map[Id, Expression],
+    guarRs: Map[Id, Expression]
+) {}
 
 object WPTool {
   var rgs: ListBuffer[RG] = ListBuffer()
@@ -17,8 +23,8 @@ object WPTool {
     var toLog: Boolean = false // whether to print P/Gamma/D state information for each rule application
     var debug: Boolean = false // whether to print further debug information
     var noInfeasible: Boolean = false // whether to not check infeasible paths
-    var simplify: Boolean = false // whether to output the simplified VC for failing VCs
-
+    var simplify
+        : Boolean = false // whether to output the simplified VC for failing VCs
 
     if (args.isEmpty) {
       println("usage: ./wptool.sh file1 file2...")
@@ -48,9 +54,13 @@ object WPTool {
               println("internal error: " + e)
               printTime(start)
             case e: Z3Error =>
-              println("Z3 Failed (this probably means there was an error in the input to Z3): " + e)
+              println(
+                "Z3 Failed (this probably means there was an error in the input to Z3): " + e
+              )
               printTime(start)
-            case e @ (_: WhileError | _: IfError | _: AssignCError | _: AssignError | _: NonblockingError | _: CASCError | _: CASError | _: ArrayError | _: ArrayCError) =>
+            case e @ (_: WhileError | _: IfError | _: AssignCError |
+                _: AssignError | _: NonblockingError | _: CASCError |
+                _: CASError | _: ArrayError | _: ArrayCError) =>
               println(e)
               printTime(start)
           }
@@ -60,20 +70,24 @@ object WPTool {
     }
   }
 
-
   // TODO rm debug func
-  def dispClassPath () = {
+  def dispClassPath() = {
     def urlses(cl: ClassLoader): Array[java.net.URL] = cl match {
-      case null => Array()
+      case null                       => Array()
       case u: java.net.URLClassLoader => u.getURLs() ++ urlses(cl.getParent)
-      case _ => urlses(cl.getParent)
+      case _                          => urlses(cl.getParent)
     }
 
     val urls = urlses(getClass.getClassLoader)
     println(urls.mkString("\n"))
   }
 
-  def run (file: String, debug: Boolean, simplify: Boolean, silent: Boolean = false): Boolean = {
+  def run(
+      file: String,
+      debug: Boolean,
+      simplify: Boolean,
+      silent: Boolean = false
+  ): Boolean = {
     val res = parse(file)
     val variables = res.variables
 
@@ -98,18 +112,36 @@ object WPTool {
 
     val _state = Exec.exec(PreProcess.process(statements, state), state)
 
-  rgs += new RG(file, rely.get.exp, guar.get.exp, _state.arrRelys, _state.arrGuars)
+    rgs += new RG(
+      file,
+      rely.get.exp,
+      guar.get.exp,
+      _state.arrRelys,
+      _state.arrGuars
+    )
 
     val gammaDom: Set[Id] = _state.ids -- _state.arrayIds
     val gamma: Map[Id, Security] = gamma_0 match {
       // security high by default if user hasn't provided
       case None => Map()
       case Some(gs) => {
-        gs flatMap {g => g.toPair}
+        gs flatMap { g =>
+          g.toPair
+        }
       }.toMap
     }
 
-    val gammaArraySubst = constructForall(_state.arrayIds.map(a => ArrayConstDefault(a.toGamma.toVar(_state), gamma.getOrElse(a, High).toTruth)).toList)
+    val gammaArraySubst = constructForall(
+      _state.arrayIds
+        .map(
+          a =>
+            ArrayConstDefault(
+              a.toGamma.toVar(_state),
+              gamma.getOrElse(a, High).toTruth
+            )
+        )
+        .toList
+    )
 
     val gammaSubstr = {
       for (i <- gammaDom) yield {
@@ -125,7 +157,7 @@ object WPTool {
       case Some(s) =>
         if (!silent) printFalseVcs(s)
         false
-      case None => 
+      case None =>
         if (_state.error) false
         else true
     }
@@ -151,52 +183,84 @@ object WPTool {
     result
   }
 
-  def printBlocks (block: Block): Unit = {
+  def printBlocks(block: Block): Unit = {
     println(block)
     block.children.foreach(b => printBlocks(b))
   }
 
   // TODO this is copy pasted
-  def getRelyRec (exp: Expression): Option[Expression] = exp match {
-    case BinOp(op, arg1, arg2) => Some(constructForallOpt(getRelyRec(arg1), getRelyRec(arg2)))
+  def getRelyRec(exp: Expression): Option[Expression] = exp match {
+    case BinOp(op, arg1, arg2) =>
+      Some(constructForallOpt(getRelyRec(arg1), getRelyRec(arg2)))
     case PreOp(op, arg) => getRelyRec(arg)
-    case i: Id => 
+    case i: Id          =>
       // TODO if global
       val id = i.copy(prime = false, gamma = false)
       if (true) {
-        Some(BinOp("=>", BinOp("==", id, id.toPrime), BinOp("==", id.toGamma, id.toPrime.toGamma)))
+        Some(
+          BinOp(
+            "=>",
+            BinOp("==", id, id.toPrime),
+            BinOp("==", id.toGamma, id.toPrime.toGamma)
+          )
+        )
       } else {
-        Some(BinOp(
-          "&&", 
-          BinOp("==", id, id.toPrime), 
-          BinOp("==", id.toGamma, id.toPrime.toGamma)
-        ))
+        Some(
+          BinOp(
+            "&&",
+            BinOp("==", id, id.toPrime),
+            BinOp("==", id.toGamma, id.toPrime.toGamma)
+          )
+        )
       }
     case i: IdAccess =>
       val id = i.copy(ident = i.ident.copy(gamma = false, prime = false))
       if (true) {
-        Some(BinOp("=>", BinOp("==", id, id.toPrime), BinOp("==", id.toGamma, id.toPrime.toGamma)))
+        Some(
+          BinOp(
+            "=>",
+            BinOp("==", id, id.toPrime),
+            BinOp("==", id.toGamma, id.toPrime.toGamma)
+          )
+        )
       } else {
-        Some(BinOp(
-          "&&", 
-          BinOp("==", id, id.toPrime), 
-          BinOp("==", id.toGamma, id.toPrime.toGamma)
-        ))
+        Some(
+          BinOp(
+            "&&",
+            BinOp("==", id, id.toPrime),
+            BinOp("==", id.toGamma, id.toPrime.toGamma)
+          )
+        )
       }
-    case s: VarStore => getRelyRec(s.exp) // TODO do we need it for arr and index as well? (similarly for eval)
+    case s: VarStore =>
+      getRelyRec(s.exp) // TODO do we need it for arr and index as well? (similarly for eval)
     case _: Lit | _: Const => None
     case expr =>
       println(s"Unhandled expression(getRely): [${expr.getClass()}] $expr")
       None
   }
 
-  def checkRGs (RGs: List[RG]): Boolean = {
+  def checkRGs(RGs: List[RG]): Boolean = {
     // TODO need to add in all the extra G1-G3
 
     RGs.foreach(r => {
       // Check main rely
       RGs.foreach(g => {
-        if (r != g && !SMT.prove(BinOp("=>", BinOp("&&", g.guarantee, getRelyRec(r.rely).getOrElse(Const._true)), r.rely), List(), false, false, true)) {
+        if (r != g && !SMT.prove(
+              BinOp(
+                "=>",
+                BinOp(
+                  "&&",
+                  g.guarantee,
+                  getRelyRec(r.rely).getOrElse(Const._true)
+                ),
+                r.rely
+              ),
+              List(),
+              false,
+              false,
+              true
+            )) {
           println(s"${g.guarantee} does not imply rely of ${r.rely}")
           println(s"    Additional constraints ${getRelyRec(r.rely)}")
           return false
@@ -207,14 +271,24 @@ object WPTool {
       RGs.foreach(g => {
         if (r != g) {
           val cond = constructForall(g.guarRs.values.toList :+ g.guarantee)
-          if(!SMT.prove(BinOp("=>", BinOp("&&", cond, getRelyRec(r.rely).getOrElse(Const._true)), r.rely), List(), false, false, true)) {
+          if (!SMT.prove(
+                BinOp(
+                  "=>",
+                  BinOp("&&", cond, getRelyRec(r.rely).getOrElse(Const._true)),
+                  r.rely
+                ),
+                List(),
+                false,
+                false,
+                true
+              )) {
             println(s"${cond} does not imply rely of ${r.rely}")
             println(s"    Additional constraints ${getRelyRec(r.rely)}")
             return false
           }
         }
       })
-      
+
       // TODO this cannot handle the case arrR: a[_i] > 10, R: a[0] > 10
     })
     return true

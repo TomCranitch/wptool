@@ -11,39 +11,86 @@ package object wptool {
     case class ProgramError(info: Any*) extends Error
     case class Z3Error(info: Any*) extends Error
 
-    case class WhileError(line: Int, test: Expression, message: String) extends Exception {
-      override def toString = "line " + line + ": WHILE rule not valid for while(" + test + ") {...} as " + message
+    case class WhileError(line: Int, test: Expression, message: String)
+        extends Exception {
+      override def toString =
+        "line " + line + ": WHILE rule not valid for while(" + test + ") {...} as " + message
     }
-    case class AssignError(line: Int, lhs: Id, rhs: Expression, message: String)  extends Exception {
-      override def toString = "line " + line + ": ASSIGN rule not valid for " + lhs + " = " + rhs + " as " + message
+    case class AssignError(line: Int, lhs: Id, rhs: Expression, message: String)
+        extends Exception {
+      override def toString =
+        "line " + line + ": ASSIGN rule not valid for " + lhs + " = " + rhs + " as " + message
     }
-    case class AssignCError(line: Int, lhs: Id, rhs: Expression, message: String)  extends Exception {
-      override def toString = "line " + line + ": ASSIGNC rule not valid for " + lhs + " = " + rhs + " as " + message
+    case class AssignCError(
+        line: Int,
+        lhs: Id,
+        rhs: Expression,
+        message: String
+    ) extends Exception {
+      override def toString =
+        "line " + line + ": ASSIGNC rule not valid for " + lhs + " = " + rhs + " as " + message
     }
-    case class CASError(line: Int, lhs: Id, x: Id, r1: Expression, r2: Expression, message: String)  extends Exception {
-      override def toString = "line " + line + ": CAS rule not valid for " + lhs + " = " + "CAS(" + x + ", " + r1 + ", " + r2 + ") as " + message
+    case class CASError(
+        line: Int,
+        lhs: Id,
+        x: Id,
+        r1: Expression,
+        r2: Expression,
+        message: String
+    ) extends Exception {
+      override def toString =
+        "line " + line + ": CAS rule not valid for " + lhs + " = " + "CAS(" + x + ", " + r1 + ", " + r2 + ") as " + message
     }
-    case class CASCError(line: Int, lhs: Id, x: Id, r1: Expression, r2: Expression, message: String)  extends Exception {
-      override def toString = "line " + line + ": CASC rule not valid for " + lhs + " = " + "CAS(" + x + ", " + r1 + ", " + r2 + ") as " + message
+    case class CASCError(
+        line: Int,
+        lhs: Id,
+        x: Id,
+        r1: Expression,
+        r2: Expression,
+        message: String
+    ) extends Exception {
+      override def toString =
+        "line " + line + ": CASC rule not valid for " + lhs + " = " + "CAS(" + x + ", " + r1 + ", " + r2 + ") as " + message
     }
-    case class IfError(line: Int, test: Expression, message: String) extends Exception {
-      override def toString = "line " + line + ": IF rule not valid for if(" + test + ") {...} as " + message
+    case class IfError(line: Int, test: Expression, message: String)
+        extends Exception {
+      override def toString =
+        "line " + line + ": IF rule not valid for if(" + test + ") {...} as " + message
     }
-    case class NonblockingError(line: Int, statement: Statement, message: String) extends Exception {
-      override def toString = "line " + line + ": NONBLOCKING rule not valid for " + statement + " as " + message
+    case class NonblockingError(
+        line: Int,
+        statement: Statement,
+        message: String
+    ) extends Exception {
+      override def toString =
+        "line " + line + ": NONBLOCKING rule not valid for " + statement + " as " + message
     }
-    case class ArrayError(line: Int, a: Id, index: Expression, rhs: Expression, message: String) extends Exception {
-      override def toString = "line " + line + ": ARRAY ASSIGN rule not valid for " + a + "[" + index + "] = " + rhs + " as " + message
+    case class ArrayError(
+        line: Int,
+        a: Id,
+        index: Expression,
+        rhs: Expression,
+        message: String
+    ) extends Exception {
+      override def toString =
+        "line " + line + ": ARRAY ASSIGN rule not valid for " + a + "[" + index + "] = " + rhs + " as " + message
     }
-    case class ArrayCError(line: Int, a: Id, index: Expression, rhs: Expression, message: String) extends Exception {
-      override def toString = "line " + line + ": ARRAY ASSIGNC rule not valid for " + a + "[" + index + "] = " + rhs + " as " + message
+    case class ArrayCError(
+        line: Int,
+        a: Id,
+        index: Expression,
+        rhs: Expression,
+        message: String
+    ) extends Exception {
+      override def toString =
+        "line " + line + ": ARRAY ASSIGNC rule not valid for " + a + "[" + index + "] = " + rhs + " as " + message
     }
 
     case class FailsAtHavoc() extends Exception
 
   }
 
-  // TODO this doesnt feel like the best way to do this 
+  // TODO this doesnt feel like the best way to do this
   // Either[substitution, (index, substitution)]
   type Subst = Map[Var, Either[Expression, (Expression, Expression)]]
 
@@ -57,7 +104,7 @@ package object wptool {
     }
 
     def __(index: Option[Int]): String = index match {
-      case None => self
+      case None        => self
       case Some(index) => this __ index
     }
 
@@ -65,15 +112,23 @@ package object wptool {
 
   }
 
-  val newline ="""
+  val newline = """
       |""".stripMargin
 
   implicit class DToString(D: Map[Id, (Set[Id], Set[Id], Set[Id], Set[Id])]) {
     def DStr: String = {
-      val w_w: String = (D map (kv => kv._1 + " -> " + kv._2._1.mkString("(", " ", ")"))).mkString("," + newline + "        ")
-      val w_r: String = (D map (kv => kv._1 + " -> " + kv._2._2.mkString("(", " ", ")"))).mkString("," + newline + "        ")
-      val r_w: String = (D map (kv => kv._1 + " -> " + kv._2._3.mkString("(", " ", ")"))).mkString("," + newline + "        ")
-      val r_r: String = (D map (kv => kv._1 + " -> " + kv._2._4.mkString("(", " ", ")"))).mkString("," + newline + "        ")
+      val w_w: String =
+        (D map (kv => kv._1 + " -> " + kv._2._1.mkString("(", " ", ")")))
+          .mkString("," + newline + "        ")
+      val w_r: String =
+        (D map (kv => kv._1 + " -> " + kv._2._2.mkString("(", " ", ")")))
+          .mkString("," + newline + "        ")
+      val r_w: String =
+        (D map (kv => kv._1 + " -> " + kv._2._3.mkString("(", " ", ")")))
+          .mkString("," + newline + "        ")
+      val r_r: String =
+        (D map (kv => kv._1 + " -> " + kv._2._4.mkString("(", " ", ")")))
+          .mkString("," + newline + "        ")
       "W_w: " + w_w + newline + "   W_r: " + w_r + newline + "   R_w: " + r_w + newline + "   R_r: " + r_r
     }
   }
@@ -86,47 +141,69 @@ package object wptool {
     def gammaStr = gamma.mkString(", ")
   }
 
-  def constructMutliOp (op: String, exprs: List[Expression]): Expression = exprs match {
-    case expr :: Nil => expr
-    case expr :: rest =>
-      BinOp(op, expr, constructForall(rest))
-    case Nil => Const._true
-  }
+  def constructMutliOp(op: String, exprs: List[Expression]): Expression =
+    exprs match {
+      case expr :: Nil => expr
+      case expr :: rest =>
+        BinOp(op, expr, constructForall(rest))
+      case Nil => Const._true
+    }
 
-  def constructForall (exprs: List[Expression]): Expression = exprs match {
+  def constructForall(exprs: List[Expression]): Expression = exprs match {
     case expr :: Nil => expr
     case expr :: rest =>
       BinOp("&&", expr, constructForall(rest))
     case Nil => Const._true
   }
-  def constructForallOpt (exprs: List[Option[Expression]]): Expression = exprs match {
-    case Some(expr) :: Nil => expr
-    case None :: Nil => Const._true
-    case Some(expr) :: rest => BinOp("&&", expr, constructForallOpt(rest))
-    case None :: rest => constructForallOpt(rest)
-    case Nil => Const._true
-  }
+  def constructForallOpt(exprs: List[Option[Expression]]): Expression =
+    exprs match {
+      case Some(expr) :: Nil  => expr
+      case None :: Nil        => Const._true
+      case Some(expr) :: rest => BinOp("&&", expr, constructForallOpt(rest))
+      case None :: rest       => constructForallOpt(rest)
+      case Nil                => Const._true
+    }
 
-  def constructForall (exprs: Expression*): Expression = constructForall(exprs.toList)
-  def constructForallOpt (exprs: Option[Expression]*): Expression = constructForallOpt(exprs.toList)
+  def constructForall(exprs: Expression*): Expression =
+    constructForall(exprs.toList)
+  def constructForallOpt(exprs: Option[Expression]*): Expression =
+    constructForallOpt(exprs.toList)
 
-  def checkVcs (preds: List[PredInfo], debug: Boolean, simplify: Boolean): Option[List[PredInfo]] = preds.filter(p => {
-    if (debug) println(s"passing ${p.stmt} ${p.label} to SMT")
-    !SMT.prove(p.pred, List(), debug, simplify)
-  }) match {
-    case List() => None
-    case l => Some(l)
-  }
+  def checkVcs(
+      preds: List[PredInfo],
+      debug: Boolean,
+      simplify: Boolean
+  ): Option[List[PredInfo]] =
+    preds.filter(p => {
+      if (debug) println(s"passing ${p.stmt} ${p.label} to SMT")
+      !SMT.prove(p.pred, List(), debug, simplify)
+    }) match {
+      case List() => None
+      case l      => Some(l)
+    }
 
-  def checkVcs (preds: List[PredInfo], gammas: Subst, debug: Boolean, simplify: Boolean): Option[List[PredInfo]] = checkVcs(preds.map(p => {
-    p.copy(pred = p.pred.subst(gammas))
-  }), debug, simplify)
+  def checkVcs(
+      preds: List[PredInfo],
+      gammas: Subst,
+      debug: Boolean,
+      simplify: Boolean
+  ): Option[List[PredInfo]] =
+    checkVcs(preds.map(p => {
+      p.copy(pred = p.pred.subst(gammas))
+    }), debug, simplify)
 
-  def checkVcs (preds: List[PredInfo], gammas: Subst, arrayGamma: Expression, debug: Boolean, simplify: Boolean): Option[List[PredInfo]] = checkVcs(preds.map(p => {
-    p.copy(pred = BinOp("=>", arrayGamma, p.pred.subst(gammas)))
-  }), debug, simplify)
+  def checkVcs(
+      preds: List[PredInfo],
+      gammas: Subst,
+      arrayGamma: Expression,
+      debug: Boolean,
+      simplify: Boolean
+  ): Option[List[PredInfo]] =
+    checkVcs(preds.map(p => {
+      p.copy(pred = BinOp("=>", arrayGamma, p.pred.subst(gammas)))
+    }), debug, simplify)
 
-  def printFalseVcs (preds: List[PredInfo]) = {
+  def printFalseVcs(preds: List[PredInfo]) = {
     println("Failing VCs")
     preds.foreach(p => {
       println(s"  ${p.stmt} (${p.stmt.line}): ${p.label}")

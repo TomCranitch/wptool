@@ -1,11 +1,12 @@
 import org.scalatest.funsuite.AnyFunSuite
 import wptool.WPTool
 
-class IntegrationTestsRG extends  AnyFunSuite {
+class IntegrationTestsRG extends AnyFunSuite {
   val testDir: String = System.getProperty("user.dir") + "/tests/rg/"
   val testNegDir: String = System.getProperty("user.dir") + "/tests/rg/neg/"
 
-  def runTestFile (file: String) = WPTool.run(file, debug = false, simplify = false, silent = true)
+  def runTestFile(file: String) =
+    WPTool.run(file, debug = false, simplify = false, silent = true)
 
   test("Assignment") {
     assert(runTestFile(testDir + "assign0"))
@@ -52,8 +53,7 @@ class IntegrationTestsRG extends  AnyFunSuite {
     assert(runTestFile(testDir + "cas2"))
   }
 
-  ignore("CAS (Negative)") {
-  }
+  ignore("CAS (Negative)") {}
 
   test("If") {
     assert(runTestFile(testDir + "if1"))

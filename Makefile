@@ -1,4 +1,4 @@
-.PHONY: all test clean parser check-dependencies test
+.PHONY: all test clean parser check-dependencies test fmt
 
 MILL = ./mill
 
@@ -9,7 +9,7 @@ WPTOOL_JAR = out/wptool/jar/dest/out.jar
 WPTOOL_LAUNCHER = ./out/wptool/launcher/dest/run
 WPTOOL_SH  = ./wptool.sh
 
-all: parser $(WPTOOL_JAR) $(WPTOOL_SH)
+all: fmt parser $(WPTOOL_JAR) $(WPTOOL_SH)
 
 parser: $(WPTOOL_JAVA)
 
@@ -47,3 +47,6 @@ o: $(WPTOOL_OBJ)
 
 lib%.dylib: wptool/lib/lib%.dylib
 	ln -s $<
+
+fmt:
+	$(MILL) mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
