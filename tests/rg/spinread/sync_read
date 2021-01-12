@@ -7,7 +7,8 @@ global var z:
 _L: TRUE
 
 _Gamma_0: z -> LOW, x -> LOW
-_Rely: ((z == 2) => ((z' == z) && (Gamma_x => Gamma_x')))
+// TODO should be Gamma_x => Gamma_x'
+_Rely: ((z == 2) => ((z' == z) && (Gamma_x == Gamma_x')))
 _Guar: (x' == x) && ((z == 1) => (z' == z))
 
 if (CAS(z, 0, 2) == 1) {

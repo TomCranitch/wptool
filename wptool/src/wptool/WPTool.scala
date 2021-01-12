@@ -17,6 +17,7 @@ object WPTool {
     var toLog: Boolean = false // whether to print P/Gamma/D state information for each rule application
     var debug: Boolean = false // whether to print further debug information
     var noInfeasible: Boolean = false // whether to not check infeasible paths
+    var simplify: Boolean = false // whether to output the simplified VC for failing VCs
 
 
     if (args.isEmpty) {
@@ -30,10 +31,12 @@ object WPTool {
           toLog = true
         case "-p" =>
           noInfeasible = true
+        case "-s" =>
+          simplify = true
         case _ =>
           val start = System.currentTimeMillis()
           try {
-            println(run(file, debug))
+            println(run(file, debug, simplify))
             printTime(start)
           } catch {
             case e: java.io.FileNotFoundException =>
@@ -70,7 +73,7 @@ object WPTool {
     println(urls.mkString("\n"))
   }
 
-  def run (file: String, debug: Boolean, silent: Boolean = false): Boolean = {
+  def run (file: String, debug: Boolean, simplify: Boolean, silent: Boolean = false): Boolean = {
     val res = parse(file)
     val variables = res.variables
 
@@ -88,7 +91,7 @@ object WPTool {
       println(guar)
     }
 
-    val state = State(variables, debug, silent, gamma_0, rely, guar)
+    val state = State(variables, debug, silent, simplify, gamma_0, rely, guar)
     // printBlocks(PreProcess.process(statements, state))
 
     if (debug) PreProcess.printGraphvis(PreProcess.process(statements, state))
@@ -118,7 +121,7 @@ object WPTool {
     if (debug) println("L: " + _state.L)
     if (debug) println("Indicies: " + _state.indicies)
 
-    checkVcs(_state.Qs, gammaSubstr, gammaArraySubst, debug) match {
+    checkVcs(_state.Qs, gammaSubstr, gammaArraySubst, debug, simplify) match {
       case Some(s) =>
         if (!silent) printFalseVcs(s)
         false
@@ -153,6 +156,39 @@ object WPTool {
     block.children.foreach(b => printBlocks(b))
   }
 
+  // TODO this is copy pasted
+  def getRelyRec (exp: Expression): Option[Expression] = exp match {
+    case BinOp(op, arg1, arg2) => Some(constructForallOpt(getRelyRec(arg1), getRelyRec(arg2)))
+    case PreOp(op, arg) => getRelyRec(arg)
+    case i: Id => 
+      // TODO if global
+      val id = i.copy(prime = false, gamma = false)
+      if (true) {
+        Some(BinOp("=>", BinOp("==", id, id.toPrime), BinOp("==", id.toGamma, id.toPrime.toGamma)))
+      } else {
+        Some(BinOp(
+          "&&", 
+          BinOp("==", id, id.toPrime), 
+          BinOp("==", id.toGamma, id.toPrime.toGamma)
+        ))
+      }
+    case i: IdAccess =>
+      val id = i.copy(ident = i.ident.copy(gamma = false, prime = false))
+      if (true) {
+        Some(BinOp("=>", BinOp("==", id, id.toPrime), BinOp("==", id.toGamma, id.toPrime.toGamma)))
+      } else {
+        Some(BinOp(
+          "&&", 
+          BinOp("==", id, id.toPrime), 
+          BinOp("==", id.toGamma, id.toPrime.toGamma)
+        ))
+      }
+    case s: VarStore => getRelyRec(s.exp) // TODO do we need it for arr and index as well? (similarly for eval)
+    case _: Lit | _: Const => None
+    case expr =>
+      println(s"Unhandled expression(getRely): [${expr.getClass()}] $expr")
+      None
+  }
 
   def checkRGs (RGs: List[RG]): Boolean = {
     // TODO need to add in all the extra G1-G3
@@ -160,8 +196,9 @@ object WPTool {
     RGs.foreach(r => {
       // Check main rely
       RGs.foreach(g => {
-        if (r != g && !SMT.prove(BinOp("=>", g.guarantee, r.rely), List(), false, true)) {
+        if (r != g && !SMT.prove(BinOp("=>", BinOp("&&", g.guarantee, getRelyRec(r.rely).getOrElse(Const._true)), r.rely), List(), false, false, true)) {
           println(s"${g.guarantee} does not imply rely of ${r.rely}")
+          println(s"    Additional constraints ${getRelyRec(r.rely)}")
           return false
         }
       })
@@ -170,8 +207,9 @@ object WPTool {
       RGs.foreach(g => {
         if (r != g) {
           val cond = constructForall(g.guarRs.values.toList :+ g.guarantee)
-          if(!SMT.prove(BinOp("=>", cond, r.rely), List(), false, true)) {
+          if(!SMT.prove(BinOp("=>", BinOp("&&", cond, getRelyRec(r.rely).getOrElse(Const._true)), r.rely), List(), false, false, true)) {
             println(s"${cond} does not imply rely of ${r.rely}")
+            println(s"    Additional constraints ${getRelyRec(r.rely)}")
             return false
           }
         }

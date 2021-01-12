@@ -38,7 +38,7 @@ object Exec {
     case havoc: Havoc =>
       // TODO should this resolve to true/false ??
       // TODO need to somehow remove stableR (as per paper) - lazy hack is to set a boolean flag in the preprocessor 
-      val _state = checkVcs(state.Qs, state.debug) match {
+      val _state = checkVcs(state.Qs, state.debug, state.simplify) match {
         case Some(p) =>
           if (!state.silent) printFalseVcs(p)
           if (state.debug) println("error found at havoc")
@@ -167,6 +167,7 @@ object Exec {
 
   // TODO: remove vars that have already been added
   // this cant be done for arrays (with different indicies)
+  // TODO could this be similified by just looking at exp.vars
   def getRelyRec (exp: Expression, state: State): Option[Expression] = exp match {
     case BinOp(op, arg1, arg2) => Some(constructForallOpt(getRelyRec(arg1, state), getRelyRec(arg2, state)))
     case PreOp(op, arg) => getRelyRec(arg, state)

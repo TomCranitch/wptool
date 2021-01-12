@@ -110,21 +110,21 @@ package object wptool {
   def constructForall (exprs: Expression*): Expression = constructForall(exprs.toList)
   def constructForallOpt (exprs: Option[Expression]*): Expression = constructForallOpt(exprs.toList)
 
-  def checkVcs (preds: List[PredInfo], debug: Boolean): Option[List[PredInfo]] = preds.filter(p => {
+  def checkVcs (preds: List[PredInfo], debug: Boolean, simplify: Boolean): Option[List[PredInfo]] = preds.filter(p => {
     if (debug) println(s"passing ${p.stmt} ${p.label} to SMT")
-    !SMT.prove(p.pred, List(), debug = debug)
+    !SMT.prove(p.pred, List(), debug, simplify)
   }) match {
     case List() => None
     case l => Some(l)
   }
 
-  def checkVcs (preds: List[PredInfo], gammas: Subst, debug: Boolean): Option[List[PredInfo]] = checkVcs(preds.map(p => {
+  def checkVcs (preds: List[PredInfo], gammas: Subst, debug: Boolean, simplify: Boolean): Option[List[PredInfo]] = checkVcs(preds.map(p => {
     p.copy(pred = p.pred.subst(gammas))
-  }), debug)
+  }), debug, simplify)
 
-  def checkVcs (preds: List[PredInfo], gammas: Subst, arrayGamma: Expression, debug: Boolean): Option[List[PredInfo]] = checkVcs(preds.map(p => {
+  def checkVcs (preds: List[PredInfo], gammas: Subst, arrayGamma: Expression, debug: Boolean, simplify: Boolean): Option[List[PredInfo]] = checkVcs(preds.map(p => {
     p.copy(pred = BinOp("=>", arrayGamma, p.pred.subst(gammas)))
-  }), debug)
+  }), debug, simplify)
 
   def printFalseVcs (preds: List[PredInfo]) = {
     println("Failing VCs")
@@ -133,5 +133,5 @@ package object wptool {
       println(s"    ${p.pred}")
     })
   }
-  
+
 }

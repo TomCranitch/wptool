@@ -6,6 +6,7 @@ case class State (
     Qs: List[PredInfo],
     debug: Boolean,
     silent: Boolean,
+    simplify: Boolean,
     controls: Set[Id],
     controlled: Set[Id],
     controlledBy: Map[Id, Set[Id]], // TODO check
@@ -27,7 +28,7 @@ case class State (
 }
 
 object State {
-  def apply (definitions: Set[Definition], debug: Boolean, silent: Boolean, gamma_0: Option[List[GammaMapping]], rely: Option[Rely], guar: Option[Guar]): State = {
+  def apply (definitions: Set[Definition], debug: Boolean, silent: Boolean, simplify: Boolean, gamma_0: Option[List[GammaMapping]], rely: Option[Rely], guar: Option[Guar]): State = {
     var controls: Set[Id] = Set()
     var controlled: Set[Id] = Set()
     var controlledBy: Map[Id, Set[Id]] = Map()
@@ -96,6 +97,6 @@ object State {
     val primeIndicies = ids.map(x => x.toPrime -> 0).toMap
 
     // TODO malformed probs insto the best
-    State(List(PredInfo(Const._true, Malformed, "initial predicate")), debug, silent, controls, controlled, controlledBy, L, ids, arrayIds, globals, _rely, _guar, arrRelys, arrGuars, primeIndicies)
+    State(List(PredInfo(Const._true, Malformed, "initial predicate")), debug, silent, simplify, controls, controlled, controlledBy, L, ids, arrayIds, globals, _rely, _guar, arrRelys, arrGuars, primeIndicies)
   }
 }

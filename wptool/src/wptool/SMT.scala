@@ -22,7 +22,7 @@ object SMT {
     ctx.mkTactic("ctx-solver-simplify").apply(g)
   }
 
-  def prove(cond: Expression, given: List[Expression], debug: Boolean, expectIds: Boolean = false) = {
+  def prove(cond: Expression, given: List[Expression], debug: Boolean, simplify: Boolean, expectIds: Boolean = false) = {
     if (debug)
       println("smt checking !(" + cond + ") given " + given.PStr)
     solver.push()
@@ -45,6 +45,7 @@ object SMT {
       solver.pop()
     }
     
+    if (simplify && res == z3.Status.SATISFIABLE) println(solverSimplify(cond))
     // solverSimplify(cond).getSubgoals.map(g => println("val: " + translateBack(g.AsBoolExpr)))
 
     if (debug) {
