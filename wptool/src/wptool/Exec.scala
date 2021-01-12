@@ -267,6 +267,4 @@ object Exec {
       Qs = preds, indicies = indicies, error = error
     )
   }
-  
-
 }
