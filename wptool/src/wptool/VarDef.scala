@@ -74,8 +74,7 @@ case object Low extends Security {
   def instance = this
 }
 
-case class GammaMapping(variable: Id, security: Security)
-    extends beaver.Symbol {
+case class GammaMapping(variable: Id, security: Security) extends beaver.Symbol {
   def this(variable: String, index: Int, security: Security) =
     this(new Id(variable + "[" + index + "]", false, false), security)
   def this(variable: String, security: Security) =
@@ -92,8 +91,7 @@ case class Guar(exp: Expression) extends beaver.Symbol
 
 sealed trait Definition extends beaver.Symbol
 
-case class VarDef(name: Id, pred: Expression, access: Access)
-    extends Definition {
+case class VarDef(name: Id, pred: Expression, access: Access) extends Definition {
   def this(name: String, pred: Expression, access: Access) =
     this(new Id(name, false, false), pred, access)
   def this(name: String, access: Access) =

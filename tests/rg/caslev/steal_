@@ -41,7 +41,7 @@ if (h < t) {
 	_invariant: Gamma_r && Gamma_h && Gamma_t && ((r == z) => Gamma_task)
 	{
 		do 
-		_invariant: Gamma_r && Gamma_h  // && r <= z
+		_invariant: Gamma_r && Gamma_h && Gamma_t && ((r == z) => Gamma_task) && r <= z
 		{
 			r = z;
 		} while (r % 2 == 1)
@@ -54,7 +54,7 @@ if (h < t) {
 		}
 	} while (z != r)
 
-	if (CAS(head, h, h + 1) == 1) {
+	if (CAS(head, h, h + 1) == 0) {
 		task = -1; // fail
 	}
 } else {

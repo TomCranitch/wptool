@@ -59,9 +59,8 @@ object WPTool {
                 "Z3 Failed (this probably means there was an error in the input to Z3): " + e
               )
               printTime(start)
-            case e @ (_: WhileError | _: IfError | _: AssignCError |
-                _: AssignError | _: NonblockingError | _: CASCError |
-                _: CASError | _: ArrayError | _: ArrayCError) =>
+            case e @ (_: WhileError | _: IfError | _: AssignCError | _: AssignError | _: NonblockingError | _: CASCError | _: CASError |
+                _: ArrayError | _: ArrayCError) =>
               println(e)
               printTime(start)
           }
@@ -297,6 +296,8 @@ object WPTool {
       })
 
       // TODO this cannot handle the case arrR: a[_i] > 10, R: a[0] > 10
+      // think about this a bit more but this particular example is bad
+      // i think its would fail with arrG: a[_i] > 10 and arrR: a[0] > 10 (this would pass with (_i == 0) => (a[0] > 10))
     })
     return true
   }

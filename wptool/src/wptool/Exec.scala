@@ -24,12 +24,8 @@ object Exec {
           block.children.map(c => {
             val res = exec(c, state)
             if (c.atomic)
-              res.addQs(
-                res.Qs
-                  .map(Q =>
-                    PredInfo(stableR(Q.pred, state), c, "atomic stableR")
-                  )
-              )
+              // TODO change this to R implies
+              res.copy(Qs = res.Qs.map(q => q.copy(pred = rImplies(q.pred, state))))
             else res
           }),
           state
@@ -46,14 +42,16 @@ object Exec {
             stableR(assert.expression, state),
             assert,
             "StableR"
-          ),
+          )
+        )
+      else
+        _state.addQs(
           PredInfo(
             eval(assert.expression, state),
             assert,
             "Assert"
           )
         )
-      else _state
     case havoc: Havoc =>
       // TODO should this resolve to true/false ??
       // TODO need to somehow remove stableR (as per paper) - lazy hack is to set a boolean flag in the preprocessor
@@ -67,12 +65,12 @@ object Exec {
           state
       }
 
-      _state.copy(Qs = List(PredInfo(Const._true, Malformed, "intial havoc")))
+      _state.copy(Qs = List(PredInfo(Const._true, EmptyStmt, "initial havoc")))
     case guard: Guard =>
       // TODO handle havoc -> true
       val _state = evalWp(guard, state)
       if (RG) {
-        val gamma = computeGamma(eval(guard.test, state).vars.toList, state)
+        val gamma = computeGamma(guard.test, state)
         val stabR = stableR(gamma, state)
         _state.addQs(
           PredInfo(gamma, guard, "Gamma"),
@@ -87,7 +85,7 @@ object Exec {
           BinOp(
             "=>",
             getL(assign.lhs, state),
-            computeGamma(eval(assign.expression, state).vars.toList, state)
+            computeGamma(assign.expression, state)
           )
         else Const._true
       val controlPred = if (state.controls.contains(assign.lhs)) {
@@ -132,7 +130,7 @@ object Exec {
           BinOp(
             "=>",
             getL(assign, state),
-            computeGamma(eval(assign.expression, state).vars.toList, state)
+            computeGamma(assign.expression, state)
           )
         else Const._true
       val controlPred = if (state.controls.contains(assign.lhs.ident)) {
@@ -142,7 +140,7 @@ object Exec {
             .map(contr => {
               BinOp(
                 "=>",
-                getL(contr, state),
+                getL(contr, state), // TODO getL => getL ???????
                 BinOp("||", eval(contr.toGamma, state), getL(contr, state))
               )
             })
@@ -151,7 +149,7 @@ object Exec {
       } else Const._true
 
       var gammaPred =
-        computeGamma(eval(assign.lhs.index, state).vars.toList, state)
+        computeGamma(assign.lhs.index, state)
 
       val _state = evalWp(assign, state).addQs(
         PredInfo(
@@ -205,15 +203,17 @@ object Exec {
           BinOp("=>", PreOp("!", stabRB), eval(exp, state))
         )
       case Assert(exp, checkStableR) =>
-        BinOp(
+        /* BinOp(
           "&&",
           eval(exp, state),
           Q
         ) // Potentially move to exec to evaluate separately
+         */
+        Q
       case havoc: Havoc => Q
       case assign: Assignment =>
         val rhsGamma =
-          computeGamma(eval(assign.expression, state).vars.toList, state)
+          computeGamma(assign.expression, state)
         Q.subst(
           Map(
             (assign.lhs.toGamma.toVar(state) -> Left(rhsGamma)),
@@ -222,7 +222,7 @@ object Exec {
         )
       case assign: ArrayAssignment =>
         val rhsGamma =
-          computeGamma(eval(assign.expression, state).vars.toList, state)
+          computeGamma(assign.expression, state)
         Q.subst(
           Map(
             (assign.lhs.ident.toGamma.toVar(state) -> Right(
@@ -385,14 +385,12 @@ object Exec {
   // TODO also need to handle arrays on RHS
   def guar(a: Assignment, state: State) = {
     // TODO update to allow guarantee to talk about specific indices
-    val rhsGamma = computeGamma(eval(a.expression, state).vars.toList, state)
+    val rhsGamma = computeGamma(a.expression, state)
     val idsNoLHS = state.ids.filter(id => id != a.lhs)
     val subst = idsNoLHS
       .map(id => id.toPrime.toVar(state) -> Left(id.toVar(state)))
       .toMap ++ idsNoLHS
-      .map(id =>
-        id.toPrime.toGamma.toVar(state) -> Left(id.toGamma.toVar(state))
-      )
+      .map(id => id.toPrime.toGamma.toVar(state) -> Left(id.toGamma.toVar(state)))
       .toMap
 
     eval(
@@ -412,15 +410,13 @@ object Exec {
 
   // TODO fix subst when multiple arrays present (does this really matter tho or is it handled automatically)
   def guar(a: ArrayAssignment, state: State) = {
-    val rhsGamma = computeGamma(eval(a.expression, state).vars.toList, state)
+    val rhsGamma = computeGamma(a.expression, state)
     val idsNoLHS = state.ids.filter(id => id != a.lhs.ident)
     // TODO not sure how to handle the second substitution
     val subst = idsNoLHS
       .map(id => id.toPrime.toVar(state) -> Left(id.toVar(state)))
       .toMap ++ idsNoLHS
-      .map(id =>
-        id.toPrime.toGamma.toVar(state) -> Left(id.toGamma.toVar(state))
-      )
+      .map(id => id.toPrime.toGamma.toVar(state) -> Left(id.toGamma.toVar(state)))
       .toMap
 
     eval(
@@ -445,20 +441,28 @@ object Exec {
     )
   }
 
-  def computeGamma(vars: List[Variable], state: State): Expression =
-    vars match {
-      case v :: Nil =>
-        eval(
-          BinOp("||", v.toGamma(state), getL(v.ident, state)),
-          state
-        ) // Default to high
-      case v :: rest =>
-        eval(
-          BinOp("&&", computeGamma(List(v), state), computeGamma(rest, state)),
-          state
+  def computeGamma(exp: Expression, state: State): Expression = {
+    val expEval = eval(exp, state)
+    constructForall(
+      expEval.vars
+        .map(v =>
+          eval(
+            BinOp("||", v.toGamma(state), getL(v.ident, state)),
+            state
+          ) // Default to high
         )
-      case Nil => Const._true
-    }
+        .toList ++
+        expEval.arrays
+          .map(a => {
+            val subst = Map(Id.indexId.toVar(state) -> Left(eval(a.index, state)))
+            eval(
+              BinOp("||", a.toGamma(state), getL(a.ident, state)).subst(subst),
+              state
+            ) // Default to high
+          })
+          .toList
+    )
+  }
 
   def joinStates(states: List[State], state: State) = {
     val indicies = states.foldLeft(state.indicies) { (a, i) =>
@@ -481,9 +485,7 @@ object Exec {
             }
             .toList
 
-          s.Qs.map(info =>
-            info.copy(pred = BinOp("=>", constructForall(conds), info.pred))
-          )
+          s.Qs.map(info => info.copy(pred = BinOp("=>", constructForall(conds), info.pred)))
         }
       })
       .flatten

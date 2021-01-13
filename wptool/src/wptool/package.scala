@@ -11,13 +11,11 @@ package object wptool {
     case class ProgramError(info: Any*) extends Error
     case class Z3Error(info: Any*) extends Error
 
-    case class WhileError(line: Int, test: Expression, message: String)
-        extends Exception {
+    case class WhileError(line: Int, test: Expression, message: String) extends Exception {
       override def toString =
         "line " + line + ": WHILE rule not valid for while(" + test + ") {...} as " + message
     }
-    case class AssignError(line: Int, lhs: Id, rhs: Expression, message: String)
-        extends Exception {
+    case class AssignError(line: Int, lhs: Id, rhs: Expression, message: String) extends Exception {
       override def toString =
         "line " + line + ": ASSIGN rule not valid for " + lhs + " = " + rhs + " as " + message
     }
@@ -52,8 +50,7 @@ package object wptool {
       override def toString =
         "line " + line + ": CASC rule not valid for " + lhs + " = " + "CAS(" + x + ", " + r1 + ", " + r2 + ") as " + message
     }
-    case class IfError(line: Int, test: Expression, message: String)
-        extends Exception {
+    case class IfError(line: Int, test: Expression, message: String) extends Exception {
       override def toString =
         "line " + line + ": IF rule not valid for if(" + test + ") {...} as " + message
     }

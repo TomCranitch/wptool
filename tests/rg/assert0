@@ -1,0 +1,6 @@
+_Rely: TRUE
+_Guar: TRUE
+
+while (TRUE) 
+_invariant: FALSE
+{}

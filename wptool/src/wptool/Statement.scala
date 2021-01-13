@@ -19,6 +19,10 @@ case object Malformed extends Statement {
   def self: Malformed.type = this
 }
 
+case object EmptyStmt extends Statement {
+  def self: EmptyStmt.type = this
+}
+
 case class Block(
     label: String,
     name: String,
@@ -49,8 +53,7 @@ case class Assignment(lhs: Id, expression: Expression) extends Statement {
   override def toString: String = lhs + " = " + expression
 }
 
-case class ArrayAssignment(lhs: IdAccess, expression: Expression)
-    extends Statement {
+case class ArrayAssignment(lhs: IdAccess, expression: Expression) extends Statement {
   def this(name: String, index: Expression, expression: Expression) =
     this(new IdAccess(new Id(name, false, false), index), expression)
   override def toString: String =
@@ -83,8 +86,7 @@ case object ControlFence extends Statement {
   def self: ControlFence.type = this
 }
 
-case class If(test: Expression, left: Block, right: Option[Block])
-    extends Statement {
+case class If(test: Expression, left: Block, right: Option[Block]) extends Statement {
   def this(test: Expression, left: Block) = this(test, left, None)
   def this(test: Expression, left: Block, right: Block) =
     this(test, left, Some(right))
@@ -140,8 +142,7 @@ case class Assume(expression: Expression) extends Statement {
   def self: Assume = this
 }
 
-case class Assert(expression: Expression, checkStableR: Boolean = false)
-    extends Statement {
+case class Assert(expression: Expression, checkStableR: Boolean = false) extends Statement {
   def self: Assert = this
 }
 
