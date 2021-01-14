@@ -1,7 +1,7 @@
 global array a[2]:
 _L: TRUE
 _Rely: TRUE
-_Guar:  (c == 1 && _i == 0) => (a[_i] == a'[_i])
+_Guar: (c == 1 && _i == 0) => (a[_i] == a'[_i])
 
 global var c:
 
@@ -13,5 +13,5 @@ c = 0;
 a[0] = 1;
 a[1] = 1;
 c = 1;
-a[0] = 1;
+a[0] = 1; // As a[_i] != a'[_i]
 a[1] = 2;

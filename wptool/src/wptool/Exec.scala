@@ -72,6 +72,7 @@ object Exec {
       val _state = evalWp(guard, state, RG)
       if (RG) {
         val gamma = computeGamma(guard.test, state)
+        println(gamma)
         val stabR = stableR(gamma, state)
         _state
           .addQs(
@@ -286,19 +287,15 @@ object Exec {
       expr
   }
 
-  def getBaseVars(vars: Set[Var]) = vars.map { case Var(Id(name, _, _), i, t) => Var(Id(name, false, false), i, t) }
+  def getBaseVars(vars: Set[Var]) = vars.map { case Var(Id(name, _, _), _, t) => Var(Id(name, false, false), 0, t) }
 
-  def getBaseArrays(vars: Set[VarAccess]) = vars.map { case VarAccess(Var(Id(name, _, _), i, t), index) =>
-    VarAccess(Var(Id(name, false, false), i, t), index)
+  def getBaseArrays(vars: Set[VarAccess]) = vars.map { case VarAccess(Var(Id(name, _, _), _, t), index) =>
+    VarAccess(Var(Id(name, false, false), 0, t), index)
   }
 
   def getRely(exp: Expression, state: State) = {
     // TODO i think arrays will need different rules
     val evalExp = eval(exp, state)
-
-    println(exp)
-    println(s"vars: ${getBaseVars(evalExp.vars)}")
-    println(s"arrays: ${getBaseArrays(evalExp.arrays)}")
 
     eval(
       BinOp(
@@ -383,11 +380,7 @@ object Exec {
       BinOp("=>", BinOp("&&", getRely(p, state), p), primed(p, state)),
       state
     )
-  def rImplies(p: Expression, state: State) = {
-    // println(s"in     $p")
-    // println(s"rely   ${getRely(p, state)}")
-    eval(BinOp("=>", getRely(p, state), primed(p, state)), state)
-  }
+  def rImplies(p: Expression, state: State) = eval(BinOp("=>", getRely(p, state), primed(p, state)), state)
 
   def stableR(p: Expression, index: Expression, state: State) =
     eval(
