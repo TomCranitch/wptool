@@ -5,7 +5,7 @@ global var b:
 _L: TRUE
 
 _Gamma_0: a -> HIGH, b -> LOW
-_Rely: b == b'
+_Rely: TRUE
 _Guar: TRUE
 
 

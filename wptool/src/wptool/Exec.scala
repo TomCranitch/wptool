@@ -33,51 +33,54 @@ object Exec {
         RG
       )
       _state
-    case assume: Assume => evalWp(assume, state)
+    case assume: Assume => evalWp(assume, state, RG).incPrimeIndicies
     case assert: Assert =>
-      val _state = evalWp(assert, state)
+      val _state = evalWp(assert, state, RG)
       if (assert.checkStableR)
-        _state.addQs(
-          PredInfo(
-            stableR(assert.expression, state),
-            assert,
-            "StableR"
+        _state
+          .addQs(
+            PredInfo(
+              stableR(assert.expression, state),
+              assert,
+              "StableR"
+            )
           )
-        )
+          .incPrimeIndicies
       else
-        _state.addQs(
-          PredInfo(
-            eval(assert.expression, state),
-            assert,
-            "Assert"
+        _state
+          .addQs(
+            PredInfo(
+              eval(assert.expression, state),
+              assert,
+              "Assert"
+            )
           )
-        )
+          .incPrimeIndicies
     case havoc: Havoc =>
-      // TODO should this resolve to true/false ??
-      // TODO need to somehow remove stableR (as per paper) - lazy hack is to set a boolean flag in the preprocessor
       val _state = checkVcs(state.Qs, state.debug, state.simplify) match {
         case Some(p) =>
           if (!state.silent) printFalseVcs(p)
           if (state.debug) println("error found at havoc")
-          state.copy(error = true)
+          state.copy(error = true).incPrimeIndicies
         case None =>
           if (state.debug) println("conditions verified")
-          state
+          state.incPrimeIndicies
       }
 
       _state.copy(Qs = List(PredInfo(Const._true, EmptyStmt, "initial havoc")))
     case guard: Guard =>
-      // TODO handle havoc -> true
-      val _state = evalWp(guard, state)
+      val _state = evalWp(guard, state, RG)
       if (RG) {
         val gamma = computeGamma(guard.test, state)
         val stabR = stableR(gamma, state)
-        _state.addQs(
-          PredInfo(gamma, guard, "Gamma"),
-          PredInfo(stabR, guard, "StableR")
-        )
-      } else {
         _state
+          .addQs(
+            PredInfo(gamma, guard, "Gamma"),
+            PredInfo(stabR, guard, "StableR")
+          )
+          .incPrimeIndicies
+      } else {
+        _state.incPrimeIndicies
       }
     case assign: Assignment =>
       val globalPred =
@@ -95,7 +98,7 @@ object Exec {
             .map(contr => {
               BinOp(
                 "=>",
-                getL(contr, state),
+                getL(contr, state), // TODO
                 BinOp("||", eval(contr.toGamma, state), getL(contr, state))
               )
             })
@@ -103,24 +106,25 @@ object Exec {
         )
       } else Const._true
 
+      val _state = evalWp(assign, state, RG)
+
       if (RG) {
         val guarantee = guar(assign, state)
-        val _state = evalWp(assign, state).addQs(
-          PredInfo(rImplies(globalPred, state), assign, "Global"),
-          PredInfo(rImplies(controlPred, state), assign, "Control")
-        )
 
         _state
           .addQs(
-            PredInfo(rImplies(guarantee, state), assign, "Guarantee")
+            PredInfo(rImplies(guarantee, state), assign, "Guarantee"),
+            PredInfo(rImplies(globalPred, state), assign, "Global"),
+            PredInfo(rImplies(controlPred, state), assign, "Control")
           )
           .incPrimeIndicies
       } else {
-        val _state = evalWp(assign, state).addQs(
-          PredInfo(globalPred, assign, "Global"),
-          PredInfo(controlPred, assign, "Control")
-        )
-        _state.incPrimeIndicies
+        _state
+          .addQs(
+            PredInfo(globalPred, assign, "Global"),
+            PredInfo(controlPred, assign, "Control")
+          )
+          .incPrimeIndicies
       }
     case assign: ArrayAssignment =>
       val indexSub =
@@ -147,27 +151,9 @@ object Exec {
             .toList
         )
       } else Const._true
+      var gammaPred = computeGamma(assign.lhs.index, state)
 
-      var gammaPred =
-        computeGamma(assign.lhs.index, state)
-
-      val _state = evalWp(assign, state).addQs(
-        PredInfo(
-          rImplies(globalPred, assign.lhs.index, state),
-          assign,
-          "Global"
-        ),
-        PredInfo(
-          rImplies(controlPred, assign.lhs.index, state),
-          assign,
-          "Control"
-        ),
-        PredInfo(
-          rImplies(gammaPred, assign.lhs.index, state),
-          assign,
-          "Index Gamma"
-        )
-      )
+      val _state = evalWp(assign, state, RG)
 
       if (RG) {
         val guarantee = guar(assign, state)
@@ -178,19 +164,64 @@ object Exec {
               rImplies(guarantee, assign.lhs.index, state),
               assign,
               "Guarantee"
+            ),
+            PredInfo(
+              rImplies(globalPred, assign.lhs.index, state),
+              assign,
+              "Global"
+            ),
+            PredInfo(
+              rImplies(controlPred, assign.lhs.index, state),
+              assign,
+              "Control"
+            ),
+            PredInfo(
+              rImplies(gammaPred, assign.lhs.index, state),
+              assign,
+              "Index Gamma"
             )
           )
           .incPrimeIndicies
       } else {
-        _state.incPrimeIndicies
+        _state
+          .addQs(
+            PredInfo(
+              globalPred,
+              assign,
+              "Global"
+            ),
+            PredInfo(
+              controlPred,
+              assign,
+              "Control"
+            ),
+            PredInfo(
+              gammaPred,
+              assign,
+              "Index Gamma"
+            )
+          )
+          .incPrimeIndicies
       }
     case stmt =>
       println(s"Unhandled statement(wpif exec): $stmt")
       state.incPrimeIndicies
   }
 
-  def evalWp(stmt: Statement, state: State) =
-    state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
+  def evalWp(stmt: Statement, state: State, RG: Boolean) = {
+    // TODO need to rImplies these
+    /*
+    state.Qs.foreach(Q => {
+      println(s"before: ${wp(Q.pred, stmt, state)}")
+      println(s"after: ${rImplies(wp(Q.pred, stmt, state), state)}")
+    })
+     */
+
+    // if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = rImplies(wp(Q.pred, stmt, state), state))))
+    if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = BinOp("&&", wp(Q.pred, stmt, state), stableR(wp(Q.pred, stmt, state), state)))))
+    else state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
+    //state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
+  }
 
   def wp(Q: Expression, stmt: Statement, state: State): Expression =
     stmt match {
@@ -212,8 +243,8 @@ object Exec {
         Q
       case havoc: Havoc => Q
       case assign: Assignment =>
-        val rhsGamma =
-          computeGamma(assign.expression, state)
+        val rhsGamma = computeGamma(assign.expression, state)
+
         Q.subst(
           Map(
             (assign.lhs.toGamma.toVar(state) -> Left(rhsGamma)),
@@ -263,77 +294,69 @@ object Exec {
       expr
   }
 
-  def getRely(exp: Expression, state: State) =
+  def getRely(exp: Expression, state: State) = {
+    // TODO i think arrays will need different rules
+    val evalExp = eval(exp, state)
     eval(
       BinOp(
         "&&",
-        getRelyRec(eval(exp, state), state).getOrElse(Const._true),
+        constructForall(
+          evalExp.vars
+            .map(v =>
+              if (state.globals.contains(v.ident)) {
+                BinOp(
+                  "&&",
+                  BinOp(
+                    "=>",
+                    BinOp("==", v, v.toPrime(state)),
+                    BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+                  ),
+                  BinOp("=>", primed(state.L.get(v.ident).get, state), v.toPrime(state).toGamma(state))
+                )
+              } else {
+                BinOp(
+                  "&&",
+                  BinOp("==", v, v.toPrime(state)),
+                  BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+                )
+              }
+            )
+            .toList
+            ++
+              evalExp.arrays
+                .map(v => {
+                  val pred = if (state.globals.contains(v.ident)) {
+                    BinOp(
+                      "&&",
+                      BinOp(
+                        "=>",
+                        BinOp("==", v, v.toPrime(state)),
+                        BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+                      ),
+                      BinOp("=>", primed(state.L.get(v.ident).get, state), v.toPrime(state).toGamma(state))
+                    )
+                  } else {
+                    BinOp(
+                      "&&",
+                      BinOp("==", v, v.toPrime(state)),
+                      BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+                    )
+                  }
+
+                  BinOp(
+                    "&&",
+                    pred,
+                    eval(state.arrRelys.getOrElse(v.ident, Const._true), state)
+                      .subst(Map(Id.indexId.toVar(state) -> Left(eval(v.index, state))))
+                  )
+                })
+                .toList
+        ),
         eval(state.rely, state)
       ),
       state
     )
-
-  // TODO: remove vars that have already been added
-  // this cant be done for arrays (with different indicies)
-  // TODO could this be similified by just looking at exp.vars
-  def getRelyRec(exp: Expression, state: State): Option[Expression] =
-    exp match {
-      case BinOp(op, arg1, arg2) =>
-        Some(
-          constructForallOpt(getRelyRec(arg1, state), getRelyRec(arg2, state))
-        )
-      case PreOp(op, arg) => getRelyRec(arg, state)
-      case v: Var =>
-        if (state.globals.contains(v.ident)) {
-          Some(
-            BinOp(
-              "=>",
-              BinOp("==", v, v.toPrime(state)),
-              BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
-            )
-          )
-        } else {
-          Some(
-            BinOp(
-              "&&",
-              BinOp("==", v, v.toPrime(state)),
-              BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
-            )
-          )
-        }
-      case v: VarAccess =>
-        val pred = if (state.globals.contains(v.ident)) {
-          BinOp(
-            "=>",
-            BinOp("==", v, v.toPrime(state)),
-            BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
-          )
-        } else {
-          BinOp(
-            "&&",
-            BinOp("==", v, v.toPrime(state)),
-            BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
-          )
-        }
-
-        Some(
-          BinOp(
-            "&&",
-            pred,
-            eval(state.arrRelys.getOrElse(v.ident, Const._true), state)
-              .subst(Map(Id.indexId.toVar(state) -> Left(eval(v.index, state))))
-          )
-        )
-      case s: VarStore =>
-        getRelyRec(
-          s.exp,
-          state
-        ) // TODO do we need it for arr and index as well? (similarly for eval)
-      case _: Lit | _: Const => None
-      case expr =>
-        println(s"Unhandled expression(getRely): [${expr.getClass()}] $expr")
-        None
-    }
+  }
 
   def getL(id: Id, state: State): Expression =
     if (id == Id.tmpId) Const._true
@@ -359,6 +382,7 @@ object Exec {
     )
   def rImplies(p: Expression, state: State) =
     eval(BinOp("=>", getRely(p, state), primed(p, state)), state)
+
   def stableR(p: Expression, index: Expression, state: State) =
     eval(
       BinOp(
@@ -372,6 +396,7 @@ object Exec {
       ),
       state
     )
+
   def rImplies(p: Expression, index: Expression, state: State) =
     eval(
       BinOp(

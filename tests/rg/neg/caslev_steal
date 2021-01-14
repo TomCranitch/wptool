@@ -47,7 +47,7 @@ if (h < t) {
 		} while (r % 2 == 1)
 
 		level = levels[h % L];
-		if (level == 1) {
+		if (level == 0) {
 			task = tasks[h % L];
 		} else {
 			task = -1; // fail

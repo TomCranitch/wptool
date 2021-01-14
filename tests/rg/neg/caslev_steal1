@@ -17,7 +17,7 @@ _Guar: tasks[_i] == tasks'[_i]
 
 global array levels[1]:
 _L: TRUE
-_Rely: (z % 2 == 0 && z' == z) => (levels[_i] == levels'[_i])
+_Rely: TRUE //  (z % 2 == 0 && z' == z) => (levels[_i] == levels'[_i])
 _Guar: levels[_i] == levels'[_i]
 
 local var t:
@@ -29,7 +29,7 @@ local var task:
 global var ret:
 _L: TRUE
 
-_Gamma_0: z -> LOW
+_Gamma_0: z -> LOW, r -> LOW
 _Rely: z' >= z
 _Guar: z == z'
 
@@ -38,21 +38,17 @@ t = tail;
 
 if (h < t) {
 	do 
-	_invariant: Gamma_r && Gamma_h && Gamma_t && ((r == z) => Gamma_task)
+	_invariant: Gamma_r && Gamma_h && Gamma_t
 	{
-		do 
-		_invariant: Gamma_r && Gamma_h && Gamma_t && ((r == z) => Gamma_task) && r <= z
-		{
-			r = z;
-		} while (r % 2 == 1)
+		r = z;
+	} while (r % 2 == 1)
 
-		level = levels[h % L];
-		if (level == 1) {
-			task = tasks[h % L];
-		} else {
-			task = -1; // fail
-		}
-	} while (z != r)
+	// level = levels[h % L];
+	if (levels[h % L] == 1) {
+		task = tasks[h % L];
+	} else {
+		task = -1; // fail
+	}
 
 	if (CAS(head, h, h + 1) == 0) {
 		task = -1; // fail
