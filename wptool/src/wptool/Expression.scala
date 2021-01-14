@@ -89,7 +89,7 @@ case class IdAccess(ident: Id, index: Expression) extends Expression with Identi
     this(Id(name, prime, gamma), index)
   // TODO is this enough??? i feel like it should return the access
   def vars: Set[Var] = index.vars
-  def ids: Set[Id] = index.ids // TODO + ident
+  def ids: Set[Id] = index.ids
   def arrays = throw new Error("tried to get array from IdAccess")
   def subst(su: Subst): Expression = throw new Error("tried to subst var id")
   override def toString = ident + "[" + index + "]"
@@ -105,19 +105,9 @@ case class VarAccess(name: Var, index: Expression) extends Expression with Varia
   def vars: Set[Var] = index.vars
   def ids: Set[Id] = index.ids
   def arrays: Set[VarAccess] = Set(this)
-
-  // TODO we may want to modify this to include substiuting whole arrays but im not sure if that is useful
-  // TODO this isnt great bc index is an expression so the expression needs to match exactly
-  // I think in the mean time maybe just support substituing the whole array
-  // def subst(su: Subst) = su.getOrElse(this, this) // su.getOrElse(name, this))
-  //
-  // TODO subst index
   def subst(su: Subst) = {
     val updatedArr = this.copy(index = index.subst(su))
     su.get(name) match {
-      // TODO !!!!!!!!!
-      // change e, e to i, e
-      //
       case Some(Right((e, i))) =>
         VarStore(updatedArr, e, i, name.ident.name, name.ident.gamma)
       case Some(Left(v: Var)) => updatedArr.copy(name = v) // to handle priming
@@ -139,8 +129,8 @@ case class VarStore(
     name: String,
     isBool: Boolean = false
 ) extends Expression {
-  def vars: Set[Var] = array.vars ++ exp.vars
-  def ids: Set[Id] = array.ids ++ exp.ids
+  def vars: Set[Var] = array.vars ++ index.vars ++ exp.vars
+  def ids: Set[Id] = array.ids ++ index.ids ++ exp.ids
   def arrays: Set[VarAccess] = array.arrays ++ index.arrays ++ exp.arrays
   // TODO
   // TODO maybe make it Map(Var -> (index, exp))

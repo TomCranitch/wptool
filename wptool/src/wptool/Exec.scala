@@ -209,21 +209,12 @@ object Exec {
   }
 
   def evalWp(stmt: Statement, state: State, RG: Boolean) = {
-    // TODO need to rImplies these
-    /*
-    state.Qs.foreach(Q => {
-      println(s"before: ${wp(Q.pred, stmt, state)}")
-      println(s"after: ${rImplies(wp(Q.pred, stmt, state), state)}")
-    })
-     */
-
-    // if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = rImplies(wp(Q.pred, stmt, state), state))))
-    if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = BinOp("&&", wp(Q.pred, stmt, state), stableR(wp(Q.pred, stmt, state), state)))))
+    if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = rImplies(wp(Q.pred, stmt, state), state))))
     else state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
-    //state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
+    // state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
   }
 
-  def wp(Q: Expression, stmt: Statement, state: State): Expression =
+  def wp(Q: Expression, stmt: Statement, state: State): Expression = {
     stmt match {
       case Assume(exp) => BinOp("=>", eval(exp, state), Q)
       case Guard(exp) =>
@@ -252,8 +243,8 @@ object Exec {
           )
         )
       case assign: ArrayAssignment =>
-        val rhsGamma =
-          computeGamma(assign.expression, state)
+        val rhsGamma = computeGamma(assign.expression, state)
+
         Q.subst(
           Map(
             (assign.lhs.ident.toGamma.toVar(state) -> Right(
@@ -269,6 +260,7 @@ object Exec {
         println("Unhandled statement(wp exec): " + stmt)
         Q
     }
+  }
 
   def eval(expr: Expression, state: State): Expression = expr match {
     case id: Id       => id.toVar(state)
@@ -294,14 +286,25 @@ object Exec {
       expr
   }
 
+  def getBaseVars(vars: Set[Var]) = vars.map { case Var(Id(name, _, _), i, t) => Var(Id(name, false, false), i, t) }
+
+  def getBaseArrays(vars: Set[VarAccess]) = vars.map { case VarAccess(Var(Id(name, _, _), i, t), index) =>
+    VarAccess(Var(Id(name, false, false), i, t), index)
+  }
+
   def getRely(exp: Expression, state: State) = {
     // TODO i think arrays will need different rules
     val evalExp = eval(exp, state)
+
+    println(exp)
+    println(s"vars: ${getBaseVars(evalExp.vars)}")
+    println(s"arrays: ${getBaseArrays(evalExp.arrays)}")
+
     eval(
       BinOp(
         "&&",
         constructForall(
-          evalExp.vars
+          getBaseVars(evalExp.vars)
             .map(v =>
               if (state.globals.contains(v.ident)) {
                 BinOp(
@@ -323,7 +326,7 @@ object Exec {
             )
             .toList
             ++
-              evalExp.arrays
+              getBaseArrays(evalExp.arrays)
                 .map(v => {
                   val pred = if (state.globals.contains(v.ident)) {
                     BinOp(
@@ -380,8 +383,11 @@ object Exec {
       BinOp("=>", BinOp("&&", getRely(p, state), p), primed(p, state)),
       state
     )
-  def rImplies(p: Expression, state: State) =
+  def rImplies(p: Expression, state: State) = {
+    // println(s"in     $p")
+    // println(s"rely   ${getRely(p, state)}")
     eval(BinOp("=>", getRely(p, state), primed(p, state)), state)
+  }
 
   def stableR(p: Expression, index: Expression, state: State) =
     eval(
