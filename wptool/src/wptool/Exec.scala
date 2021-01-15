@@ -72,7 +72,6 @@ object Exec {
       val _state = evalWp(guard, state, RG)
       if (RG) {
         val gamma = computeGamma(guard.test, state)
-        println(gamma)
         val stabR = stableR(gamma, state)
         _state
           .addQs(
@@ -210,9 +209,10 @@ object Exec {
   }
 
   def evalWp(stmt: Statement, state: State, RG: Boolean) = {
-    if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = rImplies(wp(Q.pred, stmt, state), state))))
-    else state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
-    // state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
+    // if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = rImplies(wp(Q.pred, stmt, state), state))))
+    // if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = BinOp("&&", wp(Q.pred, stmt, state), stableR(wp(Q.pred, stmt, state), state)))))
+    // else state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
+    state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
   }
 
   def wp(Q: Expression, stmt: Statement, state: State): Expression = {
@@ -302,25 +302,26 @@ object Exec {
         "&&",
         constructForall(
           getBaseVars(evalExp.vars)
-            .map(v =>
+            .map(v => {
               if (state.globals.contains(v.ident)) {
+                // BinOp(
+                //   "&&",
                 BinOp(
-                  "&&",
-                  BinOp(
-                    "=>",
-                    BinOp("==", v, v.toPrime(state)),
-                    BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
-                  ),
-                  BinOp("=>", primed(state.L.get(v.ident).get, state), v.toPrime(state).toGamma(state))
-                )
+                  "=>",
+                  BinOp("==", v, v.toPrime(state)),
+                  BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+                ) //,
+                // BinOp("=>", primed(state.L.get(v.ident).get, state), v.toPrime(state).toGamma(state))
+                // )
               } else {
                 BinOp(
                   "&&",
                   BinOp("==", v, v.toPrime(state)),
                   BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                 )
+
               }
-            )
+            })
             .toList
             ++
               getBaseArrays(evalExp.arrays)
@@ -349,6 +350,8 @@ object Exec {
                     eval(state.arrRelys.getOrElse(v.ident, Const._true), state)
                       .subst(Map(Id.indexId.toVar(state) -> Left(eval(v.index, state))))
                   )
+
+                  pred
                 })
                 .toList
         ),
@@ -495,6 +498,8 @@ object Exec {
 
     val preds = states
       .map(s => {
+        s.Qs
+        /*
         if (s.indicies == indicies) s.Qs
         else {
           val conds = s.indicies
@@ -511,6 +516,7 @@ object Exec {
 
           s.Qs.map(info => info.copy(pred = BinOp("=>", constructForall(conds), info.pred)))
         }
+         */
       })
       .flatten
 

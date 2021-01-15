@@ -5,7 +5,7 @@ _Guar: (c == 1 && _i == 0) => (a[_i] == a'[_i])
 
 global var c:
 
-_Gamma_0: array -> LOW
+_Gamma_0: a -> LOW
 _Rely: c == c'  
 _Guar: TRUE
 
