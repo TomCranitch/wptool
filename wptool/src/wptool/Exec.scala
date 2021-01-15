@@ -209,10 +209,10 @@ object Exec {
   }
 
   def evalWp(stmt: Statement, state: State, RG: Boolean) = {
-    // if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = rImplies(wp(Q.pred, stmt, state), state))))
     // if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = BinOp("&&", wp(Q.pred, stmt, state), stableR(wp(Q.pred, stmt, state), state)))))
-    // else state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
-    state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
+    if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = rImplies(wp(Q.pred, stmt, state), state))))
+    else state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
+    // state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
   }
 
   def wp(Q: Expression, stmt: Statement, state: State): Expression = {
@@ -304,15 +304,15 @@ object Exec {
           getBaseVars(evalExp.vars)
             .map(v => {
               if (state.globals.contains(v.ident)) {
-                // BinOp(
-                //   "&&",
                 BinOp(
-                  "=>",
-                  BinOp("==", v, v.toPrime(state)),
-                  BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
-                ) //,
-                // BinOp("=>", primed(state.L.get(v.ident).get, state), v.toPrime(state).toGamma(state))
-                // )
+                  "&&",
+                  BinOp(
+                    "=>",
+                    BinOp("==", v, v.toPrime(state)),
+                    BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+                  ),
+                  BinOp("=>", primed(state.L.get(v.ident).get, state), v.toPrime(state).toGamma(state))
+                )
               } else {
                 BinOp(
                   "&&",
@@ -350,8 +350,6 @@ object Exec {
                     eval(state.arrRelys.getOrElse(v.ident, Const._true), state)
                       .subst(Map(Id.indexId.toVar(state) -> Left(eval(v.index, state))))
                   )
-
-                  pred
                 })
                 .toList
         ),

@@ -129,10 +129,8 @@ case class VarStore(
     name: String,
     isBool: Boolean = false
 ) extends Expression {
-  def vars: Set[Var] = array.vars ++ exp.vars
-  // TODO array.vars ++ index.vars ++ exp.vars
-  def ids: Set[Id] = array.ids ++ exp.ids
-  // TODO array.ids ++ index.ids ++ exp.ids
+  def vars: Set[Var] = array.vars ++ index.vars ++ exp.vars
+  def ids: Set[Id] = array.ids ++ index.ids ++ exp.ids
   def arrays: Set[VarAccess] = array.arrays ++ index.arrays ++ exp.arrays
   // TODO
   // TODO maybe make it Map(Var -> (index, exp))
