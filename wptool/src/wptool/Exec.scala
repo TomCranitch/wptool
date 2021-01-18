@@ -213,7 +213,9 @@ object Exec {
 
   def evalWp(stmt: Statement, state: State, RG: Boolean) = {
     if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = BinOp("&&", wp(Q.pred, stmt, state), stableR(wp(Q.pred, stmt, state), state)))))
-    // TODO!!!! if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = rImplies(wp(Q.pred, stmt, state), state))))
+    // TODO should use rImplies
+    // is this even possible? if the rely is false then the whole expression becomes true
+    // if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = rImplies(wp(Q.pred, stmt, state), state))))
     else state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
     // state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
   }
@@ -370,15 +372,18 @@ object Exec {
         state.L.getOrElse(id, throw new Error("L not defined for " + id)),
         state
       )
+
   def getL(id: ArrayAssignment, state: State): Expression =
     getL(id.lhs.ident, state)
       .subst(Map(Id.indexId.toVar(state) -> Left(eval(id.lhs.index, state))))
+
   def primed(p: Expression, state: State) =
     eval(p, state).subst(
-      state.ids
+      (state.ids ++ state.arrayIds)
         .map(id => id.toVar(state) -> Left(id.toPrime.toVar(state)))
         .toMap
     )
+
   // TODO take havoc statements into account
   def stableR(p: Expression, state: State) =
     eval(

@@ -59,10 +59,6 @@ object WPTool {
                 "Z3 Failed (this probably means there was an error in the input to Z3): " + e
               )
               printTime(start)
-            case e @ (_: WhileError | _: IfError | _: AssignCError | _: AssignError | _: NonblockingError | _: CASCError | _: CASError |
-                _: ArrayError | _: ArrayCError) =>
-              println(e)
-              printTime(start)
           }
       }
 
