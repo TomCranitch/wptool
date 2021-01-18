@@ -108,7 +108,7 @@ object SMT {
     val gamma = name.startsWith("Gamma_")
     val n =
       name.filter(l => !sub.contains(l)).stripPrefix("Gamma_").stripSuffix("'")
-    Id(n, prime, gamma)
+    Id(n, prime, gamma, false) // NOTE: if we need to use this well need to detect nought as well
   }
 
   // TODO AND/OR can have multiple args

@@ -49,13 +49,13 @@ case class Block(
 
 case class Assignment(lhs: Id, expression: Expression) extends Statement {
   def this(lhs: String, expression: Expression) =
-    this(new Id(lhs, false, false), expression)
+    this(new Id(lhs, false, false, false), expression)
   override def toString: String = lhs + " = " + expression
 }
 
 case class ArrayAssignment(lhs: IdAccess, expression: Expression) extends Statement {
   def this(name: String, index: Expression, expression: Expression) =
-    this(new IdAccess(new Id(name, false, false), index), expression)
+    this(new IdAccess(new Id(name, false, false, false), index), expression)
   override def toString: String =
     lhs.ident + "[" + lhs.index + "]" + " = " + expression
 }

@@ -132,9 +132,9 @@ locals  = local *;
 
 expr
     = PREFIX | POSTFIX /* unused */
-	| GAMMAID.n                        {: return new Id(n, false, true);  :}
-    | PRIMEID.n                              {: return new Id(n, true, false);  :}
-    | ID.n                              {: return new Id(n, false, false);  :}
+	| GAMMAID.n                        {: return new Id(n, false, true, false);  :}
+    | PRIMEID.n                              {: return new Id(n, true, false, false);  :}
+    | ID.n                              {: return new Id(n, false, false, false);  :}
     | GAMMAID.n LBRACK expr.i RBRACK       {: return new IdAccess(n, false, true, i); :}
     | PRIMEID.n LBRACK expr.i RBRACK       {: return new IdAccess(n, true, false, i); :}
     | ID.n LBRACK expr.i RBRACK       {: return new IdAccess(n, i); :}

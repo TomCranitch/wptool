@@ -34,13 +34,14 @@ trait Identifier extends Expression {
 trait Variable extends Expression {
   def toPrime(state: State): Variable
   def toGamma(state: State): Variable
+  def toNought: Variable
   def ident: Id
 }
 
 // id parsed from input - need to convert to Var before use in predicates etc.
-case class Id(name: String, prime: Boolean, gamma: Boolean) extends Expression with Identifier {
+case class Id(name: String, prime: Boolean, gamma: Boolean, nought: Boolean) extends Expression with Identifier {
   override def toString: String =
-    (if (gamma) "Gamma_" else "") + name + (if (prime) "'" else "")
+    (if (gamma) "Gamma_" else "") + name + (if (prime) "'" else "") + (if (nought) "⁰" else "")
   override def vars: Set[Var] = throw new Error("Tried to get var from id")
   override def ids: Set[Id] = Set(this)
   override def arrays: Set[VarAccess] = Set()
@@ -57,8 +58,8 @@ case class Id(name: String, prime: Boolean, gamma: Boolean) extends Expression w
 }
 
 object Id {
-  val tmpId = Id("tmp", false, false)
-  val indexId = Id("_i", false, false)
+  val tmpId = Id("tmp", false, false, false)
+  val indexId = Id("_i", false, false, false)
 }
 
 case class Var(ident: Id, index: Int, tmp: Boolean = false) extends Expression with Variable {
@@ -77,6 +78,7 @@ case class Var(ident: Id, index: Int, tmp: Boolean = false) extends Expression w
     this.copy(ident = ident.toPrime).updateIndex(state)
   def toGamma(state: State) =
     this.copy(ident = ident.toGamma).updateIndex(state)
+  def toNought = this.copy(ident = ident.copy(nought = true))
 
   private def updateIndex(state: State) =
     this.copy(index = this.ident.getIndex(state))
@@ -84,9 +86,9 @@ case class Var(ident: Id, index: Int, tmp: Boolean = false) extends Expression w
 
 case class IdAccess(ident: Id, index: Expression) extends Expression with Identifier {
   def this(name: String, index: Expression) =
-    this(Id(name, false, false), index)
+    this(Id(name, false, false, false), index)
   def this(name: String, prime: Boolean, gamma: Boolean, index: Expression) =
-    this(Id(name, prime, gamma), index)
+    this(Id(name, prime, gamma, false), index)
   // TODO is this enough??? i feel like it should return the access
   def vars: Set[Var] = index.vars
   def ids: Set[Id] = index.ids
@@ -119,6 +121,7 @@ case class VarAccess(name: Var, index: Expression) extends Expression with Varia
   override def toString = name + "[" + index + "]"
   def toGamma(state: State) = this.copy(name = name.toGamma(state))
   def toPrime(state: State) = this.copy(name = name.toPrime(state))
+  def toNought = this.copy(name = name.toNought)
   def ident = name.ident
 }
 
@@ -194,7 +197,7 @@ case class Const(name: String) extends Expression {
 
 case class CompareAndSwap(x: Id, e1: Expression, e2: Expression) extends Expression {
   def this(x: String, e1: Expression, e2: Expression) =
-    this(new Id(x, false, false), e1, e2)
+    this(new Id(x, false, false, false), e1, e2)
   override def toString: String = "CAS(" + x + ", " + e1 + ", " + e2 + ")"
   override def vars: Set[Var] = e1.vars ++ e2.vars
   override def ids: Set[Id] = e1.ids ++ e2.ids

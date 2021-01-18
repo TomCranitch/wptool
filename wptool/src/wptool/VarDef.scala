@@ -76,9 +76,9 @@ case object Low extends Security {
 
 case class GammaMapping(variable: Id, security: Security) extends beaver.Symbol {
   def this(variable: String, index: Int, security: Security) =
-    this(new Id(variable + "[" + index + "]", false, false), security)
+    this(new Id(variable + "[" + index + "]", false, false, false), security)
   def this(variable: String, security: Security) =
-    this(new Id(variable, false, false), security)
+    this(new Id(variable, false, false, false), security)
 
   def toPair: Seq[(Id, Security)] = this match {
     case g =>
@@ -93,9 +93,9 @@ sealed trait Definition extends beaver.Symbol
 
 case class VarDef(name: Id, pred: Expression, access: Access) extends Definition {
   def this(name: String, pred: Expression, access: Access) =
-    this(new Id(name, false, false), pred, access)
+    this(new Id(name, false, false, false), pred, access)
   def this(name: String, access: Access) =
-    this(new Id(name, false, false), Const._true, access)
+    this(new Id(name, false, false, false), Const._true, access)
 }
 
 case class ArrayDef(
@@ -115,7 +115,7 @@ case class ArrayDef(
       guar: Guar
   ) =
     this(
-      new Id(name, false, false),
+      new Id(name, false, false, false),
       size,
       lpred,
       access,
@@ -130,7 +130,7 @@ case class ArrayDef(
       guar: Guar
   ) =
     this(
-      new Id(name, false, false),
+      new Id(name, false, false, false),
       size,
       Const._true,
       access,

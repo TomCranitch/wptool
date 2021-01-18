@@ -98,7 +98,7 @@ object Exec {
             .map(contr => {
               BinOp(
                 "=>",
-                getL(contr, state), // TODO
+                eval(getL(contr, state).subst(Map(assign.lhs.toVar(state) -> Left(assign.expression))), state), // TODO
                 BinOp("||", eval(contr.toGamma, state), getL(contr, state))
               )
             })
@@ -144,7 +144,10 @@ object Exec {
             .map(contr => {
               BinOp(
                 "=>",
-                getL(contr, state), // TODO getL => getL ???????
+                eval(
+                  getL(contr, state).subst(Map(assign.lhs.ident.toVar(state) -> Right((assign.lhs.index, assign.expression)))),
+                  state
+                ), // TODO
                 BinOp("||", eval(contr.toGamma, state), getL(contr, state))
               )
             })
@@ -210,9 +213,9 @@ object Exec {
 
   def evalWp(stmt: Statement, state: State, RG: Boolean) = {
     // if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = BinOp("&&", wp(Q.pred, stmt, state), stableR(wp(Q.pred, stmt, state), state)))))
-    if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = rImplies(wp(Q.pred, stmt, state), state))))
-    else state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
-    // state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
+    // TODO if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = rImplies(wp(Q.pred, stmt, state), state))))
+    // else state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
+    state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
   }
 
   def wp(Q: Expression, stmt: Statement, state: State): Expression = {
@@ -287,10 +290,10 @@ object Exec {
       expr
   }
 
-  def getBaseVars(vars: Set[Var]) = vars.map { case Var(Id(name, _, _), _, t) => Var(Id(name, false, false), 0, t) }
+  def getBaseVars(vars: Set[Var]) = vars.map { case Var(Id(name, _, _, _), _, t) => Var(Id(name, false, false, false), 0, t) }
 
-  def getBaseArrays(vars: Set[VarAccess]) = vars.map { case VarAccess(Var(Id(name, _, _), _, t), index) =>
-    VarAccess(Var(Id(name, false, false), 0, t), index)
+  def getBaseArrays(vars: Set[VarAccess]) = vars.map { case VarAccess(Var(Id(name, _, _, _), _, t), index) =>
+    VarAccess(Var(Id(name, false, false, false), 0, t), index)
   }
 
   def getRely(exp: Expression, state: State) = {
@@ -350,6 +353,7 @@ object Exec {
                     eval(state.arrRelys.getOrElse(v.ident, Const._true), state)
                       .subst(Map(Id.indexId.toVar(state) -> Left(eval(v.index, state))))
                   )
+
                 })
                 .toList
         ),
@@ -407,63 +411,31 @@ object Exec {
       state
     )
 
-  // TODO also need to handle arrays on RHS
   def guar(a: Assignment, state: State) = {
-    // TODO update to allow guarantee to talk about specific indices
-    val rhsGamma = computeGamma(a.expression, state)
-    val idsNoLHS = state.ids.filter(id => id != a.lhs)
-    val subst = idsNoLHS
-      .map(id => id.toPrime.toVar(state) -> Left(id.toVar(state)))
-      .toMap ++ idsNoLHS
-      .map(id => id.toPrime.toGamma.toVar(state) -> Left(id.toGamma.toVar(state)))
-      .toMap
-
-    eval(
-      eval(
-        eval(state.guar, state)
-          .subst(
-            Map(
-              a.lhs.toPrime.toVar(state) -> Left(a.expression),
-              a.lhs.toPrime.toGamma.toVar(state) -> Left(rhsGamma)
-            )
-          ),
-        state
-      ).subst(subst),
-      state
-    )
+    val guar = eval(state.guar, state)
+    val vars = getBaseVars(guar.vars ++ guar.arrays.map(a => a.name))
+    val subst = vars.map(v => List(v -> Left(v.toNought), v.toPrime(state) -> Left(v))).flatten.toMap
+    val gPrime = guar.subst(subst)
+    val _subst = vars.map(v => v.toNought -> Left(v)).toMap
+    wp(gPrime, a, state).subst(_subst)
   }
 
   // TODO fix subst when multiple arrays present (does this really matter tho or is it handled automatically)
   def guar(a: ArrayAssignment, state: State) = {
-    val rhsGamma = computeGamma(a.expression, state)
-    val idsNoLHS = state.ids.filter(id => id != a.lhs.ident)
-    // TODO not sure how to handle the second substitution
-    val subst = idsNoLHS
-      .map(id => id.toPrime.toVar(state) -> Left(id.toVar(state)))
-      .toMap ++ idsNoLHS
-      .map(id => id.toPrime.toGamma.toVar(state) -> Left(id.toGamma.toVar(state)))
-      .toMap
-
-    eval(
+    val guar =
       eval(
         BinOp(
           "&&",
-          eval(state.guar, state),
-          eval(state.arrGuars.getOrElse(a.lhs.ident, Const._true), state).subst(
-            Map(Id.indexId.toVar(state) -> Left(eval(a.lhs.index, state)))
-          )
-        ).subst(
-          Map(
-            a.lhs.ident.toPrime
-              .toVar(state) -> Right(a.lhs.index, a.expression),
-            a.lhs.ident.toPrime.toGamma
-              .toVar(state) -> Right(a.lhs.index, rhsGamma)
-          )
+          state.guar,
+          eval(state.arrGuars.getOrElse(a.lhs.ident, Const._true), state).subst(Map(Id.indexId.toVar(state) -> Left(a.lhs.index)))
         ),
         state
-      ).subst(subst),
-      state
-    )
+      )
+    val vars = getBaseVars(guar.vars ++ guar.arrays.map(a => a.name))
+    val subst = vars.map(v => List(v -> Left(v.toNought), v.toPrime(state) -> Left(v))).flatten.toMap
+    val gPrime = guar.subst(subst)
+    val _subst = vars.map(v => v.toNought -> Left(v)).toMap
+    wp(gPrime, a, state).subst(_subst)
   }
 
   def computeGamma(exp: Expression, state: State): Expression = {

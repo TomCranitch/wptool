@@ -17,7 +17,6 @@ class IntegrationTestsRG extends AnyFunSuite {
     assert(runTestFile(testDir + "assign5"))
     assert(runTestFile(testDir + "assign6"))
     assert(runTestFile(testDir + "assign7"))
-    assert(runTestFile(testDir + "assign8"))
   }
 
   test("Assignment (Negative)") {
@@ -25,6 +24,7 @@ class IntegrationTestsRG extends AnyFunSuite {
     assert(!runTestFile(testNegDir + "assign2"))
     assert(!runTestFile(testNegDir + "assign4"))
     assert(!runTestFile(testNegDir + "assign5"))
+    assert(!runTestFile(testNegDir + "assign6"))
   }
 
   test("Array") {
