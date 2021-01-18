@@ -139,6 +139,18 @@ object SMT {
         )
     }
 
+  def getArray(store: Expression): z3.ArrayExpr = store match {
+    case a: VarAccess =>
+      ctx.mkArrayConst(
+        a.name.toString,
+        ctx.getIntSort,
+        if (a.ident.gamma) ctx.getBoolSort else ctx.getIntSort
+      )
+    case a: VarStore => getArray(a.array)
+    case _           => throw new Error("Unexpected statement in VarStore")
+  }
+
+  // TODO i think the name should come from the inner load not from the store
   def handleStore(
       store: Expression,
       arr: z3.ArrayExpr,
@@ -195,11 +207,7 @@ object SMT {
     case store: VarStore =>
       handleStore(
         store,
-        ctx.mkArrayConst(
-          store.name.toString,
-          ctx.getIntSort,
-          if (store.isBool) ctx.getBoolSort else ctx.getIntSort
-        ),
+        getArray(store),
         expectIds
       )
 

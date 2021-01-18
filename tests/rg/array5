@@ -6,12 +6,12 @@ _Guar: (c == 1 && _i == 0) => (a[_i] == a'[_i])
 global var c:
 
 _Gamma_0: a -> LOW
-_Rely: c == c'  
+_Rely: c == c'
 _Guar: TRUE
 
 c = 0;
 a[0] = 1;
 a[1] = 1;
 c = 1;
-a[0] = 1;
-a[1] = 2;
+a[0] = c;
+// a[1] = 2;

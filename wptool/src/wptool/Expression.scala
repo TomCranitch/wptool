@@ -111,7 +111,7 @@ case class VarAccess(name: Var, index: Expression) extends Expression with Varia
     val updatedArr = this.copy(index = index.subst(su))
     su.get(name) match {
       case Some(Right((e, i))) =>
-        VarStore(updatedArr, e, i, name.ident.name, name.ident.gamma)
+        VarStore(updatedArr, e, i)
       case Some(Left(v: Var)) => updatedArr.copy(name = v) // to handle priming
       case Some(Left(_)) =>
         throw new Error("Tried to subst varaccess without index")
@@ -125,20 +125,14 @@ case class VarAccess(name: Var, index: Expression) extends Expression with Varia
   def ident = name.ident
 }
 
-case class VarStore(
-    array: Expression,
-    index: Expression,
-    exp: Expression,
-    name: String,
-    isBool: Boolean = false
-) extends Expression {
+case class VarStore(array: Expression, index: Expression, exp: Expression) extends Expression {
   def vars: Set[Var] = array.vars ++ index.vars ++ exp.vars
   def ids: Set[Id] = array.ids ++ index.ids ++ exp.ids
   def arrays: Set[VarAccess] = array.arrays ++ index.arrays ++ exp.arrays
   // TODO
   // TODO maybe make it Map(Var -> (index, exp))
   def subst(su: Subst) =
-    VarStore(array.subst(su), index.subst(su), exp.subst(su), name, isBool)
+    VarStore(array.subst(su), index.subst(su), exp.subst(su))
 }
 
 case class ArrayConstDefault(name: Var, const: Expression) extends Expression {

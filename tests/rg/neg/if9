@@ -12,7 +12,7 @@ _Guar: TRUE
 b = 1;
 
 if (b == 0) {
-  b = a; // Fine as cant reach this branch
+  b = a; // Missing rely so could reach this branch
 } else {
   b = 0;
 }

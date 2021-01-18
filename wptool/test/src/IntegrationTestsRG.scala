@@ -35,6 +35,7 @@ class IntegrationTestsRG extends AnyFunSuite {
     assert(runTestFile(testDir + "array3"))
     assert(runTestFile(testDir + "array4"))
     assert(runTestFile(testDir + "array5"))
+    assert(runTestFile(testDir + "array6"))
   }
 
   test("Array (Negative)") {
@@ -66,6 +67,8 @@ class IntegrationTestsRG extends AnyFunSuite {
     assert(!runTestFile(testNegDir + "if2"))
     assert(!runTestFile(testNegDir + "if6"))
     assert(!runTestFile(testNegDir + "if7"))
+    assert(!runTestFile(testNegDir + "if8"))
+    assert(!runTestFile(testNegDir + "if9"))
   }
 
   test("While") {
@@ -80,6 +83,7 @@ class IntegrationTestsRG extends AnyFunSuite {
     assert(!runTestFile(testNegDir + "while2"))
     assert(!runTestFile(testNegDir + "while3"))
     assert(!runTestFile(testNegDir + "while4"))
+    assert(!runTestFile(testNegDir + "while5"))
   }
 
   test("SpinLock") {
