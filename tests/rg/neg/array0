@@ -1,0 +1,14 @@
+global array a[2]:
+_L: _i == 0
+_Rely: (a[_i] == 0) => (Gamma_a[_i] == TRUE)
+_Guar: (a[_i] >= a'[_i])
+
+global var secret:
+_L: FALSE
+
+
+_Gamma_0: secret -> HIGH
+_Rely: TRUE
+_Guar: TRUE
+
+a[0] = secret;

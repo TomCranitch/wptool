@@ -128,12 +128,12 @@ object Exec {
       }
     case assign: ArrayAssignment =>
       val indexSub =
-        Map[Variable, Expression](Id.indexId.toVar(state) -> assign.lhs.ident)
+        Map(Id.indexId.toVar(state) -> assign.lhs.ident)
       val globalPred =
         if (state.globals.contains(assign.lhs.ident))
           BinOp(
             "=>",
-            getL(assign, state),
+            getL(assign.lhs, state),
             computeGamma(assign.expression, state)
           )
         else Const._true
@@ -148,7 +148,11 @@ object Exec {
                   getL(contr, state).subst(Map(assign.lhs.ident.toVar(state) -> Right((assign.lhs.index, assign.expression)))),
                   state
                 ), // TODO
-                BinOp("||", eval(contr.toGamma, state), getL(contr, state))
+                BinOp(
+                  "||",
+                  eval(contr.toGamma, state),
+                  getL(contr, state).subst(Map(Id.indexId.toVar(state) -> Left(assign.lhs.index)))
+                ) // TODO check subst is correct
               )
             })
             .toList
@@ -212,10 +216,10 @@ object Exec {
   }
 
   def evalWp(stmt: Statement, state: State, RG: Boolean) = {
-    if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = BinOp("&&", wp(Q.pred, stmt, state), stableR(wp(Q.pred, stmt, state), state)))))
+    // if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = BinOp("&&", wp(Q.pred, stmt, state), stableR(wp(Q.pred, stmt, state), state)))))
     // TODO should use rImplies
     // is this even possible? if the rely is false then the whole expression becomes true
-    // if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = rImplies(wp(Q.pred, stmt, state), state))))
+    if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = rImplies(wp(Q.pred, stmt, state), state))))
     else state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
     // state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
   }
@@ -306,18 +310,18 @@ object Exec {
       BinOp(
         "&&",
         constructForall(
-          getBaseVars(evalExp.vars)
+          getBaseVars(evalExp.vars - Id.indexId.toVar(state))
             .map(v => {
               if (state.globals.contains(v.ident)) {
+                // BinOp(
+                //  "&&",
                 BinOp(
-                  "&&",
-                  BinOp(
-                    "=>",
-                    BinOp("==", v, v.toPrime(state)),
-                    BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
-                  ),
-                  BinOp("=>", primed(state.L.get(v.ident).get, state), v.toPrime(state).toGamma(state))
-                )
+                  "=>",
+                  BinOp("==", v, v.toPrime(state)),
+                  BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+                ) // ,
+                //   BinOp("=>", primed(getL(v.ident, state), state), v.toPrime(state).toGamma(state))
+                // )
               } else {
                 BinOp(
                   "&&",
@@ -332,15 +336,15 @@ object Exec {
               getBaseArrays(evalExp.arrays)
                 .map(v => {
                   val pred = if (state.globals.contains(v.ident)) {
+                    //  BinOp(
+                    //    "&&",
                     BinOp(
-                      "&&",
-                      BinOp(
-                        "=>",
-                        BinOp("==", v, v.toPrime(state)),
-                        BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
-                      ),
-                      BinOp("=>", primed(state.L.get(v.ident).get, state), v.toPrime(state).toGamma(state))
-                    )
+                      "=>",
+                      BinOp("==", v, v.toPrime(state)),
+                      BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+                    ) //,
+                    //    BinOp("=>", primed(getL(v, state), state), v.toPrime(state).toGamma(state))
+                    //  )
                   } else {
                     BinOp(
                       "&&",
@@ -365,17 +369,22 @@ object Exec {
     )
   }
 
-  def getL(id: Id, state: State): Expression =
+  def getL(id: Id, state: State): Expression = {
     if (id == Id.tmpId) Const._true
     else
       eval(
         state.L.getOrElse(id, throw new Error("L not defined for " + id)),
         state
       )
+  }
 
-  def getL(id: ArrayAssignment, state: State): Expression =
-    getL(id.lhs.ident, state)
-      .subst(Map(Id.indexId.toVar(state) -> Left(eval(id.lhs.index, state))))
+  def getL(id: IdAccess, state: State): Expression =
+    getL(id.ident, state)
+      .subst(Map(Id.indexId.toVar(state) -> Left(eval(id.index, state))))
+
+  def getL(v: VarAccess, state: State): Expression =
+    getL(v.ident, state)
+      .subst(Map(Id.indexId.toVar(state) -> Left(eval(v.index, state))))
 
   def primed(p: Expression, state: State) =
     eval(p, state).subst(
@@ -390,7 +399,10 @@ object Exec {
       BinOp("=>", BinOp("&&", getRely(p, state), p), primed(p, state)),
       state
     )
-  def rImplies(p: Expression, state: State) = eval(BinOp("=>", getRely(p, state), primed(p, state)), state)
+
+  def rImplies(p: Expression, state: State) = {
+    eval(BinOp("=>", getRely(p, state), primed(p, state)), state)
+  }
 
   def stableR(p: Expression, index: Expression, state: State) =
     eval(

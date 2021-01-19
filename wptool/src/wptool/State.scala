@@ -115,7 +115,7 @@ object State {
 
     // TODO malformed probs insto the best
     State(
-      List(PredInfo(Const._true, Malformed, "initial predicate")),
+      List(PredInfo(Const._true, EmptyStmt, "initial predicate")),
       debug,
       silent,
       simplify,

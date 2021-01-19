@@ -179,6 +179,7 @@ object SMT {
 
     case Lit(n: Int) => ctx.mkInt(n)
 
+    case Var(Id.indexId, _, _) => throw new Error("Unsubstituted index")
     case x: Var =>
       if (expectIds) throw new Error("Program ids should not be resolved")
       if (x.ident.gamma) ctx.mkConst(x.toString, ctx.getBoolSort)

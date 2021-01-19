@@ -110,8 +110,8 @@ case class VarAccess(name: Var, index: Expression) extends Expression with Varia
   def subst(su: Subst) = {
     val updatedArr = this.copy(index = index.subst(su))
     su.get(name) match {
-      case Some(Right((e, i))) =>
-        VarStore(updatedArr, e, i)
+      case Some(Right((i, e))) =>
+        VarStore(updatedArr, i, e)
       case Some(Left(v: Var)) => updatedArr.copy(name = v) // to handle priming
       case Some(Left(_)) =>
         throw new Error("Tried to subst varaccess without index")
