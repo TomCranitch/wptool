@@ -1,5 +1,46 @@
 package wptool
 
+abstract class Stmt(line: (String, Int)) extends beaver.Symbol {
+  def incLine: Stmt
+  def setLine(line: (String, Int)): Stmt
+  def getLine = line
+
+  def blockName: String = line._1
+  def toStringWLine = s"$line ${this.toString}"
+}
+
+case object Malformed extends Stmt(("", -1)) {
+  def self: Malformed.type = this
+
+  def incLine = this
+  def setLine(line: (String, Int)) = this
+}
+
+case object EmptyStmt extends Stmt(("", -1)) {
+  def self: EmptyStmt.type = this
+
+  def incLine = this
+  def setLine(line: (String, Int)) = this
+}
+
+case class Block(
+    label: String,
+    name: String,
+    statements: List[Stmt],
+    children: List[Block],
+    atomic: Boolean
+) extends beaver.Symbol {
+  // Don't need to process array as this is for unprocessed blocks
+  def this(label: String, statements: Array[Stmt]) = this(label, Block.nextName, statements.toList, List(), false)
+
+  def prepend(statement: Stmt) = this.copy(statements = statement.setLine((this.name, 1)) +: statements.map(stmt => stmt.incLine))
+
+  override def toString: String =
+    name + "(" + label + "): [" + children
+      .map(b => b.name)
+      .mkString(", ") + "] {\n" + statements.mkString(";\n") + "\n}"
+}
+
 object Block {
   def empty: Block = Block("empty", "?", Nil, Nil, false)
 
@@ -8,92 +49,85 @@ object Block {
     currName = (currName + 1).toChar
     currName.toString
   }
+
+  def resetNames = {
+    currName = 'A'
+  }
+
+  def apply(label: String, statements: List[Stmt], children: List[Block], atomic: Boolean = false) = {
+    val name = Block.nextName
+    new Block(label, name, statements.zip(statements.indices).map { case (stmt, i) => stmt.setLine((name, i + 1)) }, children, atomic)
+  }
+
 }
 
-sealed trait Statement extends beaver.Symbol {
-  var line: (String, Int) = ("", 0)
-  def setLine(block: Block, line: Int) = this.line = (block.label, line)
-}
-
-case object Malformed extends Statement {
-  def self: Malformed.type = this
-}
-
-case object EmptyStmt extends Statement {
-  def self: EmptyStmt.type = this
-}
-
-case class Block(
-    label: String,
-    name: String,
-    statements: List[Statement],
-    children: List[Block],
-    atomic: Boolean
-) extends Statement {
-  def this(label: String, statements: Array[Statement]) =
-    this(label, Block.nextName, statements.toList, List(), false)
-  def this(
-      label: String,
-      statements: List[Statement],
-      children: List[Block],
-      atomic: Boolean = false
-  ) = this(label, Block.nextName, statements.toList, children, atomic)
-  def prepend(statement: Statement) =
-    this.copy(statements = statement +: statements)
-
-  override def toString: String =
-    name + "(" + label + "): [" + children
-      .map(b => b.name)
-      .mkString(", ") + "] {\n" + statements.mkString(";\n") + "\n}"
-}
-
-case class Assignment(lhs: Id, expression: Expression) extends Statement {
+case class Assignment(lhs: Id, expression: Expression, line: (String, Int)) extends Stmt(line) {
   def this(lhs: String, expression: Expression) =
-    this(new Id(lhs, false, false, false), expression)
+    this(new Id(lhs, false, false, false), expression, ("", -1))
   override def toString: String = lhs + " = " + expression
+
+  def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
+  def setLine(line: (String, Int)) = this.copy(line = line)
 }
 
-case class ArrayAssignment(lhs: IdAccess, expression: Expression) extends Statement {
+object Assignment {
+  def apply(lhs: Id, expression: Expression) = new Assignment(lhs, expression, ("", -1))
+}
+
+case class ArrayAssignment(lhs: IdAccess, expression: Expression, line: (String, Int)) extends Stmt(line) {
   def this(name: String, index: Expression, expression: Expression) =
-    this(new IdAccess(new Id(name, false, false, false), index), expression)
+    this(new IdAccess(new Id(name, false, false, false), index), expression, ("", -1))
   override def toString: String =
     lhs.ident + "[" + lhs.index + "]" + " = " + expression
+
+  def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
+  def setLine(line: (String, Int)) = this.copy(line = line)
 }
 
 /*
-case object Break extends Statement {
+case object Break extends Stmt(line) {
   def self = this
 }
 
-case object Continue extends Statement {
+case object Continue extends Stmt(line) {
   def self = this
 }
 
-case class Return(expression: Option[Expression]) extends Statement {
+case class Return(expression: Option[Expression]) extends Stmt(line) {
   def this(expression: Expression) = this(Some(expression))
 }
 
 object Return extends (Option[Expression] => Return) {
   val none = Return(None)
 }
- */
 
-case object Fence extends Statement {
+case object Fence extends Stmt(line) {
   def self: Fence.type = this
 }
 
-case object ControlFence extends Statement {
+case object ControlFence extends Stmt(line) {
   def self: ControlFence.type = this
 }
+ */
 
-case class If(test: Expression, left: Block, right: Option[Block]) extends Statement {
-  def this(test: Expression, left: Block) = this(test, left, None)
+case class If(test: Expression, left: Block, right: Option[Block], line: (String, Int)) extends Stmt(line) {
+  def this(test: Expression, left: Block) = this(test, left, None, ("", -1))
   def this(test: Expression, left: Block, right: Block) =
-    this(test, left, Some(right))
+    this(test, left, Some(right), ("", -1))
+
+  def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
+  def setLine(line: (String, Int)) = this.copy(line = line)
 }
 
-case class Guard(test: Expression) extends Statement {
+case class Guard(test: Expression, line: (String, Int)) extends Stmt(line) {
   override def toString: String = "guard " + test
+
+  def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
+  def setLine(line: (String, Int)) = this.copy(line = line)
+}
+
+object Guard {
+  def apply(test: Expression) = new Guard(test, ("", -1))
 }
 
 case class While(
@@ -101,18 +135,22 @@ case class While(
     invariant: Expression,
     gamma: List[GammaMapping],
     nonblocking: Option[Set[Id]],
-    body: Statement
-) extends Statement {
-  def this(test: Expression, body: Statement) =
-    this(test, Const._true, List(), None, body)
-  def this(test: Expression, invariant: Expression, body: Statement) =
-    this(test, invariant, List(), None, body)
+    body: Block,
+    line: (String, Int)
+) extends Stmt(line) {
+  def this(test: Expression, body: Block) =
+    this(test, Const._true, List(), None, body, ("", -1))
+  def this(test: Expression, invariant: Expression, body: Block) =
+    this(test, invariant, List(), None, body, ("", -1))
   def this(
       test: Expression,
       invariant: Expression,
       gamma: Array[GammaMapping],
-      body: Statement
-  ) = this(test, invariant, gamma.toList, None, body)
+      body: Block
+  ) = this(test, invariant, gamma.toList, None, body, ("", -1))
+
+  def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
+  def setLine(line: (String, Int)) = this.copy(line = line)
 }
 
 case class DoWhile(
@@ -120,32 +158,60 @@ case class DoWhile(
     invariant: Expression,
     gamma: List[GammaMapping],
     nonblocking: Option[Set[Id]],
-    body: Statement
-) extends Statement {
-  def this(test: Expression, invariant: Expression, body: Statement) =
-    this(test, invariant, List(), None, body)
+    body: Block,
+    line: (String, Int)
+) extends Stmt(line) {
+  def this(test: Expression, invariant: Expression, body: Block) =
+    this(test, invariant, List(), None, body, ("", -1))
   def this(
       test: Expression,
       invariant: Expression,
       gamma: Array[GammaMapping],
-      body: Statement
-  ) = this(test, invariant, gamma.toList, None, body)
+      body: Block
+  ) = this(test, invariant, gamma.toList, None, body, ("", -1))
+
+  def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
+  def setLine(line: (String, Int)) = this.copy(line = line)
 }
 
-case class Atomic(statements: List[Statement]) extends Statement {
-  def self: Atomic = this
-
+case class Atomic(statements: List[Stmt], line: (String, Int)) extends Stmt(line) {
   override def toString: String = "<" + statements.mkString(",") + ">"
+
+  def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
+  def setLine(line: (String, Int)) = this.copy(line = line)
 }
 
-case class Assume(expression: Expression) extends Statement {
-  def self: Assume = this
+object Atomic {
+  def apply(statements: List[Stmt]) = new Atomic(statements, ("", -1))
 }
 
-case class Assert(expression: Expression, checkStableR: Boolean = false) extends Statement {
-  def self: Assert = this
+case class Assume(expression: Expression, line: (String, Int)) extends Stmt(line) {
+  def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
+  def setLine(line: (String, Int)) = this.copy(line = line)
+
+  override def toString = s"assume ${expression.toString})"
 }
 
-case class Havoc() extends Statement {
-  def self = this
+object Assume {
+  def apply(expression: Expression) = new Assume(expression, ("", -1))
+}
+
+case class Assert(expression: Expression, line: (String, Int), checkStableR: Boolean) extends Stmt(line) {
+  def this(expression: Expression) = this(expression, ("", -1), false)
+  def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
+  def setLine(line: (String, Int)) = this.copy(line = line)
+  override def toString = s"assert ${expression.toString}"
+}
+
+object Assert {
+  def apply(expression: Expression, checkStableR: Boolean = false) = new Assert(expression, ("", -1), checkStableR)
+}
+
+case class Havoc(line: (String, Int)) extends Stmt(line) {
+  def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
+  def setLine(line: (String, Int)) = this.copy(line = line)
+}
+
+object Havoc {
+  def apply() = new Havoc(("", -1))
 }

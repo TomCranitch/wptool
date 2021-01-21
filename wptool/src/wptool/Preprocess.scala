@@ -1,9 +1,9 @@
 package wptool
 
 object PreProcess {
-  def process(statements: List[Statement], state: State): Block = {
-    val _statements =
-      exec(statements, state, new Block("START", List(), List()))
+  def process(statements: List[Stmt], state: State): Block = {
+    Block.resetNames
+    val _statements = exec(statements, state, Block("END", List(), List()))
     removeLoops(_statements, state)
   }
 
@@ -11,7 +11,7 @@ object PreProcess {
     */
   // @scala.annotation.tailrec
   private def exec(
-      statements: List[Statement],
+      statements: List[Stmt],
       state: State,
       currBlock: Block
   ): Block = statements match {
@@ -21,10 +21,10 @@ object PreProcess {
     case Nil => currBlock
   }
 
-  private def exec(stmt: Statement, state: State, currBlock: Block): Block =
+  private def exec(block: Block, state: State, currBlock: Block): Block = exec(block.statements, state, currBlock)
+
+  private def exec(stmt: Stmt, state: State, currBlock: Block): Block =
     stmt match {
-      case block: Block =>
-        exec(block.statements, state, currBlock)
       case assign: Assignment =>
         evalBlock(
           assign.expression,
@@ -39,7 +39,8 @@ object PreProcess {
             assign.copy(expression = evalExp(assign.expression))
           )
         )
-      case ifStmt: If =>
+      case assert: Assert => currBlock.prepend(assert)
+      case ifStmt: If     =>
         // val goto = ifStmt.
         // Parse to if (...) goto ...
         // when setting path into c1, set c1 to have the parent (as opposed to the parent having the child) this will make going back easier
@@ -47,33 +48,33 @@ object PreProcess {
         val left = exec(
           ifStmt.left,
           state,
-          new Block("if left", List(), List(currBlock))
+          Block("if left", List(), List(currBlock))
         ).prepend(Guard(test))
         val right = ifStmt.right match {
           case Some(s) =>
-            exec(s, state, new Block("if right", List(), List(currBlock)))
+            exec(s, state, Block("if right", List(), List(currBlock)))
               .prepend(Guard(PreOp("!", test)))
           case None =>
-            new Block(
+            Block(
               "if empty",
               List(Guard(PreOp("!", test))),
               List(currBlock)
             )
         }
-        evalBlock(ifStmt.test, new Block("pre if", List(), List(left, right)))
+        evalBlock(ifStmt.test, Block("pre if", List(), List(left, right)))
       case whileStmt: While =>
         val after =
           currBlock.prepend(Assume(PreOp("!", evalExp(whileStmt.test))))
         // TODO why does the body not go to after ?? (as per paper/PASTE05)
         val body =
-          new Block("while body", List(Assert(whileStmt.invariant)), List())
+          Block("while body", List(Assert(whileStmt.invariant)), List())
         val _body = exec(whileStmt.body, state, body)
           .prepend(Guard(evalExp(whileStmt.test)))
         val inv = whileStmt.invariant
 
         val head = evalBlock(
           whileStmt.test,
-          (new Block("while head", List(), List(_body, after)))
+          (Block("while head", List(), List(_body, after)))
         ).prepend(Assume(whileStmt.invariant))
           .prepend(Havoc())
           .prepend(Assert(whileStmt.invariant, true))
@@ -81,12 +82,12 @@ object PreProcess {
         head
       case doWhile: DoWhile =>
         val after = currBlock.prepend(Assume(PreOp("!", evalExp(doWhile.test))))
-        val repeat = new Block(
+        val repeat = Block(
           "do-while repeat",
-          List(Guard(doWhile.test), Assert(doWhile.invariant)),
+          List(Guard(doWhile.test), Assert(doWhile.invariant, true)),
           List()
         )
-        val block = new Block("do-while block", List(), List(after, repeat))
+        val block = Block("do-while block", List(), List(after, repeat))
         exec(doWhile.body, state, block)
           .prepend(Assume(doWhile.invariant))
           .prepend(Havoc())
@@ -99,7 +100,7 @@ object PreProcess {
   def evalBlock(exp: Expression, currBlock: Block): Block = exp match {
     case cas: CompareAndSwap =>
       val tmp = Id.tmpId
-      val left = new Block(
+      val left = Block(
         "cas left",
         List(
           Guard(BinOp("==", cas.x, cas.e1)),
@@ -109,7 +110,7 @@ object PreProcess {
         List(currBlock),
         true
       )
-      val right = new Block(
+      val right = Block(
         "cas right",
         List(
           Guard(BinOp("!=", cas.x, cas.e1)),
@@ -118,7 +119,7 @@ object PreProcess {
         List(currBlock),
         true
       )
-      val before = new Block("before cas", List(), List(left, right))
+      val before = Block("before cas", List(), List(left, right))
       before
     case BinOp(_, _, _: CompareAndSwap) =>
       throw new Error("currently unsupported")
@@ -132,7 +133,7 @@ object PreProcess {
   def evalExp(exp: Expression): Expression = exp match {
     case cas: CompareAndSwap   => Id.tmpId
     case BinOp(op, arg1, arg2) => BinOp(op, evalExp(arg1), evalExp(arg2))
-    case PreOp(op, arg)        => evalExp(arg)
+    case PreOp(op, arg)        => PreOp(op, evalExp(arg))
     case _                     => exp
   }
 
@@ -177,7 +178,7 @@ object PreProcess {
     println("subgraph cluster_" + block.name + " {")
     println(s"""label = "${block.name} (${block.label})";""")
     for ((i, s) <- block.statements.indices.zip(block.statements))
-      println(s"""${block.name}${i} [label = \"${s.toString}"];""")
+      println(s"""${block.name}${i} [label = \"${s.getLine._2}: ${s.toString}"];""")
     if (block.statements.length > 0)
       println(
         block.statements.indices.map(i => block.name + i).mkString(" -> ") + ";"

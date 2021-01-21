@@ -1,6 +1,8 @@
 package wptool
 
-case class PredInfo(pred: Expression, stmt: Statement, label: String)
+case class PredInfo(pred: Expression, stmt: Stmt, label: String, path: List[String]) {
+  def this(pred: Expression, stmt: Stmt, label: String) = this(pred, stmt, label, List(stmt.blockName))
+}
 
 case class State(
     Qs: List[PredInfo],
@@ -115,7 +117,7 @@ object State {
 
     // TODO malformed probs insto the best
     State(
-      List(PredInfo(Const._true, EmptyStmt, "initial predicate")),
+      List(PredInfo(Const._true, EmptyStmt, "initial predicate", List("0"))),
       debug,
       silent,
       simplify,

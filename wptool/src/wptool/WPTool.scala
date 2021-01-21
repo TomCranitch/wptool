@@ -110,8 +110,8 @@ object WPTool {
 
     rgs += new RG(
       file,
-      rely.get.exp,
-      guar.get.exp,
+      rely.getOrElse(Rely(Const._true)).exp,
+      guar.getOrElse(Guar(Const._true)).exp,
       _state.arrRelys,
       _state.arrGuars
     )
@@ -163,9 +163,9 @@ object WPTool {
     val end = System.currentTimeMillis()
     val time = end - start
     if (time >= 1000) {
-      println("time: " + (time / 1000) + "s")
+      println(s"time: ${time / 1000}s ${time - (time / 1000) * 1000}ms")
     } else {
-      println("time: " + time + "ms")
+      println(s"time: ${time}ms")
     }
   }
 

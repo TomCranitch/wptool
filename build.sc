@@ -13,6 +13,7 @@ object wptool extends ScalaModule with ScalafmtModule {
         else Agg.from(ammonite.ops.ls(millSourcePath / "lib").map(PathRef(_)))
     }
 
+
     object test extends Tests {
         override def unmanagedClasspath: Target[Loose.Agg[PathRef]] = T {
             if (!os.exists(millSourcePath / os.up / "lib")) Agg()

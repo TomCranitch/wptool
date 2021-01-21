@@ -7,14 +7,14 @@ case class Global(
     gamma_0: Option[List[GammaMapping]],
     rely: Option[Rely],
     guarantee: Option[Guar],
-    statements: List[Statement]
+    statements: List[Stmt]
 ) extends beaver.Symbol {
-  def this(variables: Array[Definition], statements: Array[Statement]) =
+  def this(variables: Array[Definition], statements: Array[Stmt]) =
     this(variables.toSet, None, None, None, None, statements.toList)
   def this(
       variables: Array[Definition],
       gamma_0: Array[GammaMapping],
-      statements: Array[Statement]
+      statements: Array[Stmt]
   ) =
     this(
       variables.toSet,
@@ -28,7 +28,7 @@ case class Global(
       variables: Array[Definition],
       rely: Rely,
       guar: Guar,
-      statements: Array[Statement]
+      statements: Array[Stmt]
   ) =
     this(variables.toSet, None, None, Some(rely), Some(guar), statements.toList)
   def this(
@@ -36,7 +36,7 @@ case class Global(
       gamma_0: Array[GammaMapping],
       rely: Rely,
       guar: Guar,
-      statements: Array[Statement]
+      statements: Array[Stmt]
   ) =
     this(
       variables.toSet,

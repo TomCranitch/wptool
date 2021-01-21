@@ -79,7 +79,7 @@ package object wptool {
       simplify: Boolean
   ): Option[List[PredInfo]] =
     preds.filter(p => {
-      if (debug) println(s"passing ${p.stmt} ${p.label} to SMT")
+      if (debug) println(s"passing ${p.stmt.toStringWLine} ${p.label} along path ${p.path.mkString(", ")} to SMT")
       !SMT.prove(p.pred, List(), debug, simplify)
     }) match {
       case List() => None
@@ -118,7 +118,7 @@ package object wptool {
   def printFalseVcs(preds: List[PredInfo]) = {
     println("Failing VCs")
     preds.foreach(p => {
-      println(s"  ${p.stmt} (${p.stmt.line}): ${p.label}")
+      println(s"  ${p.stmt.toStringWLine}: ${p.label} along path ${p.path.mkString(", ")}")
       println(s"    ${p.pred}")
     })
   }

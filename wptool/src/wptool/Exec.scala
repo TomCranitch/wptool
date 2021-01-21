@@ -3,7 +3,7 @@ package wptool
 object Exec {
   @scala.annotation.tailrec
   def exec(
-      statements: List[Statement],
+      statements: List[Stmt],
       state: State,
       RG: Boolean = true
   ): State = statements match {
@@ -16,30 +16,33 @@ object Exec {
   def exec(block: Block, state: State): State =
     exec(block, state, !block.atomic)
 
-  def exec(stmt: Statement, state: State, RG: Boolean): State = stmt match {
-    case block: Block =>
-      val _state = exec(
-        block.statements,
-        joinStates(
-          block.children.map(c => {
-            val res = exec(c, state)
-            if (c.atomic)
-              // TODO change this to R implies
-              res.copy(Qs = res.Qs.map(q => q.copy(pred = rImplies(q.pred, state))))
-            else res
-          }),
-          state
-        ),
-        RG
-      )
-      _state
+  def exec(block: Block, state: State, RG: Boolean): State = {
+    val _state = exec(
+      block.statements,
+      joinStates(
+        block.children.map(c => {
+          val res = exec(c, state)
+          if (c.atomic)
+            // TODO change this to R implies
+            res.copy(Qs = res.Qs.map(q => q.copy(pred = rImplies(q.pred, state))))
+          else res
+        }),
+        state,
+        block.name
+      ),
+      RG
+    )
+    _state
+  }
+
+  def exec(stmt: Stmt, state: State, RG: Boolean): State = stmt match {
     case assume: Assume => evalWp(assume, state, RG).incPrimeIndicies
     case assert: Assert =>
       val _state = evalWp(assert, state, RG)
       if (assert.checkStableR)
         _state
           .addQs(
-            PredInfo(
+            new PredInfo(
               stableR(assert.expression, state),
               assert,
               "StableR"
@@ -49,7 +52,7 @@ object Exec {
       else
         _state
           .addQs(
-            PredInfo(
+            new PredInfo(
               eval(assert.expression, state),
               assert,
               "Assert"
@@ -67,7 +70,7 @@ object Exec {
           state.incPrimeIndicies
       }
 
-      _state.copy(Qs = List(PredInfo(Const._true, EmptyStmt, "initial havoc")))
+      _state.copy(Qs = List(new PredInfo(Const._true, EmptyStmt, "initial havoc")))
     case guard: Guard =>
       val _state = evalWp(guard, state, RG)
       if (RG) {
@@ -75,8 +78,8 @@ object Exec {
         val stabR = stableR(gamma, state)
         _state
           .addQs(
-            PredInfo(gamma, guard, "Gamma"),
-            PredInfo(stabR, guard, "StableR")
+            new PredInfo(gamma, guard, "Gamma"),
+            new PredInfo(stabR, guard, "StableR")
           )
           .incPrimeIndicies
       } else {
@@ -113,16 +116,16 @@ object Exec {
 
         _state
           .addQs(
-            PredInfo(rImplies(guarantee, state), assign, "Guarantee"),
-            PredInfo(rImplies(globalPred, state), assign, "Global"),
-            PredInfo(rImplies(controlPred, state), assign, "Control")
+            new PredInfo(rImplies(guarantee, state), assign, "Guarantee"),
+            new PredInfo(rImplies(globalPred, state), assign, "Global"),
+            new PredInfo(rImplies(controlPred, state), assign, "Control")
           )
           .incPrimeIndicies
       } else {
         _state
           .addQs(
-            PredInfo(globalPred, assign, "Global"),
-            PredInfo(controlPred, assign, "Control")
+            new PredInfo(globalPred, assign, "Global"),
+            new PredInfo(controlPred, assign, "Control")
           )
           .incPrimeIndicies
       }
@@ -167,22 +170,22 @@ object Exec {
 
         _state
           .addQs(
-            PredInfo(
+            new PredInfo(
               rImplies(guarantee, assign.lhs.index, state),
               assign,
               "Guarantee"
             ),
-            PredInfo(
+            new PredInfo(
               rImplies(globalPred, assign.lhs.index, state),
               assign,
               "Global"
             ),
-            PredInfo(
+            new PredInfo(
               rImplies(controlPred, assign.lhs.index, state),
               assign,
               "Control"
             ),
-            PredInfo(
+            new PredInfo(
               rImplies(gammaPred, assign.lhs.index, state),
               assign,
               "Index Gamma"
@@ -192,17 +195,17 @@ object Exec {
       } else {
         _state
           .addQs(
-            PredInfo(
+            new PredInfo(
               globalPred,
               assign,
               "Global"
             ),
-            PredInfo(
+            new PredInfo(
               controlPred,
               assign,
               "Control"
             ),
-            PredInfo(
+            new PredInfo(
               gammaPred,
               assign,
               "Index Gamma"
@@ -215,7 +218,7 @@ object Exec {
       state.incPrimeIndicies
   }
 
-  def evalWp(stmt: Statement, state: State, RG: Boolean) = {
+  def evalWp(stmt: Stmt, state: State, RG: Boolean) = {
     // if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = BinOp("&&", wp(Q.pred, stmt, state), stableR(wp(Q.pred, stmt, state), state)))))
     // TODO should use rImplies
     // is this even possible? if the rely is false then the whole expression becomes true
@@ -224,17 +227,17 @@ object Exec {
     // state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
   }
 
-  def wp(Q: Expression, stmt: Statement, state: State): Expression = {
+  def wp(Q: Expression, stmt: Stmt, state: State): Expression = {
     stmt match {
-      case Assume(exp) => BinOp("=>", eval(exp, state), Q)
-      case Guard(exp) =>
+      case Assume(exp, _) => BinOp("=>", eval(exp, state), Q)
+      case Guard(exp, _) =>
         val stabRB = stableR(exp, state)
         BinOp(
           "&&",
           BinOp("=>", BinOp("&&", eval(exp, state), stabRB), Q),
           BinOp("=>", PreOp("!", stabRB), eval(exp, state))
         )
-      case Assert(exp, checkStableR) =>
+      case Assert(exp, checkStableR, _) =>
         /* BinOp(
           "&&",
           eval(exp, state),
@@ -478,14 +481,14 @@ object Exec {
     )
   }
 
-  def joinStates(states: List[State], state: State) = {
+  def joinStates(states: List[State], state: State, blockName: String) = {
     val indicies = states.foldLeft(state.indicies) { (a, i) =>
       i.indicies.map { case (k, v) => k -> math.max(v, a.getOrElse(k, -1)) }
     }
 
     val preds = states
       .map(s => {
-        s.Qs
+        s.Qs.map(Q => Q.copy(path = Q.path :+ blockName))
         /*
         if (s.indicies == indicies) s.Qs
         else {

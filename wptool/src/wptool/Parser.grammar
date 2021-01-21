@@ -29,9 +29,9 @@
 %terminals ASG;
 %terminals COMMA, SEMICOLON;
 %terminals FORALL;
+%terminals ASSERT;
 
 %terminals CAS;
-%terminals FENCE, CFENCE;
 %terminals INVARIANT, GAMMA, GAMMA_0, RELY, GUAR;
 %terminals LPRED;
 %terminals MAPSTO;
@@ -65,7 +65,7 @@
 
 %typeof expr    = "Expression";
 
-%typeof local   = "Statement";
+%typeof local   = "Stmt";
 
 %typeof block  = "Block";
 
@@ -118,14 +118,15 @@ local
     //| RETURN expr.a SEMICOLON           {: return new Return(a); :}
     //| BREAK    SEMICOLON                {: return Break.self();  :}
     //| CONTINUE SEMICOLON                {: return Continue.self(); :}
-    | FENCE SEMICOLON                   {: return Fence.self();  :}
-    | CFENCE SEMICOLON                   {: return ControlFence.self();  :}
+    //| FENCE SEMICOLON                   {: return Fence.self();  :}
+    //| CFENCE SEMICOLON                   {: return ControlFence.self();  :}
     | IF LPAREN expr.a RPAREN block.b   {: return new If(a, b);  :}
     | IF LPAREN expr.a RPAREN block.b ELSE block.c     {: return new If(a, b, c);   :}
     | WHILE LPAREN expr.a RPAREN INVARIANT COLON expr.i block.b      {: return new While(a, i, b);   :}
     | WHILE LPAREN expr.a RPAREN block.b      {: return new While(a, b);   :}
     | WHILE LPAREN expr.a RPAREN INVARIANT COLON expr.i GAMMA COLON gamma_mappings.g block.b      {: return new While(a, i, g, b);   :}
     | DO INVARIANT COLON expr.i block.b WHILE LPAREN expr.a RPAREN    {: return new DoWhile(a, i, b);   :}
+    | ASSERT expr.e SEMICOLON {: return new Assert(e);   :}
     | error SEMICOLON {: return Malformed.self(); :}
     ;
 locals  = local *;

@@ -10,16 +10,12 @@ object SMT {
   val ctx = new z3.Context(cfg)
   val solver = ctx.mkSolver()
 
-  def simplify(cond: Expression) = {
+  def solverSimplify(cond: Expression, fast: Boolean) = {
     val g = ctx.mkGoal(true, false, false)
     g.add(formula(cond))
-    ctx.mkTactic("ctx-simplify").apply(g)
-  }
-
-  def solverSimplify(cond: Expression) = {
-    val g = ctx.mkGoal(true, false, false)
-    g.add(formula(cond))
-    ctx.mkTactic("ctx-solver-simplify").apply(g)
+    // ctx.mkTactic(if (fast) "simplify" else "ctx-solver-simplify").apply(g)
+    ctx.mkTactic("simplify").apply(g)
+    // ctx.mkTactic("solve-eqs").apply(g)
   }
 
   def prove(
@@ -60,7 +56,7 @@ object SMT {
         solver.pop()
       }
 
-    if (simplify && res == z3.Status.SATISFIABLE) println(solverSimplify(cond))
+    if (simplify && res == z3.Status.SATISFIABLE) println(solverSimplify(cond, false))
     // solverSimplify(cond).getSubgoals.map(g => println("val: " + translateBack(g.AsBoolExpr)))
 
     if (debug) {
@@ -74,7 +70,7 @@ object SMT {
             .mkString(", ") + "]"
         )
       }
-      println(solverSimplify(cond))
+      // println(solverSimplify(cond, true))
     }
     res == z3.Status.UNSATISFIABLE
   }

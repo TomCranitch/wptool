@@ -100,9 +100,10 @@ WS = {NL} | [ \t\f]
 //"for"       { return newToken(Terminals.FOR);      }
 "if"        { return newToken(Terminals.IF);       }
 "else"      { return newToken(Terminals.ELSE);     }
+"assert"      { return newToken(Terminals.ASSERT);     }
 
-"fence"     { return newToken(Terminals.FENCE);    }
-"cfence"     { return newToken(Terminals.CFENCE);    }
+//"fence"     { return newToken(Terminals.FENCE);    }
+//"cfence"     { return newToken(Terminals.CFENCE);    }
 "_L"       { return newToken(Terminals.LPRED);      }
 "_invariant" {return newToken(Terminals.INVARIANT);}
 "_Gamma" {return newToken(Terminals.GAMMA);}
