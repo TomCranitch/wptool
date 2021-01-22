@@ -45,15 +45,11 @@ if (h < t) {
 		_invariant: Gamma_r && Gamma_h && Gamma_t
 		{
 			r = z;
-		} while (r % 2 == 0)
+		} while (r % 2 == 1)
 
 		index = h % L;
 		level = levels[index];
-		if (level == 1) {
-			task = tasks[index];
-		} else {
-			task = -1; // fail
-		}
+		task = tasks[index];
 	} while (z != r)
 
 	if (CAS(head, h, h + 1) == 0) {

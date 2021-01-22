@@ -30,35 +30,29 @@ global var ret:
 _L: TRUE
 
 _Gamma_0: z -> LOW, r -> LOW
-_Rely: z' >= z
+_Rely: z' >= z // && 0 <= h && h <= 2
 _Guar: z == z'
 
 h = head;
 t = tail;
+task = 0;
 
-if (h < t) {
-	do 
-	_invariant: Gamma_r && Gamma_h && Gamma_t // && ((r == z) => Gamma_task)
-	{
-		do 
-		_invariant: Gamma_r && Gamma_h && Gamma_t // && ((r == z) => Gamma_task) && r <= z
-		{
-			r = z;
-		} while (r % 2 == 1)
+r = z;
 
-		level = levels[h % L];
-		if (level == 0) {
-			task = tasks[h % L];
-		} else {
-			task = -1; // fail
-		}
-	} while (z != r)
+if (h < t && r % 2 == 1) {
 
-	if (CAS(head, h, h + 1) == 0) {
+	level = levels[h % L];
+	if (level == 1) {
+		task = tasks[h % L];
+	} else {
+		task = -1; // fail
+	}
+
+	if (z != r || CAS(head, h, h + 1) == 0) {
 		task = -1; // fail
 	}
 } else {
 	task = 0; // empty
 }
 
-ret = task;
+// ret = task;

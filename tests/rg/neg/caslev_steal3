@@ -31,7 +31,7 @@ global var ret:
 _L: TRUE
 
 _Gamma_0: z -> LOW, r -> LOW
-_Rely: z' >= z
+_Rely: TRUE
 _Guar: z == z'
 
 h = head;
@@ -45,7 +45,7 @@ if (h < t) {
 		_invariant: Gamma_r && Gamma_h && Gamma_t
 		{
 			r = z;
-		} while (r % 2 == 0)
+		} while (r % 2 == 1)
 
 		index = h % L;
 		level = levels[index];

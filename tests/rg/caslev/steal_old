@@ -23,34 +23,38 @@ _Guar: levels[_i] == levels'[_i]
 local var t:
 local var h:
 local var r:
-local var index:
 local var level:
 local var task:
+local var index:
+
 
 global var ret:
 _L: TRUE
 
 _Gamma_0: z -> LOW, r -> LOW
-_Rely: z' >= z
+_Rely: z' >= z // && 0 <= h && h <= 2
 _Guar: z == z'
 
 h = head;
 t = tail;
+task = 0;
+
 
 if (h < t) {
 	do 
-	_invariant: Gamma_r && Gamma_h && Gamma_t
+	_invariant: Gamma_r && Gamma_h && Gamma_t //  && ((r == z) => Gamma_task)
 	{
+		r = z;
 		do 
-		_invariant: Gamma_r && Gamma_h && Gamma_t
+		_invariant: Gamma_r && Gamma_h && Gamma_t // && r <= z
+
 		{
 			r = z;
-		} while (r % 2 == 0)
+		} while (r % 2 == 1)
 
-		index = h % L;
-		level = levels[index];
+		level = levels[h % L];
 		if (level == 1) {
-			task = tasks[index];
+			task = tasks[h % L];
 		} else {
 			task = -1; // fail
 		}

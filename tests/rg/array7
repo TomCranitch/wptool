@@ -1,0 +1,21 @@
+global array a[2]:
+_L: TRUE
+_Rely: a[_i] == a'[_i]
+_Guar: (c == 1 && _i == 0) => (a[_i] == a'[_i])
+
+global var c:
+global var L:
+_L: TRUE
+
+global var i:
+_L: TRUE
+
+_Gamma_0: a -> LOW
+_Rely: c == c'
+_Guar: TRUE
+
+c = 0;
+a[i % L] = 1;
+a[(i + 2) % L] = 1;
+c = 1;
+a[i % L] = a[(i + 2)  % L];

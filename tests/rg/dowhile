@@ -1,0 +1,15 @@
+global var c:
+_L: TRUE
+
+_Gamma_0: c -> LOW
+_Rely: TRUE
+_Guar: TRUE
+
+do
+_invariant: c > 0
+{
+	c = 2;
+}
+while (c != 1) 
+
+c = 3;

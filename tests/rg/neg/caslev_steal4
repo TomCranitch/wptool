@@ -45,10 +45,10 @@ if (h < t) {
 		_invariant: Gamma_r && Gamma_h && Gamma_t
 		{
 			r = z;
-		} while (r % 2 == 0)
+		} while (r % 2 == 1)
 
 		index = h % L;
-		level = levels[index];
+		level = levels[index + 1];
 		if (level == 1) {
 			task = tasks[index];
 		} else {
