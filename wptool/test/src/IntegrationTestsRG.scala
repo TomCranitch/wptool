@@ -106,4 +106,11 @@ class IntegrationTestsRG extends AnyFunSuite {
     assert(!runTestFile(testNegDir + "seqlock_read_1"))
     assert(!runTestFile(testNegDir + "seqlock_read_2"))
   }
+
+  test("CasLev") {
+    assert(runTestFile(testDir + "caslev/put"))
+    assert(runTestFile(testDir + "caslev/steal"))
+    assert(runTestFile(testDir + "caslev/take"))
+
+  }
 }

@@ -295,9 +295,6 @@ object SMT {
       ctx.mkExists(bound.toArray map translate, translate(body), 0, scala.Array(), null, null, null)
      */
 
-    // array index
-    // case VarAccess(name, index) => ctx.mkSelect(ctx.mkArrayConst(name.toString, ctx.getIntSort, ctx.getIntSort), translate(index))
-
     case _ =>
       throw new Error(s"cannot translate to SMT $prop")
   }
