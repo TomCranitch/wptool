@@ -1,7 +1,7 @@
 package wptool
 
-case class PredInfo(pred: Expression, stmt: Stmt, label: String, path: List[String]) {
-  def this(pred: Expression, stmt: Stmt, label: String) = this(pred, stmt, label, List(stmt.blockName))
+case class PredInfo(pred: Expression[TBool], stmt: Stmt, label: String, path: List[String]) {
+  def this(pred: Expression[TBool], stmt: Stmt, label: String) = this(pred, stmt, label, List(stmt.blockName))
 }
 
 case class State(
@@ -9,18 +9,18 @@ case class State(
     debug: Boolean,
     silent: Boolean,
     simplify: Boolean,
-    controls: Set[Id],
-    controlled: Set[Id],
-    controlledBy: Map[Id, Set[Id]], // TODO check
-    L: Map[Id, Expression],
-    ids: Set[Id],
-    arrayIds: Set[Id],
-    globals: Set[Id],
-    rely: Expression,
-    guar: Expression,
-    arrRelys: Map[Id, Expression],
-    arrGuars: Map[Id, Expression],
-    indicies: Map[Id, Int],
+    controls: Set[Id[Type]],
+    controlled: Set[Id[Type]],
+    controlledBy: Map[Id[Type], Set[Id[Type]]], // TODO check
+    L: Map[Id[Type], Expression[TBool]],
+    ids: Set[Id[Type]],
+    arrayIds: Set[Id[Type]],
+    globals: Set[Id[Type]],
+    rely: Expression[TBool],
+    guar: Expression[TBool],
+    arrRelys: Map[Id[Type], Expression[TBool]],
+    arrGuars: Map[Id[Type], Expression[TBool]],
+    indicies: Map[Id[Type], Int],
     error: Boolean = false
 ) {
   def incPrimeIndicies =
@@ -30,7 +30,7 @@ case class State(
         .map(x => (x._1, x._2 + 1))
         .toMap
     )
-  def incGamma(id: Id) =
+  def incGamma(id: Id[TBool]) =
     this.copy(indicies = indicies + (id -> (indicies.getOrElse(id, -1) + 1)))
   def addQs(Qss: PredInfo*) = this.copy(Qs = Qs ::: Qss.toList)
   def addQs(Qss: List[PredInfo]) = this.copy(Qs = Qs ::: Qss)
@@ -109,7 +109,6 @@ object State {
       println("controlled by: " + controlledBy)
     }
 
-    val subst = ids.map(id => id -> id.toPrime).toMap[Id, Expression]
     val _guar = guar.getOrElse(Guar(Const._true)).exp
     val _rely = rely.getOrElse(Rely(Const._true)).exp
 

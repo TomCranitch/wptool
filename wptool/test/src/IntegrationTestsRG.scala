@@ -113,4 +113,14 @@ class IntegrationTestsRG extends AnyFunSuite {
     assert(runTestFile(testDir + "caslev/take"))
 
   }
+
+  test("CasLev (Negative)") {
+    assert(!runTestFile(testNegDir + "caslev_steal1"))
+    assert(!runTestFile(testNegDir + "caslev_steal2"))
+    assert(!runTestFile(testNegDir + "caslev_steal3"))
+    assert(!runTestFile(testNegDir + "caslev_steal4"))
+    assert(!runTestFile(testNegDir + "caslev_put1"))
+    assert(!runTestFile(testNegDir + "caslev_put2"))
+    assert(!runTestFile(testNegDir + "caslev_put3"))
+  }
 }

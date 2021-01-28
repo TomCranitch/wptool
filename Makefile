@@ -22,7 +22,7 @@ check-dependencies:
 	$(MILL) mill.scalalib.Dependency/updates
 
 test: all
-	$(MILL) wptool.test
+	$(MILL) wptool.test -oD
 
 $(WPTOOL_LAUNCHER): wptool/src/wptool/*.scala
 	@echo $@

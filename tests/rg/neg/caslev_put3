@@ -29,7 +29,7 @@ global var level:
 _L: TRUE
 
 _Gamma_0: z -> LOW
-_Rely: z == z' && task == task' && level == level' && L == L'
+_Rely: z == z' && task == task' && level == level'
 _Guar: z' >= z
 
 if (z % 2 == 1) {

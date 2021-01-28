@@ -38,7 +38,7 @@ if (z % 2 == 1) {
 
 t = tail;
 z = z + 1;
-levels[t % L] = level;
+levels[t % L] = 1;
 tasks[t % L] = task;
 z = z + 1;
 tail = t + 1;

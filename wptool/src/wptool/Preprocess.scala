@@ -1,5 +1,7 @@
 package wptool
 
+import reflect.runtime.universe.{typeOf}
+
 object PreProcess {
   def process(statements: List[Stmt], state: State): Block = {
     Block.resetNames
@@ -25,7 +27,7 @@ object PreProcess {
 
   private def exec(stmt: Stmt, state: State, currBlock: Block): Block =
     stmt match {
-      case assign: Assignment =>
+      case assign: Assignment[_] =>
         evalBlock(
           assign.expression,
           currBlock.prepend(

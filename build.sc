@@ -20,7 +20,8 @@ object wptool extends ScalaModule with ScalafmtModule {
 	)
 
     override def ivyDeps = Agg(
-        ivy"org.sosy-lab:java-smt:3.7.0"
+        ivy"org.sosy-lab:java-smt:3.7.0",
+		ivy"org.scala-lang:scala-reflect:2.13.3"
     )
 
 

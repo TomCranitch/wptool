@@ -10,7 +10,7 @@ object SMT {
   val ctx = new z3.Context(cfg)
   val solver = ctx.mkSolver()
 
-  def solverSimplify(cond: Expression, fast: Boolean) = {
+  def solverSimplify(cond: Expression[TBool], fast: Boolean) = {
     val g = ctx.mkGoal(true, false, false)
     g.add(formula(cond))
     // ctx.mkTactic(if (fast) "simplify" else "ctx-solver-simplify").apply(g)
@@ -19,8 +19,8 @@ object SMT {
   }
 
   def prove(
-      cond: Expression,
-      given: List[Expression],
+      cond: Expression[TBool],
+      given: List[Expression[TBool]],
       debug: Boolean,
       simplify: Boolean,
       expectIds: Boolean = false
@@ -75,14 +75,14 @@ object SMT {
     res == z3.Status.UNSATISFIABLE
   }
 
-  def formula(prop: Expression, expectIds: Boolean = false): z3.BoolExpr =
+  def formula(prop: Expression[TBool], expectIds: Boolean = false): z3.BoolExpr =
     translate(prop, expectIds) match {
       case b: z3.BoolExpr => b
       case e =>
         throw error.InvalidProgram("not a boolean expression", prop, e)
     }
 
-  def arith(prop: Expression, expectIds: Boolean = false): z3.IntExpr =
+  def arith(prop: Expression[TInt], expectIds: Boolean = false): z3.IntExpr =
     translate(prop, expectIds) match {
       case arith: z3.IntExpr => arith
       // treating bit vectors as unsigned
@@ -91,7 +91,7 @@ object SMT {
         throw error.InvalidProgram("not an arithmetic expression", prop, e)
     }
 
-  def bitwise(prop: Expression, expectIds: Boolean = false): z3.BitVecExpr =
+  def bitwise(prop: Expression[TInt], expectIds: Boolean = false): z3.BitVecExpr =
     translate(prop, expectIds) match {
       case bitVec: z3.BitVecExpr => bitVec
       case arith: z3.IntExpr     => ctx.mkInt2BV(intSize, arith)
@@ -109,7 +109,8 @@ object SMT {
 
   // TODO AND/OR can have multiple args
   // TODO can other operations have multiple args
-  def translateBack(exp: z3.Expr): Expression =
+  /*
+  def translateBack(exp: z3.Expr): Expression[TBool] =
     exp.getFuncDecl.getDeclKind match {
       case Z3_decl_kind.Z3_OP_TRUE  => Const._true
       case Z3_decl_kind.Z3_OP_FALSE => Const._false
@@ -134,26 +135,27 @@ object SMT {
           s"Unexpected exp ${exp} of kind ${exp.getFuncDecl.getDeclKind}"
         )
     }
+   */
 
-  def getArray(store: Expression): z3.ArrayExpr = store match {
-    case a: VarAccess =>
+  def getArray[T](store: Expression[T]): z3.ArrayExpr = store match {
+    case a: VarAccess[T] =>
       ctx.mkArrayConst(
         a.name.toString,
         ctx.getIntSort,
         if (a.ident.gamma) ctx.getBoolSort else ctx.getIntSort
       )
-    case a: VarStore => getArray(a.array)
-    case _           => throw new Error("Unexpected statement in VarStore")
+    case a: VarStore[T] => getArray(a.array)
+    case _              => throw new Error("Unexpected statement in VarStore")
   }
 
   // TODO i think the name should come from the inner load not from the store
-  def handleStore(
-      store: Expression,
+  def handleStore[T](
+      store: Expression[T],
       arr: z3.ArrayExpr,
       expectIds: Boolean
   ): z3.Expr = store match {
-    case a: VarAccess => ctx.mkSelect(arr, translate(a.index, expectIds))
-    case a: VarStore =>
+    case a: VarAccess[T] => ctx.mkSelect(arr, translate(a.index, expectIds))
+    case a: VarStore[T] =>
       handleStore(
         a.array,
         ctx.mkStore(
@@ -176,14 +178,18 @@ object SMT {
     case Lit(n: Int) => ctx.mkInt(n)
 
     case Var(Id.indexId, _, _) => throw new Error("Unsubstituted index")
-    case x: Var =>
+    case x: Var[TBool] =>
       if (expectIds) throw new Error("Program ids should not be resolved")
-      if (x.ident.gamma) ctx.mkConst(x.toString, ctx.getBoolSort)
-      else ctx.mkConst(x.toString, ctx.getIntSort)
-    case x: Id =>
+      ctx.mkConst(x.toString, ctx.getBoolSort)
+    case x: Var[TInt] =>
+      if (expectIds) throw new Error("Program ids should not be resolved")
+      ctx.mkConst(x.toString, ctx.getIntSort)
+    case x: Id[TBool] =>
       if (!expectIds) throw new Error("unresolved id")
-      if (x.gamma) ctx.mkConst(x.toString, ctx.getBoolSort)
-      else ctx.mkConst(x.toString, ctx.getIntSort)
+      ctx.mkConst(x.toString, ctx.getBoolSort)
+    case x: Id[TInt] =>
+      if (!expectIds) throw new Error("unresolved id")
+      ctx.mkConst(x.toString, ctx.getIntSort)
 
     // TODO can these cases be merged together
     case x: VarAccess =>
@@ -231,8 +237,15 @@ object SMT {
     case BinOp("||", arg1, arg2) =>
       ctx.mkOr(formula(arg1, expectIds), formula(arg2, expectIds))
 
-    case BinOp("=>", arg1, arg2) =>
+    case BinOp[TBool, TBool]("=>", arg1, arg2) =>
       ctx.mkImplies(formula(arg1, expectIds), formula(arg2, expectIds))
+
+    case BinOp[TInt, TBool]("==", arg1, arg2) =>
+      ctx.mkEq(translate(arg1, expectIds), translate(arg2, expectIds))
+    case BinOp("!=", arg1, arg2) =>
+      ctx.mkNot(
+        ctx.mkEq(translate(arg1, expectIds), translate(arg2, expectIds))
+      )
 
     case PreOp("-", arg) => ctx.mkUnaryMinus(arith(arg))
     case BinOp("+", arg1, arg2) =>
@@ -255,6 +268,7 @@ object SMT {
     case BinOp(">", arg1, arg2) =>
       ctx.mkGt(arith(arg1, expectIds), arith(arg2, expectIds))
 
+    /*
     case BinOp("|", arg1, arg2) =>
       ctx.mkBVOR(bitwise(arg1, expectIds), bitwise(arg2, expectIds))
     case BinOp("&", arg1, arg2) =>
@@ -270,13 +284,7 @@ object SMT {
       ctx.mkBVASHR(bitwise(arg1, expectIds), bitwise(arg2, expectIds))
     case BinOp("<<", arg1, arg2) =>
       ctx.mkBVSHL(bitwise(arg1, expectIds), bitwise(arg2, expectIds))
-
-    case Question(test, arg1, arg2) =>
-      ctx.mkITE(
-        formula(test, expectIds),
-        translate(arg1, expectIds),
-        translate(arg2, expectIds)
-      )
+     */
 
     // boundConstraints, body, 0, scala.Arry(), null, null, null
     case ForAll(bound, body) =>

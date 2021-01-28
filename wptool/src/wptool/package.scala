@@ -14,7 +14,7 @@ package object wptool {
 
   // TODO this doesnt feel like the best way to do this
   // Either[substitution, (index, substitution)]
-  type Subst = Map[Var, Either[Expression, (Expression, Expression)]]
+  type Subst = Map[Var[Type], Either[Expression[Type], (Expression[TInt], Expression[Type])]]
 
   val sub = "₀₁₂₃₄₅₆₇₈₉"
   implicit class StringOps(self: String) {
@@ -37,15 +37,15 @@ package object wptool {
   val newline = """
       |""".stripMargin
 
-  implicit class PToString(P: List[Expression]) {
+  implicit class PToString(P: List[Expression[TBool]]) {
     def PStr: String = P.mkString(" &&" + newline + "   ")
   }
 
-  implicit class GammaToString(gamma: Map[Id, Security]) {
+  implicit class GammaToString(gamma: Map[Id[TBool], Security]) {
     def gammaStr = gamma.mkString(", ")
   }
 
-  def constructMutliOp(op: String, exprs: List[Expression]): Expression =
+  def constructMutliOp(op: String, exprs: List[Expression[TBool]]): Expression[TBool] =
     exprs match {
       case expr :: Nil => expr
       case expr :: rest =>
@@ -53,13 +53,13 @@ package object wptool {
       case Nil => Const._true
     }
 
-  def constructForall(exprs: List[Expression]): Expression = exprs match {
+  def constructForall(exprs: List[Expression[TBool]]): Expression[TBool] = exprs match {
     case expr :: Nil => expr
     case expr :: rest =>
       BinOp("&&", expr, constructForall(rest))
     case Nil => Const._true
   }
-  def constructForallOpt(exprs: List[Option[Expression]]): Expression =
+  def constructForallOpt(exprs: List[Option[Expression[TBool]]]): Expression[TBool] =
     exprs match {
       case Some(expr) :: Nil  => expr
       case None :: Nil        => Const._true
@@ -68,9 +68,9 @@ package object wptool {
       case Nil                => Const._true
     }
 
-  def constructForall(exprs: Expression*): Expression =
+  def constructForall(exprs: Expression[TBool]*): Expression[TBool] =
     constructForall(exprs.toList)
-  def constructForallOpt(exprs: Option[Expression]*): Expression =
+  def constructForallOpt(exprs: Option[Expression[TBool]]*): Expression[TBool] =
     constructForallOpt(exprs.toList)
 
   def checkVcs(
@@ -103,7 +103,7 @@ package object wptool {
   def checkVcs(
       preds: List[PredInfo],
       gammas: Subst,
-      arrayGamma: Expression,
+      arrayGamma: Expression[TBool],
       debug: Boolean,
       simplify: Boolean
   ): Option[List[PredInfo]] =
