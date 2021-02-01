@@ -42,35 +42,39 @@ object State {
       debug: Boolean,
       silent: Boolean,
       simplify: Boolean,
-      gamma_0: Option[List[GammaMapping]],
+      gamma_0: Option[List[GammaMapping[Type]]],
       rely: Option[Rely],
       guar: Option[Guar]
   ): State = {
-    var controls: Set[Id] = Set()
-    var controlled: Set[Id] = Set()
-    var controlledBy: Map[Id, Set[Id]] = Map()
+    var controls: Set[Id[Type]] = Set()
+    var controlled: Set[Id[Type]] = Set()
+    var controlledBy: Map[Id[Type], Set[Id[Type]]] = Map()
 
-    val arrayIds = definitions collect { case a: ArrayDef =>
+    val arrayIds = definitions collect { case a: ArrayDef[_] =>
       a.toVarDefs.name
     }
 
-    val arrRelys = definitions.collect { case a: ArrayDef =>
-      a.toVarDefs.name -> a.rely.exp
-    }.toMap
+    val arrRelys = definitions
+      .collect { case a: ArrayDef[_] =>
+        a.toVarDefs.name -> a.rely.exp
+      }
+      .toMap[Id[Type], Expression[TBool]]
 
-    val arrGuars = definitions.collect { case a: ArrayDef =>
-      a.toVarDefs.name -> a.guar.exp
-    }.toMap
+    val arrGuars = definitions
+      .collect { case a: ArrayDef[_] =>
+        a.toVarDefs.name -> a.guar.exp
+      }
+      .toMap[Id[Type], Expression[TBool]]
 
-    val variables: Set[VarDef] = definitions map {
-      case a: ArrayDef => a.toVarDefs
-      case v: VarDef   => v
+    val variables: Set[VarDef[Type]] = definitions map {
+      case a: ArrayDef[_] => a.toVarDefs
+      case v: VarDef[_]   => v
     }
 
-    val ids: Set[Id] = { for (v <- variables) yield v.name }
+    val ids: Set[Id[Type]] = { for (v <- variables) yield v.name }
 
     for (v <- variables) {
-      val controlling: Set[Id] = v.pred.ids
+      val controlling: Set[Id[Type]] = v.pred.ids
 
       if (controlling.nonEmpty) {
         controlled += v.name
@@ -93,7 +97,7 @@ object State {
     }
 
     // init L - map variables to their L predicates
-    val L: Map[Id, Expression] = {
+    val L: Map[Id[Type], Expression[TBool]] = {
       for (v <- variables) yield {
         if (v.access == GlobalVar) v.name -> v.pred
         else v.name -> Const._false
@@ -112,7 +116,7 @@ object State {
     val _guar = guar.getOrElse(Guar(Const._true)).exp
     val _rely = rely.getOrElse(Rely(Const._true)).exp
 
-    val primeIndicies = (ids ++ arrayIds).map(x => x.toPrime -> 0).toMap ++ (ids ++ arrayIds).map(x => x -> 0).toMap
+    val primeIndicies = ((ids ++ arrayIds).map(x => x.toPrime -> 0) ++ (ids ++ arrayIds).map(x => x -> 0)).toMap
 
     // TODO malformed probs insto the best
     State(

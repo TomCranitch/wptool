@@ -3,6 +3,7 @@ package wptool
 import com.microsoft.z3
 import com.microsoft.z3.BoolExpr
 import com.microsoft.z3.enumerations.Z3_decl_kind
+import scala.reflect.runtime.universe.{TypeTag, typeOf}
 
 object SMT {
   val intSize = 32 // size of bitvectors used
@@ -51,7 +52,8 @@ object SMT {
             "incorrect z3 expression type, probably involving ForAll/Exists"
           )
         case e: Throwable =>
-          throw error.Z3Error("Z3 failed", cond, given.PStr, e)
+          // throw error.Z3Error("Z3 failed", cond, given.PStr, e)
+          throw e
       } finally {
         solver.pop()
       }
@@ -75,14 +77,15 @@ object SMT {
     res == z3.Status.UNSATISFIABLE
   }
 
-  def formula(prop: Expression[TBool], expectIds: Boolean = false): z3.BoolExpr =
+  // TODO put in proper types
+  def formula(prop: Expression[Type], expectIds: Boolean = false): z3.BoolExpr =
     translate(prop, expectIds) match {
       case b: z3.BoolExpr => b
       case e =>
         throw error.InvalidProgram("not a boolean expression", prop, e)
     }
 
-  def arith(prop: Expression[TInt], expectIds: Boolean = false): z3.IntExpr =
+  def arith(prop: Expression[Type], expectIds: Boolean = false): z3.IntExpr =
     translate(prop, expectIds) match {
       case arith: z3.IntExpr => arith
       // treating bit vectors as unsigned
@@ -107,37 +110,7 @@ object SMT {
     Id(n, prime, gamma, false) // NOTE: if we need to use this well need to detect nought as well
   }
 
-  // TODO AND/OR can have multiple args
-  // TODO can other operations have multiple args
-  /*
-  def translateBack(exp: z3.Expr): Expression[TBool] =
-    exp.getFuncDecl.getDeclKind match {
-      case Z3_decl_kind.Z3_OP_TRUE  => Const._true
-      case Z3_decl_kind.Z3_OP_FALSE => Const._false
-      case Z3_decl_kind.Z3_OP_LABEL =>
-        parseVarName(exp.getFuncDecl.getName.toString)
-      case Z3_decl_kind.Z3_OP_ANUM =>
-        // TODO this is so dodge
-        Lit(exp.toString.toInt)
-      case Z3_decl_kind.Z3_OP_AND =>
-        constructMutliOp("&&", exp.getArgs.map(a => translateBack(a)).toList)
-      case Z3_decl_kind.Z3_OP_OR =>
-        constructMutliOp("||", exp.getArgs.map(a => translateBack(a)).toList)
-      case Z3_decl_kind.Z3_OP_EQ =>
-        BinOp(
-          "==",
-          translateBack(exp.getArgs()(0)),
-          translateBack(exp.getArgs()(1))
-        )
-      case Z3_decl_kind.Z3_OP_NOT => PreOp("!", translateBack(exp.getArgs()(0)))
-      case _ =>
-        throw new Error(
-          s"Unexpected exp ${exp} of kind ${exp.getFuncDecl.getDeclKind}"
-        )
-    }
-   */
-
-  def getArray[T](store: Expression[T]): z3.ArrayExpr = store match {
+  def getArray[T <: Type](store: Expression[T]): z3.ArrayExpr = store match {
     case a: VarAccess[T] =>
       ctx.mkArrayConst(
         a.name.toString,
@@ -149,7 +122,7 @@ object SMT {
   }
 
   // TODO i think the name should come from the inner load not from the store
-  def handleStore[T](
+  def handleStore[T <: Type](
       store: Expression[T],
       arr: z3.ArrayExpr,
       expectIds: Boolean
@@ -161,7 +134,8 @@ object SMT {
         ctx.mkStore(
           arr,
           translate(a.index, expectIds),
-          translate(a.exp, expectIds)
+          // TODO  Type?
+          translate[Type](a.exp, expectIds)
         ),
         expectIds
       )
@@ -171,35 +145,42 @@ object SMT {
   /* currently doing all arithmetic operations on ints - may want to switch to bitvectors
    and bitwise arithmetic operations for better simulation of the assembly semantics if this ends up being important
   https://z3prover.github.io/api/html/classcom_1_1microsoft_1_1z3_1_1_context.html */
-  def translate(prop: Expression, expectIds: Boolean): z3.Expr = prop match {
+  def translate[T <: Type](prop: Expression[T], expectIds: Boolean)(implicit typeTag: TypeTag[T]): z3.Expr = prop match {
     case Const._true  => ctx.mkTrue
     case Const._false => ctx.mkFalse
 
     case Lit(n: Int) => ctx.mkInt(n)
 
-    case Var(Id.indexId, _, _) => throw new Error("Unsubstituted index")
-    case x: Var[TBool] =>
+    // TODO: case Var(Id.indexId, _, _) => throw new Error("Unsubstituted index")
+    case x: Var[_] =>
       if (expectIds) throw new Error("Program ids should not be resolved")
-      ctx.mkConst(x.toString, ctx.getBoolSort)
-    case x: Var[TInt] =>
-      if (expectIds) throw new Error("Program ids should not be resolved")
-      ctx.mkConst(x.toString, ctx.getIntSort)
-    case x: Id[TBool] =>
-      if (!expectIds) throw new Error("unresolved id")
-      ctx.mkConst(x.toString, ctx.getBoolSort)
-    case x: Id[TInt] =>
-      if (!expectIds) throw new Error("unresolved id")
-      ctx.mkConst(x.toString, ctx.getIntSort)
+      typeOf[T] match {
+        case t if typeOf[TInt] =:= typeOf[T]  => ctx.mkConst(x.toString, ctx.getIntSort)
+        case t if typeOf[TBool] =:= typeOf[T] => ctx.mkConst(x.toString, ctx.getBoolSort)
+        case _ =>
+          println(s"$x is of type ${typeOf[T]}")
+          ctx.mkConst(x.toString, ctx.getIntSort)
+      }
+    case x: Id[_] =>
+      if (expectIds) throw new Error("Unresolved id")
+      typeOf[T] match {
+        case t if typeOf[TInt] =:= typeOf[T]  => ctx.mkConst(x.toString, ctx.getIntSort)
+        case t if typeOf[TBool] =:= typeOf[T] => ctx.mkConst(x.toString, ctx.getBoolSort)
+        case _ =>
+          println(s"$x is of type ${typeOf[T]}")
+          ctx.mkConst(x.toString, ctx.getIntSort)
+      }
 
     // TODO can these cases be merged together
-    case x: VarAccess =>
+    case x: VarAccess[_] =>
       if (expectIds) throw new Error("Program ids should not be resolved")
+      // TODO this is incorrect
       val sort = if (x.name.ident.gamma) ctx.getBoolSort else ctx.getIntSort
       ctx.mkSelect(
         ctx.mkArrayConst(x.name.toString, ctx.getIntSort, sort),
         translate(x.index, expectIds)
       )
-    case x: IdAccess =>
+    case x: IdAccess[_] =>
       if (!expectIds) throw new Error("unresolved array id")
       val sort = if (x.ident.gamma) ctx.getBoolSort else ctx.getIntSort
       ctx.mkSelect(
@@ -207,14 +188,14 @@ object SMT {
         translate(x.index, expectIds)
       )
 
-    case store: VarStore =>
+    case store: VarStore[T] =>
       handleStore(
         store,
         getArray(store),
         expectIds
       )
 
-    case const: ArrayConstDefault =>
+    case const: ArrayConstDefault[T] =>
       // TODO i dont think this is correct (https://stackoverflow.com/questions/54863754/z3-set-default-value-of-array-to-zero)
       if (const.name.ident.gamma)
         ctx.mkEq(
@@ -237,10 +218,10 @@ object SMT {
     case BinOp("||", arg1, arg2) =>
       ctx.mkOr(formula(arg1, expectIds), formula(arg2, expectIds))
 
-    case BinOp[TBool, TBool]("=>", arg1, arg2) =>
+    case BinOp("=>", arg1, arg2) =>
       ctx.mkImplies(formula(arg1, expectIds), formula(arg2, expectIds))
 
-    case BinOp[TInt, TBool]("==", arg1, arg2) =>
+    case BinOp("==", arg1, arg2) =>
       ctx.mkEq(translate(arg1, expectIds), translate(arg2, expectIds))
     case BinOp("!=", arg1, arg2) =>
       ctx.mkNot(

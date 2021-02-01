@@ -86,7 +86,6 @@ object Exec {
         _state.incPrimeIndicies
       }
     case ass: Assignment[_] =>
-      // TODO i dont like this
       val assign = ass.asInstanceOf[Assignment[Type]]
       val globalPred =
         if (state.globals.contains(assign.lhs))
@@ -308,8 +307,8 @@ object Exec {
     Var(Id(name, false, false, false), 0, t)
   }
 
-  def getBaseArrays(vars: Set[VarAccess[Type]]): Set[VarAccess[Type]] = vars.map { case VarAccess[T](Var(Id(name, _, _, _), _, t), index) =>
-    VarAccess[T](Var(Id(name, false, false, false), 0, t), index)
+  def getBaseArrays(vars: Set[VarAccess[Type]]): Set[VarAccess[Type]] = vars.map { case VarAccess(Var(Id(name, _, _, _), _, t), index) =>
+    VarAccess(Var(Id(name, false, false, false), 0, t), index)
   }
 
   def getRely(exp: Expression[Type], state: State) = {
@@ -428,7 +427,7 @@ object Exec {
     )
 
   def rImplies(p: Expression[TBool], index: Expression[TInt], state: State) =
-    eval(
+    eval[TBool](
       BinOp(
         "=>",
         getRely(p, state).subst(Map(Id.indexId.toVar(state) -> Left(index))),
@@ -438,11 +437,12 @@ object Exec {
     )
 
   def guar(a: Assignment[Type], state: State) = {
-    val guar = eval(state.guar, state)
+    val guar = eval[TBool](state.guar, state)
     val vars = getBaseVars(guar.vars ++ guar.arrays.map(a => a.name))
     val subst = vars.map(v => List(v -> Left(v.toNought), v.toPrime(state) -> Left(v))).flatten.toMap
     val gPrime = guar.subst(subst)
-    val _subst = vars.map(v => v.toNought -> Left(v)).toMap
+    // TODO
+    val _subst = vars.map(v => v.toNought.asInstanceOf[Var[Type]] -> Left(v)).toMap
     wp(gPrime, a, state).subst(_subst)
   }
 
@@ -460,7 +460,7 @@ object Exec {
     val vars = getBaseVars(guar.vars ++ guar.arrays.map(a => a.name))
     val subst = vars.map(v => List(v -> Left(v.toNought), v.toPrime(state) -> Left(v))).flatten.toMap
     val gPrime = guar.subst(subst)
-    val _subst = vars.map(v => v.toNought -> Left(v)).toMap
+    val _subst = vars.map(v => v.toNought.asInstanceOf[Var[Type]] -> Left(v)).toMap
     wp(gPrime, a, state).subst(_subst)
   }
 
@@ -477,8 +477,8 @@ object Exec {
         .toList ++
         expEval.arrays
           .map(a => {
-            val subst = Map(Id.indexId.toVar(state) -> Left(eval(a.index, state)))
-            eval(
+            val subst = Map[Var[Type], Left[Expression[Type], Nothing]](Id.indexId.toVar(state) -> Left(eval[TInt](a.index, state)))
+            eval[TBool](
               BinOp("||", a.toGamma(state), getL(a.ident, state)).subst(subst),
               state
             ) // Default to high

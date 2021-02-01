@@ -27,14 +27,18 @@ object PreProcess {
 
   private def exec(stmt: Stmt, state: State, currBlock: Block): Block =
     stmt match {
-      case assign: Assignment[_] =>
+      // TODO to get types for evalExp need to perform a match
+      case ass: Assignment[_] =>
+        val assign = ass.asInstanceOf[Assignment[Type]]
+        // TODO typeOf(assign) // TODO
         evalBlock(
           assign.expression,
           currBlock.prepend(
             assign.copy(expression = evalExp(assign.expression))
           )
         )
-      case assign: ArrayAssignment =>
+      case ass: ArrayAssignment[_] =>
+        val assign = ass.asInstanceOf[ArrayAssignment[Type]]
         evalBlock(
           assign.expression,
           currBlock.prepend(
@@ -99,7 +103,7 @@ object PreProcess {
         currBlock.prepend(Malformed)
     }
 
-  def evalBlock(exp: Expression, currBlock: Block): Block = exp match {
+  def evalBlock(exp: Expression[Type], currBlock: Block): Block = exp match {
     case cas: CompareAndSwap =>
       val tmp = Id.tmpId
       val left = Block(
@@ -132,7 +136,7 @@ object PreProcess {
     case _              => currBlock
   }
 
-  def evalExp(exp: Expression): Expression = exp match {
+  def evalExp[T <: Type](exp: Expression[T]): Expression[T] = exp match {
     case cas: CompareAndSwap   => Id.tmpId
     case BinOp(op, arg1, arg2) => BinOp(op, evalExp(arg1), evalExp(arg2))
     case PreOp(op, arg)        => PreOp(op, evalExp(arg))

@@ -6,7 +6,7 @@ trait Type
 trait TBool extends Type
 trait TInt extends Type
 
-trait Expression[+T <: TypeTag[Type]] extends beaver.Symbol {
+trait Expression[+T <: Type] extends beaver.Symbol {
   // returns all vars in the expression, does NOT include array indices
   def vars: Set[Var[Type]]
   // returns all vars in the expression, does NOT include array indices
@@ -23,13 +23,13 @@ case class Lit(arg: Int) extends Expression[TInt] {
   override def subst(su: Subst): Lit = this
 }
 
-trait Identifier[T] extends Expression[T] {
+trait Identifier[+T <: Type] extends Expression[T] {
   def toPrime: Identifier[T]
   def toGamma: Identifier[TBool]
   def toVar(state: State): Variable[T]
 }
 
-trait Variable[T] extends Expression[T] {
+trait Variable[+T <: Type] extends Expression[T] {
   def toPrime(state: State): Variable[T]
   def toGamma(state: State): Variable[TBool]
   def toNought: Variable[T]
@@ -56,6 +56,7 @@ case class Id[+T <: Type](name: String, prime: Boolean, gamma: Boolean, nought: 
 }
 
 object Id {
+  val tmpId = Id[TBool]("tmp", false, false, false)
   val indexId = Id[TInt]("_i", false, false, false)
 }
 
@@ -80,7 +81,7 @@ case class Var[+T <: Type](ident: Id[T], index: Int, tmp: Boolean = false) exten
     this.copy(index = this.ident.getIndex(state))
 }
 
-case class IdAccess[T <: Type](ident: Id[T], index: Expression[TInt]) extends Expression[T] with Identifier[T] {
+case class IdAccess[+T <: Type](ident: Id[T], index: Expression[TInt]) extends Expression[T] with Identifier[T] {
   def this(name: String, index: Expression[TInt]) = this(Id[T](name, false, false, false), index)
   def this(name: String, prime: Boolean, gamma: Boolean, index: Expression[TInt]) = this(Id[T](name, prime, gamma, false), index)
   def vars = index.vars

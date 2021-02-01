@@ -61,7 +61,7 @@ object Block {
 
 }
 
-case class Assignment[T](lhs: Id[T], expression: Expression[T], line: (String, Int)) extends Stmt(line) {
+case class Assignment[T <: Type](lhs: Id[T], expression: Expression[T], line: (String, Int)) extends Stmt(line) {
   def this(lhs: String, expression: Expression[T]) =
     this(new Id(lhs, false, false, false), expression, ("", -1))
   override def toString: String = lhs + " = " + expression
@@ -71,10 +71,10 @@ case class Assignment[T](lhs: Id[T], expression: Expression[T], line: (String, I
 }
 
 object Assignment {
-  def apply[T](lhs: Id[T], expression: Expression[T]) = new Assignment[T](lhs, expression, ("", -1))
+  def apply[T <: Type](lhs: Id[T], expression: Expression[T]) = new Assignment[T](lhs, expression, ("", -1))
 }
 
-case class ArrayAssignment[T](lhs: IdAccess[T], expression: Expression[T], line: (String, Int)) extends Stmt(line) {
+case class ArrayAssignment[T <: Type](lhs: IdAccess[T], expression: Expression[T], line: (String, Int)) extends Stmt(line) {
   def this(name: String, index: Expression[TInt], expression: Expression[T]) =
     this(new IdAccess(new Id(name, false, false, false), index), expression, ("", -1))
   override def toString: String =
@@ -133,21 +133,20 @@ object Guard {
 case class While(
     test: Expression[TBool],
     invariant: Expression[TBool],
-    gamma: List[GammaMapping],
-    nonblocking: Option[Set[Id]],
+    gamma: List[GammaMapping[Type]],
     body: Block,
     line: (String, Int)
 ) extends Stmt(line) {
   def this(test: Expression[TBool], body: Block) =
-    this(test, Const._true, List(), None, body, ("", -1))
+    this(test, Const._true, List(), body, ("", -1))
   def this(test: Expression[TBool], invariant: Expression[TBool], body: Block) =
-    this(test, invariant, List(), None, body, ("", -1))
+    this(test, invariant, List(), body, ("", -1))
   def this(
       test: Expression[TBool],
       invariant: Expression[TBool],
-      gamma: Array[GammaMapping],
+      gamma: Array[GammaMapping[Type]],
       body: Block
-  ) = this(test, invariant, gamma.toList, None, body, ("", -1))
+  ) = this(test, invariant, gamma.toList, body, ("", -1))
 
   def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
   def setLine(line: (String, Int)) = this.copy(line = line)
@@ -156,19 +155,18 @@ case class While(
 case class DoWhile(
     test: Expression[TBool],
     invariant: Expression[TBool],
-    gamma: List[GammaMapping],
-    nonblocking: Option[Set[Id]],
+    gamma: List[GammaMapping[Type]],
     body: Block,
     line: (String, Int)
 ) extends Stmt(line) {
   def this(test: Expression[TBool], invariant: Expression[TBool], body: Block) =
-    this(test, invariant, List(), None, body, ("", -1))
+    this(test, invariant, List(), body, ("", -1))
   def this(
       test: Expression[TBool],
       invariant: Expression[TBool],
-      gamma: Array[GammaMapping],
+      gamma: Array[GammaMapping[Type]],
       body: Block
-  ) = this(test, invariant, gamma.toList, None, body, ("", -1))
+  ) = this(test, invariant, gamma.toList, body, ("", -1))
 
   def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
   def setLine(line: (String, Int)) = this.copy(line = line)

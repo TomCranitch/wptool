@@ -1,6 +1,6 @@
 .PHONY: all test clean parser check-dependencies test fmt
 
-MILL = ./mill
+MILL = mill
 
 WPTOOL_JAVA = wptool/src/wptool/Parser.java \
             wptool/src/wptool/Scanner.java

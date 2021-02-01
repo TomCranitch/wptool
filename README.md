@@ -1,6 +1,8 @@
 ## Requirements
-* Java 8
+* Java 11
 * Scala (tested with 2.13.3)
+* JFlex (Available from the AUR on arch)
+* Mill (Available from the community packages on arch)
 
 ## Supported Platforms
 * Linux

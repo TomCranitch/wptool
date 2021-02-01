@@ -10,10 +10,10 @@ import scala.collection.mutable.ListBuffer
 
 case class RG(
     program: String,
-    rely: Expression,
-    guarantee: Expression,
-    arrayRs: Map[Id, Expression],
-    guarRs: Map[Id, Expression]
+    rely: Expression[TBool],
+    guarantee: Expression[TBool],
+    arrayRs: Map[Id[Type], Expression[TBool]],
+    guarRs: Map[Id[Type], Expression[TBool]]
 ) {}
 
 object WPTool {
@@ -116,8 +116,8 @@ object WPTool {
       _state.arrGuars
     )
 
-    val gammaDom: Set[Id] = _state.ids -- _state.arrayIds
-    val gamma: Map[Id, Security] = gamma_0 match {
+    val gammaDom: Set[Id[Type]] = _state.ids -- _state.arrayIds
+    val gamma: Map[Id[Type], Security] = gamma_0 match {
       // security high by default if user hasn't provided
       case None => Map()
       case Some(gs) =>
@@ -143,7 +143,7 @@ object WPTool {
       for (i <- gammaDom) yield {
         i.toGamma.toVar(_state) -> Left(gamma.getOrElse(i, High).toTruth)
       }
-    }.toMap ++ Map(Id.tmpId.toGamma.toVar(_state) -> Left(Const._true))
+    }.toMap.toMap[Var[Type], Left[Expression[Type], Nothing]] ++ Map(Id.tmpId.toGamma.toVar(_state) -> Left(Const._true))
 
     if (debug) println("Gamma0: " + gammaSubstr)
     if (debug) println("L: " + _state.L)
@@ -185,11 +185,11 @@ object WPTool {
   }
 
   // TODO this is copy pasted
-  def getRelyRec(exp: Expression): Option[Expression] = exp match {
+  def getRelyRec(exp: Expression[Type]): Option[Expression[TBool]] = exp match {
     case BinOp(op, arg1, arg2) =>
       Some(constructForallOpt(getRelyRec(arg1), getRelyRec(arg2)))
     case PreOp(op, arg) => getRelyRec(arg)
-    case i: Id          =>
+    case i: Id[_]       =>
       // TODO if global
       val id = i.copy(prime = false, gamma = false)
       if (true) {
@@ -209,7 +209,7 @@ object WPTool {
           )
         )
       }
-    case i: IdAccess =>
+    case i: IdAccess[_] =>
       val id = i.copy(ident = i.ident.copy(gamma = false, prime = false))
       if (true) {
         Some(
@@ -228,7 +228,7 @@ object WPTool {
           )
         )
       }
-    case s: VarStore =>
+    case s: VarStore[_] =>
       getRelyRec(
         s.exp
       ) // TODO do we need it for arr and index as well? (similarly for eval)

@@ -3,8 +3,8 @@ package wptool
 // highest level parsed data structure
 case class Global(
     variables: Set[Definition],
-    P_0: Option[List[Expression]],
-    gamma_0: Option[List[GammaMapping]],
+    P_0: Option[List[Expression[TBool]]],
+    gamma_0: Option[List[GammaMapping[Type]]],
     rely: Option[Rely],
     guarantee: Option[Guar],
     statements: List[Stmt]
@@ -13,7 +13,7 @@ case class Global(
     this(variables.toSet, None, None, None, None, statements.toList)
   def this(
       variables: Array[Definition],
-      gamma_0: Array[GammaMapping],
+      gamma_0: Array[GammaMapping[Type]],
       statements: Array[Stmt]
   ) =
     this(
@@ -33,7 +33,7 @@ case class Global(
     this(variables.toSet, None, None, Some(rely), Some(guar), statements.toList)
   def this(
       variables: Array[Definition],
-      gamma_0: Array[GammaMapping],
+      gamma_0: Array[GammaMapping[Type]],
       rely: Rely,
       guar: Guar,
       statements: Array[Stmt]
@@ -74,42 +74,42 @@ case object Low extends Security {
   def instance = this
 }
 
-case class GammaMapping(variable: Id, security: Security) extends beaver.Symbol {
+case class GammaMapping[+T <: Type](variable: Id[T], security: Security) extends beaver.Symbol {
   def this(variable: String, index: Int, security: Security) =
     this(new Id(variable + "[" + index + "]", false, false, false), security)
   def this(variable: String, security: Security) =
     this(new Id(variable, false, false, false), security)
 
-  def toPair: Seq[(Id, Security)] = this match {
+  def toPair: Seq[(Id[T], Security)] = this match {
     case g =>
       Seq(g.variable -> g.security)
   }
 }
 
-case class Rely(exp: Expression) extends beaver.Symbol
-case class Guar(exp: Expression) extends beaver.Symbol
+case class Rely(exp: Expression[TBool]) extends beaver.Symbol
+case class Guar(exp: Expression[TBool]) extends beaver.Symbol
 
 sealed trait Definition extends beaver.Symbol
 
-case class VarDef(name: Id, pred: Expression, access: Access) extends Definition {
-  def this(name: String, pred: Expression, access: Access) =
+case class VarDef[+T <: Type](name: Id[T], pred: Expression[TBool], access: Access) extends Definition {
+  def this(name: String, pred: Expression[TBool], access: Access) =
     this(new Id(name, false, false, false), pred, access)
   def this(name: String, access: Access) =
     this(new Id(name, false, false, false), Const._true, access)
 }
 
-case class ArrayDef(
-    name: Id,
-    size: Expression,
-    pred: Expression,
+case class ArrayDef[+T <: Type](
+    name: Id[T],
+    size: Expression[TInt],
+    pred: Expression[TBool],
     access: Access,
     rely: Rely,
     guar: Guar
 ) extends Definition {
   def this(
       name: String,
-      size: Expression,
-      lpred: Expression,
+      size: Expression[TInt],
+      pred: Expression[TBool],
       access: Access,
       rely: Rely,
       guar: Guar
@@ -117,14 +117,14 @@ case class ArrayDef(
     this(
       new Id(name, false, false, false),
       size,
-      lpred,
+      pred,
       access,
       rely: Rely,
       guar: Guar
     )
   def this(
       name: String,
-      size: Expression,
+      size: Expression[TInt],
       access: Access,
       rely: Rely,
       guar: Guar
@@ -138,11 +138,11 @@ case class ArrayDef(
       guar: Guar
     )
 
-  def toVarDefs: VarDef = VarDef(name, pred, access)
+  def toVarDefs: VarDef[T] = VarDef(name, pred, access)
 }
 
 object ArrayDef {
-  def predArray(size: Int, lpred: Expression): IndexedSeq[Expression] = {
+  def predArray(size: Int, lpred: Expression[TBool]): IndexedSeq[Expression[TBool]] = {
     for (i <- 0 until size)
       yield lpred
   }
