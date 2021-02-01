@@ -105,13 +105,12 @@ object PreProcess {
 
   def evalBlock(exp: Expression[Type], currBlock: Block): Block = exp match {
     case cas: CompareAndSwap =>
-      val tmp = Id.tmpId
       val left = Block(
         "cas left",
         List(
           Guard(BinOp("==", cas.x, cas.e1)),
           Assignment(cas.x, cas.e2),
-          Assignment(tmp, Lit(1))
+          Assignment(Id.tmpId, Lit(1))
         ),
         List(currBlock),
         true
@@ -120,7 +119,7 @@ object PreProcess {
         "cas right",
         List(
           Guard(BinOp("!=", cas.x, cas.e1)),
-          Assignment(tmp, Lit(0))
+          Assignment(Id.tmpId, Lit(0))
         ),
         List(currBlock),
         true

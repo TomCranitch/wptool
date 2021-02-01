@@ -379,11 +379,12 @@ object Exec {
   }
 
   def getL(id: Id[Type], state: State): Expression[TBool] = {
-    // if (id == Id.tmpId) Const._true
-    eval(
-      state.L.getOrElse(id, throw new Error("L not defined for " + id)),
-      state
-    )
+    if (id == Id.tmpId) Const._true
+    else
+      eval(
+        state.L.getOrElse(id, throw new Error("L not defined for " + id)),
+        state
+      )
   }
 
   def getL(id: IdAccess[Type], state: State): Expression[TBool] =

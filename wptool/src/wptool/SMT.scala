@@ -157,18 +157,20 @@ object SMT {
       typeOf[T] match {
         case t if typeOf[TInt] =:= typeOf[T]  => ctx.mkConst(x.toString, ctx.getIntSort)
         case t if typeOf[TBool] =:= typeOf[T] => ctx.mkConst(x.toString, ctx.getBoolSort)
-        case _ =>
-          println(s"$x is of type ${typeOf[T]}")
-          ctx.mkConst(x.toString, ctx.getIntSort)
+        case _                                =>
+          // TODO println(s"$x is of type ${typeOf[T]}")
+          val sort = if (x.ident.gamma) ctx.getBoolSort else ctx.getIntSort
+          ctx.mkConst(x.toString, sort)
       }
     case x: Id[_] =>
       if (expectIds) throw new Error("Unresolved id")
       typeOf[T] match {
         case t if typeOf[TInt] =:= typeOf[T]  => ctx.mkConst(x.toString, ctx.getIntSort)
         case t if typeOf[TBool] =:= typeOf[T] => ctx.mkConst(x.toString, ctx.getBoolSort)
-        case _ =>
-          println(s"$x is of type ${typeOf[T]}")
-          ctx.mkConst(x.toString, ctx.getIntSort)
+        case _                                =>
+          // TODO println(s"$x is of type ${typeOf[T]}")
+          val sort = if (x.gamma) ctx.getBoolSort else ctx.getIntSort
+          ctx.mkConst(x.toString, sort)
       }
 
     // TODO can these cases be merged together
