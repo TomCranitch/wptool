@@ -291,13 +291,8 @@ object Exec {
       expr
   }
 
-  def getBaseVars(vars: Set[Var]): Set[Var] = vars.map { case Var(Id(name, expType, _, _, _), _, t) =>
-    Var(Id(name, expType, false, false, false), 0, t)
-  }
-
-  def getBaseArrays(vars: Set[VarAccess]): Set[VarAccess] = vars.map { case VarAccess(Var(Id(name, expType, _, _, _), _, t), index) =>
-    VarAccess(Var(Id(name, expType, false, false, false), 0, t), index)
-  }
+  def getBaseVars(vars: Set[Var]): Set[Var] = vars.map(v => v.getBase.resetIndex)
+  def getBaseArrays(vars: Set[VarAccess]): Set[VarAccess] = vars.map(v => v.getBase.resetIndex)
 
   def getRely(exp: Expression, state: State) = {
     // TODO i think arrays will need different rules

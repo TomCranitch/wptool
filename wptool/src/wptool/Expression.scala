@@ -31,6 +31,7 @@ trait Identifier extends Expression {
   def toPrime: Identifier
   def toGamma: Identifier
   def toVar(state: State): Variable
+  def getBase: Identifier
 }
 
 trait Variable extends Expression {
@@ -38,12 +39,14 @@ trait Variable extends Expression {
   def toGamma(state: State): Variable
   def toNought: Variable
   def ident: Id
+  def getBase: Variable
+  def resetIndex: Variable
 }
 
 // id parsed from input - need to convert to Var before use in predicates etc.
 case class Id(name: String, override val expType: Type.Type, prime: Boolean, gamma: Boolean, nought: Boolean) extends Identifier {
-  override def toString: String =
-    (if (gamma) "Gamma_" else "") + name + (if (prime) "'" else "") + (if (nought) "⁰" else "")
+  /* override def toString: String =
+    (if (gamma) "Gamma_" else "") + name + (if (prime) "'" else "") + (if (nought) "⁰" else "") */
   override def vars = throw new Error("Tried to get var from id")
   override def ids = Set(this)
   override def arrays = Set()
@@ -54,9 +57,19 @@ case class Id(name: String, override val expType: Type.Type, prime: Boolean, gam
   def toGamma = Id(name, Type.TBool, prime, true, nought)
 
   def getIndex(state: State) = {
-    if (!gamma) state.indicies.getOrElse(this, -1)
-    else state.indicies.getOrElse(this.copy(gamma = false), -1)
+    // println(state.indicies.map { case (k, v) => (k, k == this.copy(gamma = false, expType = Type.TInt)) })
+    // println(this.copy(gamma = false, expType = Type.TInt))
+    if (!gamma) state.indicies.getOrElse(this, throw new Error(s"Index not found for var $this with type $expType"))
+    // TODO change Type.TInt
+    else
+      state.indicies.getOrElse(
+        this.copy(gamma = false, expType = Type.TInt),
+        throw new Error(s"Index not found for gamma var $this with type $expType")
+      )
   }
+
+  // TODO use actual type
+  override def getBase = Id(name, Type.TInt, false, false, false)
 }
 
 object Id {
@@ -86,6 +99,9 @@ case class Var(ident: Id, index: Int, tmp: Boolean = false) extends Variable {
 
   private def updateIndex(state: State) =
     this.copy(index = this.ident.getIndex(state))
+
+  override def getBase = this.copy(ident = ident.getBase)
+  override def resetIndex = this.copy(index = 0)
 }
 
 case class IdAccess(ident: Id, index: Expression) extends Expression with Identifier {
@@ -101,6 +117,7 @@ case class IdAccess(ident: Id, index: Expression) extends Expression with Identi
   override def expType = ident.expType
 
   def toVar(state: State) = VarAccess(ident.toVar(state), index)
+  def getBase = this.copy(ident = ident.getBase)
 }
 
 // array access with Var for use in logical predicates
@@ -127,6 +144,8 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
   def toNought = this.copy(name = name.toNought)
   def ident = name.ident
   override def expType = ident.expType
+  override def getBase = this.copy(name = name.getBase)
+  override def resetIndex = this.copy(name = name.resetIndex)
 }
 
 case class VarStore(array: Expression, index: Expression, exp: Expression) extends Expression {

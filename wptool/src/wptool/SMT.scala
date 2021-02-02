@@ -217,13 +217,13 @@ object SMT {
     case BinOp("%", Type.TInt, Type.TInt, arg1, arg2) =>
       ctx.mkMod(arith(arg1, expectIds), arith(arg2, expectIds))
 
-    case BinOp("<=", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp("<=", Type.TInt, Type.TBool, arg1, arg2) =>
       ctx.mkLe(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp("<", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp("<", Type.TInt, Type.TBool, arg1, arg2) =>
       ctx.mkLt(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp(">=", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp(">=", Type.TInt, Type.TBool, arg1, arg2) =>
       ctx.mkGe(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp(">", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp(">", Type.TInt, Type.TBool, arg1, arg2) =>
       ctx.mkGt(arith(arg1, expectIds), arith(arg2, expectIds))
 
     /*
@@ -260,6 +260,9 @@ object SMT {
     case Exists(bound, body) =>
       ctx.mkExists(bound.toArray map translate, translate(body), 0, scala.Array(), null, null, null)
      */
+
+    case BinOp(_, t1, t2, _, _) =>
+      throw new Error(s"cannot translate to SMT $prop of type $t1 $t2")
 
     case _ =>
       throw new Error(s"cannot translate to SMT $prop")

@@ -22,6 +22,10 @@ import wptool.Parser.Terminals;
     Symbol resolve(String name) {
           return newToken(Terminals.ID,   name);
     }
+	Symbol resolvePrimeGamma(String name) {
+		// TODO not a big fan of this
+		return newToken(Terminals.PRIMEGAMMAID, name.substring(6, name.length() - 1));
+	}
 	Symbol resolvePrime(String name) {
 		return newToken(Terminals.PRIMEID, name.substring(0, name.length() - 1));
 	}
@@ -122,12 +126,12 @@ WS = {NL} | [ \t\f]
 "HIGH" { return newToken(Terminals.HIGH);    }
 
 "->"        { return newToken(Terminals.MAPSTO);    }
-Gamma_[a-zA-Z][a-zA-Z0-9]*[']?    { return resolveGamma(yytext()); }
+Gamma_[a-zA-Z][a-zA-Z0-9]*[']    { return resolvePrimeGamma(yytext()); }
+Gamma_[a-zA-Z][a-zA-Z0-9]*    { return resolveGamma(yytext()); }
+[a-zA-Z_][a-zA-Z_0-9]*['] { return resolvePrime(yytext()); }
 
 [a-zA-Z_][a-zA-Z_0-9]*
             { return resolve(yytext()); }
-[a-zA-Z_][a-zA-Z_0-9]*[']
-            { return resolvePrime(yytext()); }
 
 [0-9]+      { return newToken(Terminals.NUM, new Integer(yytext())); }
 

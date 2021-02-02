@@ -191,7 +191,7 @@ object WPTool {
     case PreOp(op, _, _, arg) => getRelyRec(arg)
     case i: Id                =>
       // TODO if global
-      val id = i.copy(prime = false, gamma = false)
+      val id = i.getBase
       if (true) {
         Some(
           BinOp.pred(
@@ -210,7 +210,7 @@ object WPTool {
         )
       }
     case i: IdAccess =>
-      val id = i.copy(ident = i.ident.copy(gamma = false, prime = false))
+      val id = i.getBase
       if (true) {
         Some(
           BinOp.pred(

@@ -35,6 +35,7 @@
 %terminals INVARIANT, GAMMA, GAMMA_0, RELY, GUAR;
 %terminals LPRED;
 %terminals MAPSTO;
+%terminals PRIMEGAMMAID;
 %terminals PRIMEID;
 %terminals GAMMAID;
 
@@ -59,6 +60,7 @@
 %typeof ID      = "String";
 %typeof PRIMEID      = "String";
 %typeof GAMMAID      = "String";
+%typeof PRIMEGAMMAID      = "String";
 
 
 %typeof NUM     = "Integer";
@@ -133,11 +135,13 @@ locals  = local *;
 
 expr
     = PREFIX | POSTFIX /* unused */
+    | PRIMEGAMMAID.n                              {: return new Id(n, Type.TBool(), true, true, false);  :}
 	| GAMMAID.n                        {: return new Id(n, Type.TBool(), false, true, false);  :}
     | PRIMEID.n                              {: return new Id(n, Type.TInt(), true, false, false);  :}
     | ID.n                              {: return new Id(n, Type.TInt(), false, false, false);  :}
-    | GAMMAID.n LBRACK expr.i RBRACK       {: return new IdAccess(n, false, true, i); :}
     | PRIMEID.n LBRACK expr.i RBRACK       {: return new IdAccess(n, true, false, i); :}
+    | GAMMAID.n LBRACK expr.i RBRACK       {: return new IdAccess(n, false, true, i); :}
+    | PRIMEGAMMAID.n LBRACK expr.i RBRACK       {: return new IdAccess(n, true, true, i); :}
     | ID.n LBRACK expr.i RBRACK       {: return new IdAccess(n, i); :}
     | NUM.n                             {: return new Lit(n); :}
 	| CAS LPAREN ID.x COMMA expr.y COMMA expr.z RPAREN {: return new CompareAndSwap(x, y, z); :}

@@ -116,7 +116,10 @@ object State {
     val _guar = guar.getOrElse(Guar(Const._true)).exp
     val _rely = rely.getOrElse(Rely(Const._true)).exp
 
-    val primeIndicies = ((ids ++ arrayIds).map(x => x.toPrime -> 0) ++ (ids ++ arrayIds).map(x => x -> 0)).toMap
+    val primeIndicies =
+      ((ids ++ arrayIds).map(x => x.toPrime -> 0) ++ (ids ++ arrayIds).map(x =>
+        x -> 0
+      )).toMap + (Id.indexId -> 0) + (Id.tmpId -> 0) + (Id.tmpId.toPrime -> 0)
 
     // TODO malformed probs insto the best
     State(
