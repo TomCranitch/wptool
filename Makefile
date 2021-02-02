@@ -30,7 +30,7 @@ $(WPTOOL_LAUNCHER): wptool/src/wptool/*.scala
 
 $(WPTOOL_JAR): wptool/src/wptool/*.scala
 	@echo $@
-	$(MILL) wptool.jar
+	$(ENV_VAR) $(MILL) wptool.jar
 
 $(WPTOOL_SH): $(WPTOOL_LAUNCHER)
 	@echo "[echo]  $@"; echo "#!/usr/bin/env bash" > $@; echo "export LD_LIBRARY_PATH=$(PWD)/wptool/lib" >> $@; echo "source $(WPTOOL_LAUNCHER)" >> $@

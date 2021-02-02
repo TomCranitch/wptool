@@ -62,28 +62,28 @@ WS = {NL} | [ \t\f]
 //"."         { return newToken(Terminals.DOT);      }
 "!"         { return newToken(Terminals.BANG);     }
 "=>"         { return newToken(Terminals.IMPLIES);     }
-"~"         { return newToken(Terminals.TILDE);    }
-//"sizeof"    { return newToken(Terminals.SIZEOF);   }
+// "~"         { return newToken(Terminals.TILDE);    }
+// "sizeof"    { return newToken(Terminals.SIZEOF);   }
 "*"         { return newToken(Terminals.STAR);     }
 "/"         { return newToken(Terminals.DIV);      }
 "%"         { return newToken(Terminals.MOD);      }
 "+"         { return newToken(Terminals.PLUS);     }
 "-"         { return newToken(Terminals.MINUS);    }
-"<<"        { return newToken(Terminals.SHL);      }
-">>"        { return newToken(Terminals.SHR);      }
-">>>"        { return newToken(Terminals.ASHR);      }
+//"<<"        { return newToken(Terminals.SHL);      }
+//">>"        { return newToken(Terminals.SHR);      }
+//">>>"        { return newToken(Terminals.ASHR);      }
 "<"         { return newToken(Terminals.LT);       }
 "<="        { return newToken(Terminals.LE);       }
 ">="        { return newToken(Terminals.GE);       }
 ">"         { return newToken(Terminals.GT);       }
 "=="        { return newToken(Terminals.EQ);       }
 "!="        { return newToken(Terminals.NEQ);      }
-"&"         { return newToken(Terminals.AMP);      }
-"^"         { return newToken(Terminals.CARET);    }
-"|"         { return newToken(Terminals.PIPE);     }
+// "&"         { return newToken(Terminals.AMP);      }
+// "^"         { return newToken(Terminals.CARET);    }
+// "|"         { return newToken(Terminals.PIPE);     }
 "&&"        { return newToken(Terminals.AND);      }
 "||"        { return newToken(Terminals.OR);       }
-//"?"         { return newToken(Terminals.QUESTION); }
+// "?"         { return newToken(Terminals.QUESTION); }
 ":"         { return newToken(Terminals.COLON);    }
 "="         { return newToken(Terminals.ASG); }
 

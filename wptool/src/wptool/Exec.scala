@@ -85,11 +85,11 @@ object Exec {
       } else {
         _state.incPrimeIndicies
       }
-    case ass: Assignment[_] =>
-      val assign = ass.asInstanceOf[Assignment[Type]]
+    case ass: Assignment =>
+      val assign = ass.asInstanceOf[Assignment]
       val globalPred =
         if (state.globals.contains(assign.lhs))
-          BinOp(
+          BinOp.pred(
             "=>",
             getL(assign.lhs, state),
             computeGamma(assign.expression, state)
@@ -100,10 +100,10 @@ object Exec {
           state.controlledBy
             .getOrElse(assign.lhs, Set())
             .map(contr => {
-              BinOp(
+              BinOp.pred(
                 "=>",
                 eval(getL(contr, state).subst(Map(assign.lhs.toVar(state) -> Left(assign.expression))), state), // TODO
-                BinOp("||", eval(contr.toGamma, state), getL(contr, state))
+                BinOp.pred("||", eval(contr.toGamma, state), getL(contr, state))
               )
             })
             .toList
@@ -130,13 +130,13 @@ object Exec {
           )
           .incPrimeIndicies
       }
-    case ass: ArrayAssignment[_] =>
-      val assign = ass.asInstanceOf[ArrayAssignment[Type]]
+    case ass: ArrayAssignment =>
+      val assign = ass.asInstanceOf[ArrayAssignment]
       val indexSub =
         Map(Id.indexId.toVar(state) -> assign.lhs.ident)
       val globalPred =
         if (state.globals.contains(assign.lhs.ident))
-          BinOp(
+          BinOp.pred(
             "=>",
             getL(assign.lhs, state),
             computeGamma(assign.expression, state)
@@ -147,13 +147,13 @@ object Exec {
           state.controlledBy
             .getOrElse(assign.lhs.ident, Set())
             .map(contr => {
-              BinOp(
+              BinOp.pred(
                 "=>",
                 eval(
                   getL(contr, state).subst(Map(assign.lhs.ident.toVar(state) -> Right((assign.lhs.index, assign.expression)))),
                   state
                 ), // TODO
-                BinOp(
+                BinOp.pred(
                   "||",
                   eval(contr.toGamma, state),
                   getL(contr, state).subst(Map(Id.indexId.toVar(state) -> Left(assign.lhs.index)))
@@ -197,21 +197,9 @@ object Exec {
       } else {
         _state
           .addQs(
-            new PredInfo(
-              globalPred,
-              assign,
-              "Global"
-            ),
-            new PredInfo(
-              controlPred,
-              assign,
-              "Control"
-            ),
-            new PredInfo(
-              gammaPred,
-              assign,
-              "Index Gamma"
-            )
+            new PredInfo(globalPred, assign, "Global"),
+            new PredInfo(controlPred, assign, "Control"),
+            new PredInfo(gammaPred, assign, "Index Gamma")
           )
           .incPrimeIndicies
       }
@@ -229,15 +217,15 @@ object Exec {
     // state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
   }
 
-  def wp(Q: Expression[TBool], stmt: Stmt, state: State): Expression[TBool] = {
+  def wp(Q: Expression, stmt: Stmt, state: State): Expression = {
     stmt match {
-      case Assume(exp, _) => BinOp("=>", eval(exp, state), Q)
+      case Assume(exp, _) => BinOp.pred("=>", eval(exp, state), Q)
       case Guard(exp, _) =>
         val stabRB = stableR(exp, state)
-        BinOp(
+        BinOp.pred(
           "&&",
-          BinOp("=>", BinOp("&&", eval(exp, state), stabRB), Q),
-          BinOp("=>", PreOp("!", stabRB), eval(exp, state))
+          BinOp.pred("=>", BinOp.pred("&&", eval(exp, state), stabRB), Q),
+          BinOp.pred("=>", PreOp("!", Type.TBool, Type.TBool, stabRB), eval(exp, state))
         )
       case Assert(exp, checkStableR, _) =>
         /* BinOp(
@@ -248,8 +236,8 @@ object Exec {
          */
         Q
       case havoc: Havoc => Q
-      case ass: Assignment[_] =>
-        val assign = ass.asInstanceOf[Assignment[Type]]
+      case ass: Assignment =>
+        val assign = ass.asInstanceOf[Assignment]
         val rhsGamma = computeGamma(assign.expression, state)
 
         Q.subst(
@@ -258,8 +246,8 @@ object Exec {
             (assign.lhs.toVar(state) -> Left(eval(assign.expression, state)))
           )
         )
-      case ass: ArrayAssignment[_] =>
-        val assign = ass.asInstanceOf[ArrayAssignment[Type]]
+      case ass: ArrayAssignment =>
+        val assign = ass.asInstanceOf[ArrayAssignment]
         val rhsGamma = computeGamma(assign.expression, state)
 
         Q.subst(
@@ -279,44 +267,44 @@ object Exec {
     }
   }
 
-  def eval[T <: Type](expr: Expression[T], state: State): Expression[T] = expr match {
-    case id: Id[T]       => id.toVar(state)
-    case id: IdAccess[T] => id.toVar(state).copy(index = eval(id.index, state))
-    case BinOp(op, arg1, arg2) =>
-      BinOp(op, eval(arg1, state), eval(arg2, state))
-    case PreOp(op, arg) => PreOp(op, eval(arg, state))
-    case s: VarStore[T] =>
+  def eval(expr: Expression, state: State): Expression = expr match {
+    case id: Id       => id.toVar(state)
+    case id: IdAccess => id.toVar(state).copy(index = eval(id.index, state))
+    case BinOp(op, t1, t2, arg1, arg2) =>
+      BinOp(op, t1, t2, eval(arg1, state), eval(arg2, state))
+    case PreOp(op, t1, t2, arg) => PreOp(op, t1, t2, eval(arg, state))
+    case s: VarStore =>
       s.copy(
         array = eval(s.array, state),
         index = eval(s.index, state),
         exp = eval(s.exp, state)
       )
-    case a: VarAccess[_] => a.copy(index = eval(a.index, state))
+    case a: VarAccess => a.copy(index = eval(a.index, state))
     case forall: ForAll =>
       forall.copy(
         bound = forall.bound.map(b => eval(b, state)),
         body = eval(forall.body, state)
       )
-    case _: Lit | _: Const | _: Var[T] => expr
+    case _: Lit | _: Const | _: Var => expr
     case expr =>
       println(s"Unhandled expression(eval): [${expr.getClass()}] $expr")
       expr
   }
 
-  def getBaseVars(vars: Set[Var[Type]]): Set[Var[Type]] = vars.map { case Var(Id(name, _, _, _), _, t) =>
-    Var(Id(name, false, false, false), 0, t)
+  def getBaseVars(vars: Set[Var]): Set[Var] = vars.map { case Var(Id(name, expType, _, _, _), _, t) =>
+    Var(Id(name, expType, false, false, false), 0, t)
   }
 
-  def getBaseArrays(vars: Set[VarAccess[Type]]): Set[VarAccess[Type]] = vars.map { case VarAccess(Var(Id(name, _, _, _), _, t), index) =>
-    VarAccess(Var(Id(name, false, false, false), 0, t), index)
+  def getBaseArrays(vars: Set[VarAccess]): Set[VarAccess] = vars.map { case VarAccess(Var(Id(name, expType, _, _, _), _, t), index) =>
+    VarAccess(Var(Id(name, expType, false, false, false), 0, t), index)
   }
 
-  def getRely(exp: Expression[Type], state: State) = {
+  def getRely(exp: Expression, state: State) = {
     // TODO i think arrays will need different rules
     val evalExp = eval(exp, state)
 
     eval(
-      BinOp(
+      BinOp.pred(
         "&&",
         constructForall(
           getBaseVars(evalExp.vars - Id.indexId.toVar(state))
@@ -324,18 +312,18 @@ object Exec {
               if (state.globals.contains(v.ident)) {
                 // BinOp(
                 //  "&&",
-                BinOp(
+                BinOp.pred(
                   "=>",
-                  BinOp("==", v, v.toPrime(state)),
-                  BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+                  BinOp.pred("==", v, v.toPrime(state)),
+                  BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                 ) // ,
                 //   BinOp("=>", primed(getL(v.ident, state), state), v.toPrime(state).toGamma(state))
                 // )
               } else {
-                BinOp(
+                BinOp.pred(
                   "&&",
-                  BinOp("==", v, v.toPrime(state)),
-                  BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+                  BinOp.pred("==", v, v.toPrime(state)),
+                  BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                 )
 
               }
@@ -347,22 +335,22 @@ object Exec {
                   val pred = if (state.globals.contains(v.ident)) {
                     //  BinOp(
                     //    "&&",
-                    BinOp(
+                    BinOp.pred(
                       "=>",
-                      BinOp("==", v, v.toPrime(state)),
-                      BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+                      BinOp.pred("==", v, v.toPrime(state)),
+                      BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                     ) //,
                     //    BinOp("=>", primed(getL(v, state), state), v.toPrime(state).toGamma(state))
                     //  )
                   } else {
-                    BinOp(
+                    BinOp.pred(
                       "&&",
-                      BinOp("==", v, v.toPrime(state)),
-                      BinOp("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+                      BinOp.pred("==", v, v.toPrime(state)),
+                      BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                     )
                   }
 
-                  BinOp(
+                  BinOp.pred(
                     "&&",
                     pred,
                     eval(state.arrRelys.getOrElse(v.ident, Const._true), state)
@@ -378,7 +366,7 @@ object Exec {
     )
   }
 
-  def getL(id: Id[Type], state: State): Expression[TBool] = {
+  def getL(id: Id, state: State): Expression = {
     if (id == Id.tmpId) Const._true
     else
       eval(
@@ -387,15 +375,15 @@ object Exec {
       )
   }
 
-  def getL(id: IdAccess[Type], state: State): Expression[TBool] =
+  def getL(id: IdAccess, state: State): Expression =
     getL(id.ident, state)
       .subst(Map(Id.indexId.toVar(state) -> Left(eval(id.index, state))))
 
-  def getL(v: VarAccess[Type], state: State): Expression[TBool] =
+  def getL(v: VarAccess, state: State): Expression =
     getL(v.ident, state)
       .subst(Map(Id.indexId.toVar(state) -> Left(eval(v.index, state))))
 
-  def primed(p: Expression[TBool], state: State) =
+  def primed(p: Expression, state: State) =
     eval(p, state).subst(
       (state.ids ++ state.arrayIds)
         .map(id => id.toVar(state) -> Left(id.toPrime.toVar(state)))
@@ -403,21 +391,21 @@ object Exec {
     )
 
   // TODO take havoc statements into account
-  def stableR(p: Expression[TBool], state: State) =
+  def stableR(p: Expression, state: State) =
     eval(
-      BinOp("=>", BinOp("&&", getRely(p, state), p), primed(p, state)),
+      BinOp.pred("=>", BinOp.pred("&&", getRely(p, state), p), primed(p, state)),
       state
     )
 
-  def rImplies(p: Expression[TBool], state: State) = {
-    eval(BinOp("=>", getRely(p, state), primed(p, state)), state)
+  def rImplies(p: Expression, state: State) = {
+    eval(BinOp.pred("=>", getRely(p, state), primed(p, state)), state)
   }
 
-  def stableR(p: Expression[TBool], index: Expression[TInt], state: State) =
+  def stableR(p: Expression, index: Expression, state: State) =
     eval(
-      BinOp(
+      BinOp.pred(
         "=>",
-        BinOp(
+        BinOp.pred(
           "&&",
           getRely(p, state).subst(Map(Id.indexId.toVar(state) -> Left(index))),
           p
@@ -427,9 +415,9 @@ object Exec {
       state
     )
 
-  def rImplies(p: Expression[TBool], index: Expression[TInt], state: State) =
-    eval[TBool](
-      BinOp(
+  def rImplies(p: Expression, index: Expression, state: State) =
+    eval(
+      BinOp.pred(
         "=>",
         getRely(p, state).subst(Map(Id.indexId.toVar(state) -> Left(index))),
         primed(p, state)
@@ -437,21 +425,21 @@ object Exec {
       state
     )
 
-  def guar(a: Assignment[Type], state: State) = {
-    val guar = eval[TBool](state.guar, state)
+  def guar(a: Assignment, state: State) = {
+    val guar = eval(state.guar, state)
     val vars = getBaseVars(guar.vars ++ guar.arrays.map(a => a.name))
     val subst = vars.map(v => List(v -> Left(v.toNought), v.toPrime(state) -> Left(v))).flatten.toMap
     val gPrime = guar.subst(subst)
     // TODO
-    val _subst = vars.map(v => v.toNought.asInstanceOf[Var[Type]] -> Left(v)).toMap
+    val _subst = vars.map(v => v.toNought.asInstanceOf[Var] -> Left(v)).toMap
     wp(gPrime, a, state).subst(_subst)
   }
 
   // TODO fix subst when multiple arrays present (does this really matter tho or is it handled automatically)
-  def guar(a: ArrayAssignment[Type], state: State) = {
+  def guar(a: ArrayAssignment, state: State) = {
     val guar =
       eval(
-        BinOp(
+        BinOp.pred(
           "&&",
           state.guar,
           eval(state.arrGuars.getOrElse(a.lhs.ident, Const._true), state).subst(Map(Id.indexId.toVar(state) -> Left(a.lhs.index)))
@@ -461,26 +449,26 @@ object Exec {
     val vars = getBaseVars(guar.vars ++ guar.arrays.map(a => a.name))
     val subst = vars.map(v => List(v -> Left(v.toNought), v.toPrime(state) -> Left(v))).flatten.toMap
     val gPrime = guar.subst(subst)
-    val _subst = vars.map(v => v.toNought.asInstanceOf[Var[Type]] -> Left(v)).toMap
+    val _subst = vars.map(v => v.toNought.asInstanceOf[Var] -> Left(v)).toMap
     wp(gPrime, a, state).subst(_subst)
   }
 
-  def computeGamma(exp: Expression[Type], state: State): Expression[TBool] = {
+  def computeGamma(exp: Expression, state: State): Expression = {
     val expEval = eval(exp, state)
     constructForall(
       expEval.vars
         .map(v =>
           eval(
-            BinOp("||", v.toGamma(state), getL(v.ident, state)),
+            BinOp.pred("||", v.toGamma(state), getL(v.ident, state)),
             state
           ) // Default to high
         )
         .toList ++
         expEval.arrays
           .map(a => {
-            val subst = Map[Var[Type], Left[Expression[Type], Nothing]](Id.indexId.toVar(state) -> Left(eval[TInt](a.index, state)))
-            eval[TBool](
-              BinOp("||", a.toGamma(state), getL(a.ident, state)).subst(subst),
+            val subst = Map[Var, Left[Expression, Nothing]](Id.indexId.toVar(state) -> Left(eval(a.index, state)))
+            eval(
+              BinOp.pred("||", a.toGamma(state), getL(a.ident, state)).subst(subst),
               state
             ) // Default to high
           })

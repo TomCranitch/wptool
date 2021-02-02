@@ -133,38 +133,38 @@ locals  = local *;
 
 expr
     = PREFIX | POSTFIX /* unused */
-	| GAMMAID.n                        {: return new Id(n, false, true, false);  :}
-    | PRIMEID.n                              {: return new Id(n, true, false, false);  :}
-    | ID.n                              {: return new Id(n, false, false, false);  :}
+	| GAMMAID.n                        {: return new Id(n, Type.TBool(), false, true, false);  :}
+    | PRIMEID.n                              {: return new Id(n, Type.TInt(), true, false, false);  :}
+    | ID.n                              {: return new Id(n, Type.TInt(), false, false, false);  :}
     | GAMMAID.n LBRACK expr.i RBRACK       {: return new IdAccess(n, false, true, i); :}
     | PRIMEID.n LBRACK expr.i RBRACK       {: return new IdAccess(n, true, false, i); :}
     | ID.n LBRACK expr.i RBRACK       {: return new IdAccess(n, i); :}
     | NUM.n                             {: return new Lit(n); :}
 	| CAS LPAREN ID.x COMMA expr.y COMMA expr.z RPAREN {: return new CompareAndSwap(x, y, z); :}
-    | PLUS  expr.a @ PREFIX             {: return new PreOp("+", a);    :}
-    | MINUS expr.a @ PREFIX             {: return new PreOp("-", a);    :}
-    | BANG  expr.a @ PREFIX             {: return new PreOp("!", a);    :}
-    | TILDE expr.a @ PREFIX             {: return new PreOp("~", a);    :}
-    | expr.a IMPLIES   expr.b           {: return new BinOp("=>", a, b); :}
-    | expr.a STAR   expr.b              {: return new BinOp("*", a, b); :}
-    | expr.a DIV    expr.b              {: return new BinOp("/", a, b); :}
-    | expr.a MOD    expr.b              {: return new BinOp("%", a, b); :}
-    | expr.a PLUS   expr.b              {: return new BinOp("+", a, b); :}
-    | expr.a MINUS  expr.b              {: return new BinOp("-", a, b); :}
-    | expr.a SHL    expr.b              {: return new BinOp("<<",a, b); :}
-    | expr.a SHR    expr.b              {: return new BinOp(">>",a, b); :}
-    | expr.a ASHR    expr.b             {: return new BinOp(">>>",a, b); :}
-    | expr.a LT     expr.b              {: return new BinOp("<", a, b); :}
-    | expr.a LE     expr.b              {: return new BinOp("<=",a, b); :}
-    | expr.a GE     expr.b              {: return new BinOp(">=",a, b); :}
-    | expr.a GT     expr.b              {: return new BinOp(">", a, b); :}
-    | expr.a EQ     expr.b              {: return new BinOp("==",a, b); :}
-    | expr.a NEQ    expr.b              {: return new BinOp("!=",a, b); :}
-    | expr.a AMP    expr.b              {: return new BinOp("&", a, b); :}
-    | expr.a CARET  expr.b              {: return new BinOp("^", a, b); :}
-    | expr.a PIPE   expr.b              {: return new BinOp("|", a, b); :}
-    | expr.a AND    expr.b              {: return new BinOp("&&",a, b); :}
-    | expr.a OR     expr.b              {: return new BinOp("||",a, b); :}
+    | PLUS  expr.a @ PREFIX             {: return new PreOp("+", Type.TInt(), Type.TInt(), a);    :}
+    | MINUS expr.a @ PREFIX             {: return new PreOp("-", Type.TInt(), Type.TInt(), a);    :}
+    | BANG  expr.a @ PREFIX             {: return new PreOp("!", Type.TBool(), Type.TBool(), a);    :}
+    // | TILDE expr.a @ PREFIX             {: return new PreOp("~", a);    :}
+    | expr.a IMPLIES   expr.b           {: return new BinOp("=>", Type.TBool(), Type.TBool(), a, b); :}
+    | expr.a STAR   expr.b              {: return new BinOp("*", Type.TInt(), Type.TInt(), a, b); :}
+    | expr.a DIV    expr.b              {: return new BinOp("/", Type.TInt(), Type.TInt(), a, b); :}
+    | expr.a MOD    expr.b              {: return new BinOp("%", Type.TInt(), Type.TInt(), a, b); :}
+    | expr.a PLUS   expr.b              {: return new BinOp("+", Type.TInt(), Type.TInt(), a, b); :}
+    | expr.a MINUS  expr.b              {: return new BinOp("-", Type.TInt(), Type.TInt(), a, b); :}
+    //| expr.a SHL    expr.b              {: return new BinOp("<<",a, b); :}
+    //| expr.a SHR    expr.b              {: return new BinOp(">>",a, b); :}
+    //| expr.a ASHR    expr.b             {: return new BinOp(">>>",a, b); :}
+    | expr.a LT     expr.b              {: return new BinOp("<", Type.TInt(), Type.TBool(), a, b); :}
+    | expr.a LE     expr.b              {: return new BinOp("<=", Type.TInt(), Type.TBool(),a, b); :}
+    | expr.a GE     expr.b              {: return new BinOp(">=", Type.TInt(), Type.TBool(),a, b); :}
+    | expr.a GT     expr.b              {: return new BinOp(">", Type.TInt(), Type.TBool(), a, b); :}
+    | expr.a EQ     expr.b              {: return new BinOp("==", Type.TBool(), Type.TBool(),a, b); :} // TODO this is incorrect
+    | expr.a NEQ    expr.b              {: return new BinOp("!=", Type.TBool(), Type.TBool(),a, b); :}
+    // | expr.a AMP    expr.b              {: return new BinOp("&", a, b); :}
+    // | expr.a CARET  expr.b              {: return new BinOp("^", a, b); :}
+    // | expr.a PIPE   expr.b              {: return new BinOp("|", a, b); :}
+    | expr.a AND    expr.b              {: return new BinOp("&&", Type.TBool(), Type.TBool(),a, b); :}
+    | expr.a OR     expr.b              {: return new BinOp("||", Type.TBool(), Type.TBool(),a, b); :}
 	| FORALL LPAREN exprl.l COLON expr.e RPAREN        {: return new ForAll(l, e); :}
     | LPAREN expr.e RPAREN              {: return (Symbol) e;           :}
     | TRUE                              {: return new Const("True");  :}

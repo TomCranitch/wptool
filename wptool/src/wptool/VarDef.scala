@@ -3,8 +3,8 @@ package wptool
 // highest level parsed data structure
 case class Global(
     variables: Set[Definition],
-    P_0: Option[List[Expression[TBool]]],
-    gamma_0: Option[List[GammaMapping[Type]]],
+    P_0: Option[List[Expression]],
+    gamma_0: Option[List[GammaMapping]],
     rely: Option[Rely],
     guarantee: Option[Guar],
     statements: List[Stmt]
@@ -13,7 +13,7 @@ case class Global(
     this(variables.toSet, None, None, None, None, statements.toList)
   def this(
       variables: Array[Definition],
-      gamma_0: Array[GammaMapping[Type]],
+      gamma_0: Array[GammaMapping],
       statements: Array[Stmt]
   ) =
     this(
@@ -33,7 +33,7 @@ case class Global(
     this(variables.toSet, None, None, Some(rely), Some(guar), statements.toList)
   def this(
       variables: Array[Definition],
-      gamma_0: Array[GammaMapping[Type]],
+      gamma_0: Array[GammaMapping],
       rely: Rely,
       guar: Guar,
       statements: Array[Stmt]
@@ -74,48 +74,49 @@ case object Low extends Security {
   def instance = this
 }
 
-case class GammaMapping[+T <: Type](variable: Id[T], security: Security) extends beaver.Symbol {
+case class GammaMapping(variable: Id, security: Security) extends beaver.Symbol {
+  // TODO hmmmmmm
   def this(variable: String, index: Int, security: Security) =
-    this(new Id(variable + "[" + index + "]", false, false, false), security)
+    this(new Id(variable + "[" + index + "]", Type.TInt, false, false, false), security)
   def this(variable: String, security: Security) =
-    this(new Id(variable, false, false, false), security)
+    this(new Id(variable, Type.TInt, false, false, false), security)
 
-  def toPair: Seq[(Id[T], Security)] = this match {
+  def toPair: Seq[(Id, Security)] = this match {
     case g =>
       Seq(g.variable -> g.security)
   }
 }
 
-case class Rely(exp: Expression[TBool]) extends beaver.Symbol
-case class Guar(exp: Expression[TBool]) extends beaver.Symbol
+case class Rely(exp: Expression) extends beaver.Symbol
+case class Guar(exp: Expression) extends beaver.Symbol
 
 sealed trait Definition extends beaver.Symbol
 
-case class VarDef[+T <: Type](name: Id[T], pred: Expression[TBool], access: Access) extends Definition {
-  def this(name: String, pred: Expression[TBool], access: Access) =
-    this(new Id(name, false, false, false), pred, access)
+case class VarDef(name: Id, pred: Expression, access: Access) extends Definition {
+  def this(name: String, pred: Expression, access: Access) =
+    this(new Id(name, Type.TInt, false, false, false), pred, access)
   def this(name: String, access: Access) =
-    this(new Id(name, false, false, false), Const._true, access)
+    this(new Id(name, Type.TInt, false, false, false), Const._true, access)
 }
 
-case class ArrayDef[+T <: Type](
-    name: Id[T],
-    size: Expression[TInt],
-    pred: Expression[TBool],
+case class ArrayDef(
+    name: Id,
+    size: Expression,
+    pred: Expression,
     access: Access,
     rely: Rely,
     guar: Guar
 ) extends Definition {
   def this(
       name: String,
-      size: Expression[TInt],
-      pred: Expression[TBool],
+      size: Expression,
+      pred: Expression,
       access: Access,
       rely: Rely,
       guar: Guar
   ) =
     this(
-      new Id(name, false, false, false),
+      new Id(name, Type.TInt, false, false, false),
       size,
       pred,
       access,
@@ -124,13 +125,13 @@ case class ArrayDef[+T <: Type](
     )
   def this(
       name: String,
-      size: Expression[TInt],
+      size: Expression,
       access: Access,
       rely: Rely,
       guar: Guar
   ) =
     this(
-      new Id(name, false, false, false),
+      new Id(name, Type.TInt, false, false, false),
       size,
       Const._true,
       access,
@@ -138,11 +139,11 @@ case class ArrayDef[+T <: Type](
       guar: Guar
     )
 
-  def toVarDefs: VarDef[T] = VarDef(name, pred, access)
+  def toVarDefs: VarDef = VarDef(name, pred, access)
 }
 
 object ArrayDef {
-  def predArray(size: Int, lpred: Expression[TBool]): IndexedSeq[Expression[TBool]] = {
+  def predArray(size: Int, lpred: Expression): IndexedSeq[Expression] = {
     for (i <- 0 until size)
       yield lpred
   }

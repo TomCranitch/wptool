@@ -28,8 +28,7 @@ object PreProcess {
   private def exec(stmt: Stmt, state: State, currBlock: Block): Block =
     stmt match {
       // TODO to get types for evalExp need to perform a match
-      case ass: Assignment[_] =>
-        val assign = ass.asInstanceOf[Assignment[Type]]
+      case assign: Assignment =>
         // TODO typeOf(assign) // TODO
         evalBlock(
           assign.expression,
@@ -37,8 +36,7 @@ object PreProcess {
             assign.copy(expression = evalExp(assign.expression))
           )
         )
-      case ass: ArrayAssignment[_] =>
-        val assign = ass.asInstanceOf[ArrayAssignment[Type]]
+      case assign: ArrayAssignment =>
         evalBlock(
           assign.expression,
           currBlock.prepend(
@@ -59,18 +57,18 @@ object PreProcess {
         val right = ifStmt.right match {
           case Some(s) =>
             exec(s, state, Block("if right", List(), List(currBlock)))
-              .prepend(Guard(PreOp("!", test)))
+              .prepend(Guard(PreOp("!", Type.TBool, Type.TBool, test)))
           case None =>
             Block(
               "if empty",
-              List(Guard(PreOp("!", test))),
+              List(Guard(PreOp("!", Type.TBool, Type.TBool, test))),
               List(currBlock)
             )
         }
         evalBlock(ifStmt.test, Block("pre if", List(), List(left, right)))
       case whileStmt: While =>
         val after =
-          currBlock.prepend(Assume(PreOp("!", evalExp(whileStmt.test))))
+          currBlock.prepend(Assume(PreOp("!", Type.TBool, Type.TBool, evalExp(whileStmt.test))))
         // TODO why does the body not go to after ?? (as per paper/PASTE05)
         val body =
           Block("while body", List(Assert(whileStmt.invariant)), List())
@@ -87,7 +85,7 @@ object PreProcess {
         // Assert(branchGamma)
         head
       case doWhile: DoWhile =>
-        val after = currBlock.prepend(Assume(PreOp("!", evalExp(doWhile.test))))
+        val after = currBlock.prepend(Assume(PreOp("!", Type.TBool, Type.TBool, evalExp(doWhile.test))))
         val repeat = Block(
           "do-while repeat",
           List(Guard(doWhile.test), Assert(doWhile.invariant, true)),
@@ -103,12 +101,12 @@ object PreProcess {
         currBlock.prepend(Malformed)
     }
 
-  def evalBlock(exp: Expression[Type], currBlock: Block): Block = exp match {
+  def evalBlock(exp: Expression, currBlock: Block): Block = exp match {
     case cas: CompareAndSwap =>
       val left = Block(
         "cas left",
         List(
-          Guard(BinOp("==", cas.x, cas.e1)),
+          Guard(BinOp.pred("==", cas.x, cas.e1)),
           Assignment(cas.x, cas.e2),
           Assignment(Id.tmpId, Lit(1))
         ),
@@ -118,7 +116,7 @@ object PreProcess {
       val right = Block(
         "cas right",
         List(
-          Guard(BinOp("!=", cas.x, cas.e1)),
+          Guard(BinOp.pred("!=", cas.x, cas.e1)),
           Assignment(Id.tmpId, Lit(0))
         ),
         List(currBlock),
@@ -126,20 +124,20 @@ object PreProcess {
       )
       val before = Block("before cas", List(), List(left, right))
       before
-    case BinOp(_, _, _: CompareAndSwap) =>
+    case BinOp(_, _, _, _, _: CompareAndSwap) =>
       throw new Error("currently unsupported")
-    case BinOp(op, arg1, arg2) =>
+    case BinOp(op, _, _, arg1, arg2) =>
       evalBlock(arg1, evalBlock(arg2, currBlock)) // TODO
     // TODO binop
-    case PreOp(op, arg) => evalBlock(arg, currBlock)
-    case _              => currBlock
+    case PreOp(op, _, _, arg) => evalBlock(arg, currBlock)
+    case _                    => currBlock
   }
 
-  def evalExp[T <: Type](exp: Expression[T]): Expression[T] = exp match {
-    case cas: CompareAndSwap   => Id.tmpId
-    case BinOp(op, arg1, arg2) => BinOp(op, evalExp(arg1), evalExp(arg2))
-    case PreOp(op, arg)        => PreOp(op, evalExp(arg))
-    case _                     => exp
+  def evalExp(exp: Expression): Expression = exp match {
+    case cas: CompareAndSwap           => Id.tmpId
+    case BinOp(op, t1, t2, arg1, arg2) => BinOp(op, t1, t2, evalExp(arg1), evalExp(arg2))
+    case PreOp(op, t1, t2, arg)        => PreOp(op, t1, t2, evalExp(arg))
+    case _                             => exp
   }
 
   def removeLoops(block: Block, state: State) = {

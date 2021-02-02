@@ -3,6 +3,7 @@ package wptool
 import org.sosy_lab.java_smt._
 import org.sosy_lab.java_smt.SolverContextFactory._
 import org.sosy_lab.java_smt.api.FormulaType
+import scala.reflect.runtime.universe.{TypeTag, typeOf}
 
 object SMT_ {
   val ctx = SolverContextFactory.createSolverContext(Solvers.SMTINTERPOL)
@@ -33,7 +34,7 @@ object SMT_ {
 
   def makeSelect(
       id: String,
-      index: Expression,
+      index: Expression[TInt],
       isBool: Boolean,
       expectIds: Boolean
   ) =
@@ -42,20 +43,30 @@ object SMT_ {
       translate(index, expectIds)
     )
 
-  def arith(prop: Expression, expectIds: Boolean): api.NumeralFormula.IntegerFormula = prop match {
-    case PreOp("-", arg) => imgr.negate(arith(arg, expectIds))
-    case BinOp("+", arg1, arg2) =>
-      imgr.add(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp("-", arg1, arg2) =>
-      imgr.subtract(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp("*", arg1, arg2) =>
-      imgr.multiply(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp("/", arg1, arg2) =>
-      imgr.divide(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp("%", arg1, arg2) =>
-      imgr.modulo(arith(arg1, expectIds), arith(arg2, expectIds))
+  def arithBinop[arg <: Type](
+      binOp: BinOp[arg, TInt],
+      expectIds: Boolean
+  )(implicit argTag: TypeTag[arg]): api.NumeralFormula.IntegerFormula = binOp match {
+    // TODO why does this not work???
+    case BinOp("+", arg1, arg2) if typeOf[arg] =:= typeOf[TInt] => imgr.add(arith(arg1, expectIds), arith(arg2, expectIds))
+    case BinOp("-", arg1, arg2)                                 => imgr.subtract(arith(arg1, expectIds), arith(arg2, expectIds))
+    case BinOp("*", arg1, arg2)                                 => imgr.multiply(arith(arg1, expectIds), arith(arg2, expectIds))
+    case BinOp("/", arg1, arg2)                                 => imgr.divide(arith(arg1, expectIds), arith(arg2, expectIds))
+    case BinOp("%", arg1, arg2)                                 => imgr.modulo(arith(arg1, expectIds), arith(arg2, expectIds))
   }
 
+  def arithPreop[argT <: Type](
+      preOp: PreOp[argT, TInt],
+      expectIds: Boolean
+  )(implicit argTag: TypeTag[argT]): api.NumeralFormula.IntegerFormula = preOp match {
+    case PreOp("-", arg) if (typeOf[argT] =:= typeOf[TInt]) => imgr.negate(arith(arg, expectIds))
+  }
+
+  def arith(exp: Expression[TInt], expectIds: Boolean) = exp match {
+    case x: BinOp => arithBinop(x, expectIds)
+  }
+
+  /*
   def arithBool(prop: Expression, expectIds: Boolean): api.BooleanFormula = prop match {
     case BinOp("==", arg1, arg2) =>
       imgr.equal(arith(arg1, expectIds), arith(arg2, expectIds))
@@ -94,6 +105,8 @@ object SMT_ {
       bmgr.implication(formula(arg1, expectIds), formula(arg2, expectIds))
 
   }
+
+   */
 
   def translate(prop: Expression, expectIds: Boolean): api.Formula = prop match {
     case Const._true  => bmgr.makeTrue

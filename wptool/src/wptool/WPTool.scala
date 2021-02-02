@@ -10,10 +10,10 @@ import scala.collection.mutable.ListBuffer
 
 case class RG(
     program: String,
-    rely: Expression[TBool],
-    guarantee: Expression[TBool],
-    arrayRs: Map[Id[Type], Expression[TBool]],
-    guarRs: Map[Id[Type], Expression[TBool]]
+    rely: Expression,
+    guarantee: Expression,
+    arrayRs: Map[Id, Expression],
+    guarRs: Map[Id, Expression]
 ) {}
 
 object WPTool {
@@ -116,8 +116,8 @@ object WPTool {
       _state.arrGuars
     )
 
-    val gammaDom: Set[Id[Type]] = _state.ids -- _state.arrayIds
-    val gamma: Map[Id[Type], Security] = gamma_0 match {
+    val gammaDom: Set[Id] = _state.ids -- _state.arrayIds
+    val gamma: Map[Id, Security] = gamma_0 match {
       // security high by default if user hasn't provided
       case None => Map()
       case Some(gs) =>
@@ -143,7 +143,7 @@ object WPTool {
       for (i <- gammaDom) yield {
         i.toGamma.toVar(_state) -> Left(gamma.getOrElse(i, High).toTruth)
       }
-    }.toMap.toMap[Var[Type], Left[Expression[Type], Nothing]] ++ Map(Id.tmpId.toGamma.toVar(_state) -> Left(Const._true))
+    }.toMap.toMap[Var, Left[Expression, Nothing]] ++ Map(Id.tmpId.toGamma.toVar(_state) -> Left(Const._true))
 
     if (debug) println("Gamma0: " + gammaSubstr)
     if (debug) println("L: " + _state.L)
@@ -185,50 +185,50 @@ object WPTool {
   }
 
   // TODO this is copy pasted
-  def getRelyRec(exp: Expression[Type]): Option[Expression[TBool]] = exp match {
-    case BinOp(op, arg1, arg2) =>
+  def getRelyRec(exp: Expression): Option[Expression] = exp match {
+    case BinOp(op, _, _, arg1, arg2) =>
       Some(constructForallOpt(getRelyRec(arg1), getRelyRec(arg2)))
-    case PreOp(op, arg) => getRelyRec(arg)
-    case i: Id[_]       =>
+    case PreOp(op, _, _, arg) => getRelyRec(arg)
+    case i: Id                =>
       // TODO if global
       val id = i.copy(prime = false, gamma = false)
       if (true) {
         Some(
-          BinOp(
+          BinOp.pred(
             "=>",
-            BinOp("==", id, id.toPrime),
-            BinOp("==", id.toGamma, id.toPrime.toGamma)
+            BinOp.pred("==", id, id.toPrime),
+            BinOp.pred("==", id.toGamma, id.toPrime.toGamma)
           )
         )
       } else {
         Some(
-          BinOp(
+          BinOp.pred(
             "&&",
-            BinOp("==", id, id.toPrime),
-            BinOp("==", id.toGamma, id.toPrime.toGamma)
+            BinOp.pred("==", id, id.toPrime),
+            BinOp.pred("==", id.toGamma, id.toPrime.toGamma)
           )
         )
       }
-    case i: IdAccess[_] =>
+    case i: IdAccess =>
       val id = i.copy(ident = i.ident.copy(gamma = false, prime = false))
       if (true) {
         Some(
-          BinOp(
+          BinOp.pred(
             "=>",
-            BinOp("==", id, id.toPrime),
-            BinOp("==", id.toGamma, id.toPrime.toGamma)
+            BinOp.pred("==", id, id.toPrime),
+            BinOp.pred("==", id.toGamma, id.toPrime.toGamma)
           )
         )
       } else {
         Some(
-          BinOp(
+          BinOp.pred(
             "&&",
-            BinOp("==", id, id.toPrime),
-            BinOp("==", id.toGamma, id.toPrime.toGamma)
+            BinOp.pred("==", id, id.toPrime),
+            BinOp.pred("==", id.toGamma, id.toPrime.toGamma)
           )
         )
       }
-    case s: VarStore[_] =>
+    case s: VarStore =>
       getRelyRec(
         s.exp
       ) // TODO do we need it for arr and index as well? (similarly for eval)
@@ -246,9 +246,9 @@ object WPTool {
       RGs.foreach(g => {
         if (
           r != g && !SMT.prove(
-            BinOp(
+            BinOp.pred(
               "=>",
-              BinOp(
+              BinOp.pred(
                 "&&",
                 g.guarantee,
                 getRelyRec(r.rely).getOrElse(Const._true)
@@ -273,9 +273,9 @@ object WPTool {
           val cond = constructForall(g.guarRs.values.toList :+ g.guarantee)
           if (
             !SMT.prove(
-              BinOp(
+              BinOp.pred(
                 "=>",
-                BinOp("&&", cond, getRelyRec(r.rely).getOrElse(Const._true)),
+                BinOp.pred("&&", cond, getRelyRec(r.rely).getOrElse(Const._true)),
                 r.rely
               ),
               List(),
