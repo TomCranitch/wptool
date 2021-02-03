@@ -16,12 +16,13 @@ object wptool extends ScalaModule with ScalafmtModule {
     }
 
 	override def repositories = super.repositories ++ Seq(
-  		MavenRepository("http://logicrunch.research.it.uu.se/maven/")
+  		MavenRepository("http://logicrunch.research.it.uu.se/maven/"),
 	)
 
 	
     override def ivyDeps = Agg(
         ivy"org.sosy-lab:java-smt:3.7.0",
+        // ivy"org.sosy_lab:java-smt:3.7.0",
 		ivy"org.scala-lang:scala-reflect:2.13.3",
 		ivy"com.chuusai:shapeless_2.13:2.3.3",
     )

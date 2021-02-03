@@ -128,6 +128,7 @@ object WPTool {
         }.toMap
     }
 
+    /*
     val gammaArraySubst = constructForall(
       _state.arrayIds
         .map(a =>
@@ -138,6 +139,7 @@ object WPTool {
         )
         .toList
     )
+     */
 
     val gammaSubstr = {
       for (i <- gammaDom) yield {
@@ -149,7 +151,7 @@ object WPTool {
     if (debug) println("L: " + _state.L)
     if (debug) println("Indicies: " + _state.indicies)
 
-    checkVcs(_state.Qs, gammaSubstr, gammaArraySubst, debug, simplify) match {
+    checkVcs(_state.Qs, gammaSubstr, debug, simplify) match {
       case Some(s) =>
         if (!silent) printFalseVcs(s)
         false
@@ -255,7 +257,6 @@ object WPTool {
               ),
               r.rely
             ),
-            List(),
             false,
             false,
             true
@@ -278,7 +279,6 @@ object WPTool {
                 BinOp.pred("&&", cond, getRelyRec(r.rely).getOrElse(Const._true)),
                 r.rely
               ),
-              List(),
               false,
               false,
               true

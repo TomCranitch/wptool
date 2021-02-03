@@ -156,6 +156,7 @@ case class VarStore(array: Expression, index: Expression, exp: Expression) exten
   override def expType = array.expType
 }
 
+/*
 case class ArrayConstDefault(name: Var, const: Expression) extends Expression {
   def vars = const.vars
   def ids = const.ids ++ name.ids
@@ -163,6 +164,7 @@ case class ArrayConstDefault(name: Var, const: Expression) extends Expression {
   def subst(su: Subst) = ArrayConstDefault(name, const.subst(su))
   override def expType = name.expType
 }
+ */
 
 case class PreOp(op: String, override val expType: Type.Type, argType: Type.Type, arg: Expression) extends Expression {
   override def toString: String = "(" + op + " " + arg + ")"
@@ -181,7 +183,7 @@ case class PostOp(op: String, override val expType: Type.Type, argType: Type.Typ
 }
 
 case class BinOp(op: String, override val expType: Type.Type, argType: Type.Type, arg1: Expression, arg2: Expression) extends Expression {
-  override def toString: String = "(" + arg1 + " " + op + " " + arg2 + ")"
+  // override def toString: String = "(" + arg1 + " " + op + " " + arg2 + ")"
   override def vars = arg1.vars ++ arg2.vars
   override def ids = arg1.ids ++ arg2.ids
   def arrays = arg1.arrays ++ arg2.arrays

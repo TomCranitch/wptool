@@ -295,7 +295,6 @@ object Exec {
   def getBaseArrays(vars: Set[VarAccess]): Set[VarAccess] = vars.map(v => v.getBase.resetIndex)
 
   def getRely(exp: Expression, state: State) = {
-    // TODO i think arrays will need different rules
     val evalExp = eval(exp, state)
 
     eval(
@@ -309,7 +308,7 @@ object Exec {
                 //  "&&",
                 BinOp.pred(
                   "=>",
-                  BinOp.pred("==", v, v.toPrime(state)),
+                  BinOp("==", Type.TInt, Type.TBool, v, v.toPrime(state)),
                   BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                 ) // ,
                 //   BinOp("=>", primed(getL(v.ident, state), state), v.toPrime(state).toGamma(state))
@@ -317,7 +316,7 @@ object Exec {
               } else {
                 BinOp.pred(
                   "&&",
-                  BinOp.pred("==", v, v.toPrime(state)),
+                  BinOp("==", Type.TInt, Type.TBool, v, v.toPrime(state)),
                   BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                 )
 
@@ -332,7 +331,7 @@ object Exec {
                     //    "&&",
                     BinOp.pred(
                       "=>",
-                      BinOp.pred("==", v, v.toPrime(state)),
+                      BinOp("==", Type.TInt, Type.TBool, v, v.toPrime(state)),
                       BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                     ) //,
                     //    BinOp("=>", primed(getL(v, state), state), v.toPrime(state).toGamma(state))
@@ -340,7 +339,7 @@ object Exec {
                   } else {
                     BinOp.pred(
                       "&&",
-                      BinOp.pred("==", v, v.toPrime(state)),
+                      BinOp("==", Type.TInt, Type.TBool, v, v.toPrime(state)),
                       BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                     )
                   }
@@ -425,12 +424,10 @@ object Exec {
     val vars = getBaseVars(guar.vars ++ guar.arrays.map(a => a.name))
     val subst = vars.map(v => List(v -> Left(v.toNought), v.toPrime(state) -> Left(v))).flatten.toMap
     val gPrime = guar.subst(subst)
-    // TODO
     val _subst = vars.map(v => v.toNought.asInstanceOf[Var] -> Left(v)).toMap
     wp(gPrime, a, state).subst(_subst)
   }
 
-  // TODO fix subst when multiple arrays present (does this really matter tho or is it handled automatically)
   def guar(a: ArrayAssignment, state: State) = {
     val guar =
       eval(

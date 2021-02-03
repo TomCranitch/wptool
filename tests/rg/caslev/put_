@@ -1,0 +1,47 @@
+global var z:
+_L: TRUE
+
+global var tail:
+_L: TRUE
+
+global var head:
+_L: TRUE
+
+global var L:
+_L: TRUE
+
+global array tasks[1]:
+_L: levels[_i] == 1
+_Rely: tasks[_i] == tasks'[_i]
+_Guar: TRUE
+
+global array levels[1]:
+_L: TRUE
+_Rely: levels[_i] == levels'[_i]
+_Guar: (z % 2 == 0 && z' == z) => (levels[_i] == levels'[_i])
+
+local var t:
+
+global var task:
+_L: level == 1
+
+global var level:
+_L: TRUE
+
+local var index:
+
+_Gamma_0: z -> LOW
+_Rely: z == z' && task == task' && level == level' && L == L'
+_Guar: z' >= z
+
+if (z % 2 == 1) {
+	z = z + 1;
+}
+
+t = tail;
+z = z + 1;
+index = t % L;
+levels[index] = level;
+tasks[index] = task;
+z = z + 1;
+tail = t + 1;

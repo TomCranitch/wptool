@@ -75,7 +75,7 @@ package object wptool {
   ): Option[List[PredInfo]] =
     preds.filter(p => {
       if (debug) println(s"passing ${p.stmt.toStringWLine} ${p.label} along path ${p.path.mkString(", ")} to SMT")
-      !SMT.prove(p.pred, List(), debug, simplify)
+      !SMT.prove(p.pred, debug, simplify)
     }) match {
       case List() => None
       case l      => Some(l)

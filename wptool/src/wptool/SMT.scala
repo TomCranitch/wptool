@@ -5,7 +5,7 @@ import com.microsoft.z3.BoolExpr
 import com.microsoft.z3.enumerations.Z3_decl_kind
 import scala.reflect.runtime.universe.{TypeTag, typeOf}
 
-object SMT {
+object SMT_ {
   val intSize = 32 // size of bitvectors used
   val cfg = new java.util.HashMap[String, String]()
   val ctx = new z3.Context(cfg)
@@ -179,6 +179,7 @@ object SMT {
         expectIds
       )
 
+    /*
     case const: ArrayConstDefault =>
       // TODO i dont think this is correct (https://stackoverflow.com/questions/54863754/z3-set-default-value-of-array-to-zero)
       if (const.name.ident.gamma)
@@ -188,6 +189,7 @@ object SMT {
           ctx.mkConstArray(ctx.getIntSort, translate(const.const, expectIds))
         )
       else throw new Error("ArrayConstDefault is only for gamma values")
+     */
 
     case BinOp("==", _, Type.TBool, arg1, arg2) =>
       ctx.mkEq(translate(arg1, expectIds), translate(arg2, expectIds))

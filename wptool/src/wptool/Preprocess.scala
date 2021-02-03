@@ -106,7 +106,7 @@ object PreProcess {
       val left = Block(
         "cas left",
         List(
-          Guard(BinOp.pred("==", cas.x, cas.e1)),
+          Guard(BinOp("==", Type.TInt, Type.TBool, cas.x, cas.e1)),
           Assignment(cas.x, cas.e2),
           Assignment(Id.tmpId, Lit(1))
         ),
@@ -116,7 +116,7 @@ object PreProcess {
       val right = Block(
         "cas right",
         List(
-          Guard(BinOp.pred("!=", cas.x, cas.e1)),
+          Guard(BinOp("!=", Type.TInt, Type.TBool, cas.x, cas.e1)),
           Assignment(Id.tmpId, Lit(0))
         ),
         List(currBlock),
