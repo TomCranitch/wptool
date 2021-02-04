@@ -231,8 +231,12 @@ object Exec {
 
         Q.subst(
           Map(
-            (assign.lhs.toGamma.toVar(state) -> Left(rhsGamma)), // TODO should gamma be an array (i think so)
-            // (assign.lhs.toVar(state) -> Left(eval(assign.expression, state)))
+            (Id.memId.toVar(state) -> Right(
+              (
+                Id.getAddr(assign.lhs, state),
+                rhsGamma
+              )
+            )),
             ((if (ass.lhs.prime) Id.memId.toPrime.toVar(state) else Id.memId.toVar(state))
               -> Right(
                 (
@@ -263,40 +267,44 @@ object Exec {
     }
   }
 
-  def eval(expr: Expression, state: State, memAccess: Boolean): Expression = expr match {
-    case id: Id =>
-      if (id == Id.indexId) id.toVar(state)
-      else if (memAccess && !id.gamma)
-        VarAccess(if (id.prime) Id.memId.toPrime.toVar(state) else Id.memId.toVar(state), Id.getAddr(id, state))
-      else id.toVar(state)
-    case v: Var =>
-      if (v.ident == Id.indexId) v
-      else if (memAccess && !v.ident.gamma)
-        VarAccess(if (v.ident.prime) Id.memId.toPrime.toVar(state) else Id.memId.toVar(state), Id.getAddr(v.ident, state))
-      else if (memAccess && !v.ident.gamma)
-        VarAccess(if (v.ident.prime) Id.memId.toPrime.toVar(state) else Id.memId.toVar(state), Id.getAddr(v.ident, state))
-      else v
-    case id: IdAccess => id.toVar(state).copy(index = eval(id.index, state, memAccess))
-    case BinOp(op, t1, t2, arg1, arg2) =>
-      BinOp(op, t1, t2, eval(arg1, state, memAccess), eval(arg2, state, memAccess))
-    case PreOp(op, t1, t2, arg) => PreOp(op, t1, t2, eval(arg, state, memAccess))
-    case s: VarStore =>
-      s.copy(
-        array = eval(s.array, state, memAccess),
-        index = eval(s.index, state, memAccess),
-        exp = eval(s.exp, state, memAccess)
-      )
-    case a: VarAccess => a.copy(index = eval(a.index, state, memAccess))
-    case forall: ForAll =>
-      forall.copy(
-        bound = forall.bound.map(b => eval(b, state, memAccess)),
-        body = eval(forall.body, state, memAccess)
-      )
-    case _: Lit | _: Const => expr
-    case expr =>
-      println(s"Unhandled expression(eval): [${expr.getClass()}] $expr")
-      expr
-  }
+  def eval(expr: Expression, state: State, memAccess: Boolean): Expression =
+    expr match {
+      case id: Id =>
+        if (id == Id.indexId) id.toVar(state)
+        else if (memAccess && !id.gamma)
+          VarAccess(if (id.prime) Id.memId.toPrime.toVar(state) else Id.memId.toVar(state), Id.getAddr(id, state))
+        else if (memAccess && id.gamma)
+          VarAccess(if (id.prime) Id.memId.toPrime.toGamma.toVar(state) else Id.memId.toGamma.toVar(state), Id.getAddr(id, state))
+        else
+          id.toVar(state)
+      case v: Var =>
+        if (v.ident == Id.indexId) v
+        else if (memAccess && !v.ident.gamma)
+          VarAccess(if (v.ident.prime) Id.memId.toPrime.toVar(state) else Id.memId.toVar(state), Id.getAddr(v.ident, state))
+        else if (memAccess && v.ident.gamma)
+          VarAccess(if (v.ident.prime) Id.memId.toPrime.toGamma.toVar(state) else Id.memId.toGamma.toVar(state), Id.getAddr(v.ident, state))
+        else v
+      case id: IdAccess => id.toVar(state).copy(index = eval(id.index, state, memAccess))
+      case BinOp(op, t1, t2, arg1, arg2) =>
+        BinOp(op, t1, t2, eval(arg1, state, memAccess), eval(arg2, state, memAccess))
+      case PreOp(op, t1, t2, arg) => PreOp(op, t1, t2, eval(arg, state, memAccess))
+      case s: VarStore =>
+        s.copy(
+          array = eval(s.array, state, memAccess),
+          index = eval(s.index, state, memAccess),
+          exp = eval(s.exp, state, memAccess)
+        )
+      case a: VarAccess => a.copy(index = eval(a.index, state, memAccess))
+      case forall: ForAll =>
+        forall.copy(
+          bound = forall.bound.map(b => eval(b, state, memAccess)),
+          body = eval(forall.body, state, memAccess)
+        )
+      case _: Lit | _: Const => expr
+      case expr =>
+        println(s"Unhandled expression(eval): [${expr.getClass()}] $expr")
+        expr
+    }
 
   def getBaseVars(vars: Set[Var]): Set[Var] = vars.map(v => v.getBase.resetIndex)
   def getBaseArrays(vars: Set[VarAccess]): Set[VarAccess] = vars.map(v => v.getBase.resetIndex)
@@ -304,7 +312,7 @@ object Exec {
   def getRely(exp: Expression, state: State) = {
     val evalExp = eval(exp, state, false)
 
-    eval(
+    val p = eval(
       BinOp.pred(
         "&&",
         constructForall(
@@ -364,8 +372,9 @@ object Exec {
         eval(state.rely, state, false)
       ),
       state,
-      false
+      true
     )
+    p
   }
 
   def getL(id: Id, state: State): Expression = {
@@ -374,17 +383,17 @@ object Exec {
       eval(
         state.L.getOrElse(id, throw new Error("L not defined for " + id)),
         state,
-        false
+        true
       )
   }
 
   def getL(id: IdAccess, state: State): Expression =
     getL(id.ident, state)
-      .subst(Map(Id.indexId.toVar(state) -> Left(eval(id.index, state, false))))
+      .subst(Map(Id.indexId.toVar(state) -> Left(eval(id.index, state, true))))
 
   def getL(v: VarAccess, state: State): Expression =
     getL(v.ident, state)
-      .subst(Map(Id.indexId.toVar(state) -> Left(eval(v.index, state, false))))
+      .subst(Map(Id.indexId.toVar(state) -> Left(eval(v.index, state, true))))
 
   def primed(p: Expression, state: State) =
     eval(p, state, false).subst(
@@ -468,6 +477,7 @@ object Exec {
         .map(v =>
           eval(
             BinOp.pred("||", v.toGamma(state), getL(v.ident, state)),
+            // BinOp.pred("||", VarAccess(Id.memId.toGamma.toVar(state), Id.getAddr(v.ident, state)), getL(v.ident, state)),
             state,
             true
           ) // Default to high

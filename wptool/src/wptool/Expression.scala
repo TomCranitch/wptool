@@ -76,8 +76,7 @@ object Id {
   val memId = Id("mem", Type.TInt, false, false, false)
 
   def getAddr(id: Id, state: State): Lit = {
-    if (id.prime) Lit(state.addrs.getOrElse(id.copy(prime = false), throw new Error("Couldn't resolve memeory address")))
-    else Lit(state.addrs.getOrElse(id, throw new Error("Couldn't resolve memeory address")))
+    Lit(state.addrs.getOrElse(id.getBase, throw new Error("Couldn't resolve memeory address")))
   }
 }
 

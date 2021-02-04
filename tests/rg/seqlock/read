@@ -17,8 +17,8 @@ _Rely: z' >= z
 _Guar: (z' == z)
 
 do
-// _invariant: Gamma_r1
-_invariant: Gamma_r1 && ((z == r1) => Gamma_r2)
+_invariant: Gamma_r1
+// _invariant: Gamma_r1 && ((z == r1) => Gamma_r2)
 {
 	do
 	_invariant: Gamma_r1
