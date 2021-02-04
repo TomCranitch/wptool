@@ -45,8 +45,8 @@ trait Variable extends Expression {
 
 // id parsed from input - need to convert to Var before use in predicates etc.
 case class Id(name: String, override val expType: Type.Type, prime: Boolean, gamma: Boolean, nought: Boolean) extends Identifier {
-  /* override def toString: String =
-    (if (gamma) "Gamma_" else "") + name + (if (prime) "'" else "") + (if (nought) "⁰" else "") */
+  override def toString: String =
+    (if (gamma) "Gamma_" else "") + name + (if (prime) "'" else "") + (if (nought) "⁰" else "")
   override def vars = throw new Error("Tried to get var from id")
   override def ids = Set(this)
   override def arrays = Set()
@@ -183,7 +183,7 @@ case class PostOp(op: String, override val expType: Type.Type, argType: Type.Typ
 }
 
 case class BinOp(op: String, override val expType: Type.Type, argType: Type.Type, arg1: Expression, arg2: Expression) extends Expression {
-  // override def toString: String = "(" + arg1 + " " + op + " " + arg2 + ")"
+  override def toString: String = "(" + arg1 + " " + op + " " + arg2 + ")"
   override def vars = arg1.vars ++ arg2.vars
   override def ids = arg1.ids ++ arg2.ids
   def arrays = arg1.arrays ++ arg2.arrays
