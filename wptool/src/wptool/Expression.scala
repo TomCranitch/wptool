@@ -74,6 +74,11 @@ object Id {
   val tmpId = Id("tmp", Type.TInt, false, false, false)
   val indexId = Id("_i", Type.TInt, false, false, false)
   val memId = Id("mem", Type.TInt, false, false, false)
+
+  def getAddr(id: Id, state: State): Lit = {
+    if (id.prime) Lit(state.addrs.getOrElse(id.copy(prime = false), throw new Error("Couldn't resolve memeory address")))
+    else Lit(state.addrs.getOrElse(id, throw new Error("Couldn't resolve memeory address")))
+  }
 }
 
 case class Var(ident: Id, index: Int, tmp: Boolean = false) extends Variable {

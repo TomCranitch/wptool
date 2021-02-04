@@ -122,7 +122,8 @@ object State {
         (Id.indexId -> 0) + (Id.tmpId -> 0) + (Id.tmpId.toPrime -> 0) + (Id.memId -> 0) + (Id.memId.toPrime -> 0)
 
     // TODO add support for arrays
-    val addrs = ids.zipWithIndex.map { case (x, i) => Map((x -> i), (x.toPrime -> (i + ids.size))) }.flatten.toMap
+    // TODO tmpId could remain a var as it cant be aliased
+    val addrs = (ids + Id.tmpId).zipWithIndex.map { case (x, i) => (x -> i) }.toMap
 
     // TODO malformed probs insto the best
     State(
