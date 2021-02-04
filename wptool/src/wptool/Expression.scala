@@ -45,8 +45,8 @@ trait Variable extends Expression {
 
 // id parsed from input - need to convert to Var before use in predicates etc.
 case class Id(name: String, override val expType: Type.Type, prime: Boolean, gamma: Boolean, nought: Boolean) extends Identifier {
-  /* override def toString: String =
-    (if (gamma) "Gamma_" else "") + name + (if (prime) "'" else "") + (if (nought) "⁰" else "") */
+  override def toString: String =
+    (if (gamma) "Gamma_" else "") + name + (if (prime) "'" else "") + (if (nought) "⁰" else "")
   override def vars = throw new Error("Tried to get var from id")
   override def ids = Set(this)
   override def arrays = Set()
@@ -57,13 +57,10 @@ case class Id(name: String, override val expType: Type.Type, prime: Boolean, gam
   def toGamma = Id(name, Type.TBool, prime, true, nought)
 
   def getIndex(state: State) = {
-    // println(state.indicies.map { case (k, v) => (k, k == this.copy(gamma = false, expType = Type.TInt)) })
-    // println(this.copy(gamma = false, expType = Type.TInt))
     if (!gamma) state.indicies.getOrElse(this, throw new Error(s"Index not found for var $this with type $expType"))
-    // TODO change Type.TInt
     else
       state.indicies.getOrElse(
-        this.copy(gamma = false, expType = Type.TInt),
+        this.copy(gamma = false, expType = Type.TInt), // TODO change Type.TInt
         throw new Error(s"Index not found for gamma var $this with type $expType")
       )
   }
@@ -76,6 +73,7 @@ object Id {
   // TODO change to bool
   val tmpId = Id("tmp", Type.TInt, false, false, false)
   val indexId = Id("_i", Type.TInt, false, false, false)
+  val memId = Id("mem", Type.TInt, false, false, false)
 }
 
 case class Var(ident: Id, index: Int, tmp: Boolean = false) extends Variable {
@@ -183,7 +181,7 @@ case class PostOp(op: String, override val expType: Type.Type, argType: Type.Typ
 }
 
 case class BinOp(op: String, override val expType: Type.Type, argType: Type.Type, arg1: Expression, arg2: Expression) extends Expression {
-  // override def toString: String = "(" + arg1 + " " + op + " " + arg2 + ")"
+  override def toString: String = "(" + arg1 + " " + op + " " + arg2 + ")"
   override def vars = arg1.vars ++ arg2.vars
   override def ids = arg1.ids ++ arg2.ids
   def arrays = arg1.arrays ++ arg2.arrays

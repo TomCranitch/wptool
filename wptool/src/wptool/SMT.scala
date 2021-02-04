@@ -5,7 +5,7 @@ import com.microsoft.z3.BoolExpr
 import com.microsoft.z3.enumerations.Z3_decl_kind
 import scala.reflect.runtime.universe.{TypeTag, typeOf}
 
-object SMT_ {
+object SMT {
   val intSize = 32 // size of bitvectors used
   val cfg = new java.util.HashMap[String, String]()
   val ctx = new z3.Context(cfg)
@@ -21,19 +21,15 @@ object SMT_ {
 
   def prove(
       cond: Expression,
-      given: List[Expression],
       debug: Boolean,
       simplify: Boolean,
       expectIds: Boolean = false
   ) = {
     if (debug)
-      println("smt checking !(" + cond + ") given " + given.PStr)
+      println("smt checking !(" + cond + ")")
     solver.push()
     val res =
       try {
-        for (p <- given) {
-          solver.add(formula(p, expectIds))
-        }
         // check that (NOT cond) AND P is unsatisfiable
         solver.add(formula(PreOp("!", Type.TBool, Type.TBool, cond), expectIds))
 
@@ -48,11 +44,10 @@ object SMT_ {
           throw error.Z3Error(
             "Z3 failed",
             cond,
-            given.PStr,
             "incorrect z3 expression type, probably involving ForAll/Exists"
           )
         case e: Throwable =>
-          // throw error.Z3Error("Z3 failed", cond, given.PStr, e)
+          // throw error.Z3Error("Z3 failed", cond, e)
           throw e
       } finally {
         solver.pop()

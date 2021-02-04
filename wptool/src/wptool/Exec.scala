@@ -45,7 +45,7 @@ object Exec {
             new PredInfo(
               stableR(assert.expression, state),
               assert,
-              "StableR"
+              "Assert"
             )
           )
           .incPrimeIndicies
@@ -85,8 +85,7 @@ object Exec {
       } else {
         _state.incPrimeIndicies
       }
-    case ass: Assignment =>
-      val assign = ass.asInstanceOf[Assignment]
+    case assign: Assignment =>
       val globalPred =
         if (state.globals.contains(assign.lhs))
           BinOp.pred(
@@ -130,8 +129,7 @@ object Exec {
           )
           .incPrimeIndicies
       }
-    case ass: ArrayAssignment =>
-      val assign = ass.asInstanceOf[ArrayAssignment]
+    case assign: ArrayAssignment =>
       val indexSub =
         Map(Id.indexId.toVar(state) -> assign.lhs.ident)
       val globalPred =
@@ -209,12 +207,8 @@ object Exec {
   }
 
   def evalWp(stmt: Stmt, state: State, RG: Boolean) = {
-    // if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = BinOp("&&", wp(Q.pred, stmt, state), stableR(wp(Q.pred, stmt, state), state)))))
-    // TODO should use rImplies
-    // is this even possible? if the rely is false then the whole expression becomes true
     if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = rImplies(wp(Q.pred, stmt, state), state))))
     else state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
-    // state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
   }
 
   def wp(Q: Expression, stmt: Stmt, state: State): Expression = {
@@ -228,12 +222,6 @@ object Exec {
           BinOp.pred("=>", PreOp("!", Type.TBool, Type.TBool, stabRB), eval(exp, state))
         )
       case Assert(exp, checkStableR, _) =>
-        /* BinOp(
-          "&&",
-          eval(exp, state),
-          Q
-        ) // Potentially move to exec to evaluate separately
-         */
         Q
       case havoc: Havoc => Q
       case ass: Assignment =>
@@ -242,8 +230,12 @@ object Exec {
 
         Q.subst(
           Map(
-            (assign.lhs.toGamma.toVar(state) -> Left(rhsGamma)),
-            (assign.lhs.toVar(state) -> Left(eval(assign.expression, state)))
+            (assign.lhs.toGamma.toVar(state) -> Left(rhsGamma)), // TODO should gamma be an array (i think so)
+            // (assign.lhs.toVar(state) -> Left(eval(assign.expression, state)))
+            (Id.memId.toVar(state) -> Right(
+              Lit(state.addrs.getOrElse(ass.lhs, throw new Error("Memeory address not found"))),
+              eval(ass.expression, state)
+            ))
           )
         )
       case ass: ArrayAssignment =>
@@ -268,7 +260,10 @@ object Exec {
   }
 
   def eval(expr: Expression, state: State): Expression = expr match {
-    case id: Id       => id.toVar(state)
+    case id: Id =>
+      println(id)
+      println(state.addrs)
+      VarAccess(Id.memId.toVar(state), Lit(state.addrs.getOrElse(id, throw new Error("Memeory address not found"))))
     case id: IdAccess => id.toVar(state).copy(index = eval(id.index, state))
     case BinOp(op, t1, t2, arg1, arg2) =>
       BinOp(op, t1, t2, eval(arg1, state), eval(arg2, state))
