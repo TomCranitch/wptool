@@ -76,6 +76,8 @@ object Exec {
       if (RG) {
         val gamma = computeGamma(guard.test, state)
         val stabR = stableR(gamma, state)
+
+        println(s"$guard  -  $gamma")
         _state
           .addQs(
             new PredInfo(gamma, guard, "Gamma"),
