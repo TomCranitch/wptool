@@ -77,7 +77,6 @@ object Exec {
         val gamma = computeGamma(guard.test, state)
         val stabR = stableR(gamma, state)
 
-        println(s"$guard  -  $gamma")
         _state
           .addQs(
             new PredInfo(gamma, guard, "Gamma"),
@@ -272,19 +271,25 @@ object Exec {
   def eval(expr: Expression, state: State, memAccess: Boolean): Expression =
     expr match {
       case id: Id =>
+        val mem =
+          (if (id.prime) Id.memId.toPrime.toVar(state) else if (id.nought) Id.memId.toVar(state).toNought else Id.memId.toVar(state))
         if (id == Id.indexId) id.toVar(state)
         else if (memAccess && !id.gamma)
-          VarAccess(if (id.prime) Id.memId.toPrime.toVar(state) else Id.memId.toVar(state), Id.getAddr(id, state))
+          VarAccess(mem, Id.getAddr(id, state))
         else if (memAccess && id.gamma)
-          VarAccess(if (id.prime) Id.memId.toPrime.toGamma.toVar(state) else Id.memId.toGamma.toVar(state), Id.getAddr(id, state))
+          VarAccess(mem.toGamma(state), Id.getAddr(id, state))
         else
           id.toVar(state)
       case v: Var =>
+        val mem =
+          (if (v.ident.prime) Id.memId.toPrime.toVar(state)
+           else if (v.ident.nought) Id.memId.toVar(state).toNought
+           else Id.memId.toVar(state))
         if (v.ident == Id.indexId) v
         else if (memAccess && !v.ident.gamma)
-          VarAccess(if (v.ident.prime) Id.memId.toPrime.toVar(state) else Id.memId.toVar(state), Id.getAddr(v.ident, state))
+          VarAccess(mem, Id.getAddr(v.ident, state))
         else if (memAccess && v.ident.gamma)
-          VarAccess(if (v.ident.prime) Id.memId.toPrime.toGamma.toVar(state) else Id.memId.toGamma.toVar(state), Id.getAddr(v.ident, state))
+          VarAccess(mem.toGamma(state), Id.getAddr(v.ident, state))
         else v
       case id: IdAccess => id.toVar(state).copy(index = eval(id.index, state, memAccess))
       case BinOp(op, t1, t2, arg1, arg2) =>
@@ -443,15 +448,20 @@ object Exec {
     )
 
   def guar(a: Assignment, state: State) = {
-    val guar = eval(state.guar, state, true)
+    val guar = eval(state.guar, state, false)
+    val vars = getBaseVars(guar.vars ++ guar.arrays.map(a => a.name))
+    val subst = vars.map(v => List(v -> Left(v.toNought), v.toPrime(state) -> Left(v))).flatten.toMap
+    /*
     val subst = Map(
       (Id.memId.toVar(state) -> Left(Id.memId.toVar(state).toNought)),
       (Id.memId.toPrime.toVar(state) -> Left(Id.memId.toVar(state)))
     )
+     */
     val gPrime = guar.subst(subst)
-    // val _subst = vars.map(v => v.toNought.asInstanceOf[Var] -> Left(v)).toMap
     val _subst = Map(Id.memId.toVar(state).toNought -> Left(Id.memId.toVar(state)))
-    wp(gPrime, a, state).subst(_subst)
+    // val _subst = vars.map(v => v.toNought -> Left(v)).toMap
+    // val _subst = Map(Id.memId.toVar(state).toNought -> Left(Id.memId.toVar(state)))
+    wp(eval(gPrime, state, true), a, state).subst(_subst)
   }
 
   def guar(a: ArrayAssignment, state: State) = {

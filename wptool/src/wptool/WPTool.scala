@@ -105,7 +105,6 @@ object WPTool {
     // printBlocks(PreProcess.process(statements, state))
 
     if (debug) PreProcess.printGraphvis(PreProcess.process(statements, state))
-    println(state.addrs)
 
     val _state = Exec.exec(PreProcess.process(statements, state), state)
 
@@ -146,11 +145,12 @@ object WPTool {
       for (i <- gammaDom) yield {
         // i.toGamma.toVar(_state) -> Left(gamma.getOrElse(i, High).toTruth)
         // TODO TO TRUTH
-        Id.memId.toGamma.toVar(state) -> Right(Id.getAddr(i, state), gamma.getOrElse(i, High).toTruth)
+        // TODO Low??
+        Id.memId.toGamma.toVar(state) -> Right(Id.getAddr(i, state), gamma.getOrElse(i, Low).toTruth)
       }
     }.toMap ++ Map(Id.tmpId.toGamma.toVar(_state) -> Left(Const._true))
 
-    if (debug) println("Gamma0: " + gammaSubstr)
+    // if (debug) println("Gamma0: " + gammaSubstr)
     if (debug) println("L: " + _state.L)
     if (debug) println("Indicies: " + _state.indicies)
 
