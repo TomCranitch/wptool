@@ -82,7 +82,7 @@ WS = {NL} | [ \t\f]
 ">"         { return newToken(Terminals.GT);       }
 "=="        { return newToken(Terminals.EQ);       }
 "!="        { return newToken(Terminals.NEQ);      }
-// "&"         { return newToken(Terminals.AMP);      }
+"&"         { return newToken(Terminals.AMP);      }
 // "^"         { return newToken(Terminals.CARET);    }
 // "|"         { return newToken(Terminals.PIPE);     }
 "&&"        { return newToken(Terminals.AND);      }

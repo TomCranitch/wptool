@@ -156,6 +156,8 @@ intexpr
     = PREFIX | POSTFIX /* unused */
     | PRIMEID.n                              {: return new Id(n, Type.TInt(), true, false, false);  :}
     | ID.n                              {: return new Id(n, Type.TInt(), false, false, false);  :}
+    // TODO | ID.n AMP                              {: return new Id(n, TPointer.TPointerInt(), false, false, false);  :}
+    | ID.n AMP                              {: return new Id(n, Type.TInt(), false, false, false);  :}
     | PRIMEID.n LBRACK intexpr.i RBRACK       {: return new IdAccess(n, true, false, i); :}
     | ID.n LBRACK intexpr.i RBRACK       {: return new IdAccess(n, i); :}
 	// TODO rm

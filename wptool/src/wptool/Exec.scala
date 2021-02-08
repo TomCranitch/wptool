@@ -238,8 +238,7 @@ object Exec {
             state
           )
         )
-      case ass: ArrayAssignment =>
-        val assign = ass.asInstanceOf[ArrayAssignment]
+      case assign: ArrayAssignment =>
         val rhsGamma = computeGamma(assign.expression, state)
 
         Q.subst(
@@ -397,9 +396,10 @@ object Exec {
       .subst((Map(Id.indexId.toVar(state) -> Left(eval(v.index, state, true))), state))
 
   def primed(p: Expression, state: State) =
+    // TODO handle memId
     eval(p, state, false).subst(
       (
-        (state.ids ++ state.arrayIds)
+        (state.arrayIds + Id.memId)
           .map(id => id.toVar(state) -> Left(id.toPrime.toVar(state)))
           .toMap,
         state

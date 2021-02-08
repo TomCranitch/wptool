@@ -150,7 +150,6 @@ object WPTool {
       }
     }.toMap ++ Map(Id.tmpId.toGamma.toVar(_state) -> Left(Const._true))
 
-    println("Gamma0: " + gammaSubstr)
     if (debug) println("Gamma0: " + gammaSubstr)
     if (debug) println("L: " + _state.L)
     if (debug) println("Indicies: " + _state.indicies)
