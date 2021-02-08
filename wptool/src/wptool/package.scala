@@ -14,7 +14,7 @@ package object wptool {
 
   // TODO this doesnt feel like the best way to do this
   // Either[substitution, (index, substitution)]
-  type Subst = Map[Var, Either[Expression, (Expression, Expression)]]
+  type Subst = (Map[Var, Either[Expression, (Expression, Expression)]], State)
 
   val sub = "₀₁₂₃₄₅₆₇₈₉"
   implicit class StringOps(self: String) {

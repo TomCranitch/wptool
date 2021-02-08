@@ -146,15 +146,16 @@ object WPTool {
         // i.toGamma.toVar(_state) -> Left(gamma.getOrElse(i, High).toTruth)
         // TODO TO TRUTH
         // TODO Low??
-        Id.memId.toGamma.toVar(state) -> Right(Id.getAddr(i, state), gamma.getOrElse(i, Low).toTruth)
+        i.toGamma.toVar(_state) -> Left(gamma.getOrElse(i, High).toTruth)
       }
     }.toMap ++ Map(Id.tmpId.toGamma.toVar(_state) -> Left(Const._true))
 
-    // if (debug) println("Gamma0: " + gammaSubstr)
+    println("Gamma0: " + gammaSubstr)
+    if (debug) println("Gamma0: " + gammaSubstr)
     if (debug) println("L: " + _state.L)
     if (debug) println("Indicies: " + _state.indicies)
 
-    checkVcs(_state.Qs, gammaSubstr, debug, simplify) match {
+    checkVcs(_state.Qs, (gammaSubstr, state), debug, simplify) match {
       case Some(s) =>
         if (!silent) printFalseVcs(s)
         false

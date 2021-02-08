@@ -50,9 +50,11 @@ object State {
     var controlled: Set[Id] = Set()
     var controlledBy: Map[Id, Set[Id]] = Map()
 
-    val arrayIds = definitions collect { case a: ArrayDef =>
-      a.toVarDefs.name
-    }
+    val arrayIds = {
+      definitions collect { case a: ArrayDef =>
+        a.toVarDefs.name
+      }
+    } + Id.memId
 
     val arrRelys = definitions
       .collect { case a: ArrayDef =>

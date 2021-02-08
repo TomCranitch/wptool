@@ -86,7 +86,7 @@ case class Var(ident: Id, index: Int, tmp: Boolean = false) extends Variable {
   override def vars = Set(this)
   override def ids = Set(this.ident)
   override def arrays = Set()
-  override def subst(su: Subst) = su.get(this) match {
+  override def subst(su: Subst) = su._1.get(this) match {
     case Some(Left(e: Expression)) => e
     case Some(Right(_)) =>
       throw new Error(s"Tried to subst var $this with index")
@@ -130,13 +130,37 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
 
   def subst(su: Subst) = {
     val updatedArr = this.copy(index = index.subst(su))
-    su.get(name) match {
-      case Some(Right((i: Expression, e: Expression))) =>
-        VarStore(updatedArr, i, e)
-      case Some(Left(v: Var)) => updatedArr.copy(name = v) // to handle priming
-      case Some(Left(_)) =>
-        throw new Error("Tried to subst varaccess without index")
-      case None => updatedArr
+    if (name.ident.getBase != Id.memId) {
+      su._1.get(name) match {
+        case Some(Right((i: Expression, e: Expression))) =>
+          VarStore(updatedArr, i, e)
+        case Some(Left(v: Var)) => updatedArr.copy(name = v) // to handle priming
+        case Some(Left(_)) =>
+          throw new Error("Tried to subst varaccess without index")
+        case None => updatedArr
+      }
+    } else {
+
+      su._1
+        .filter {
+          case (v, Left(_)) =>
+            !su._2.arrayIds.contains(
+              v.ident.getBase
+            ) && this.ident.gamma == v.ident.gamma && this.ident.prime == v.ident.prime && this.ident.nought == v.ident.nought
+          case (v, Right(_)) => false
+        }
+        .foldLeft(updatedArr: Expression) {
+          case (p, (v, Left(e))) => {
+            val i = su._2.addrs.get(v.ident.getBase).get
+            this.index match {
+              case Lit(n) if (i != n) =>
+                p
+              case _ =>
+                val memId = v.ident.copy(name = Id.memId.name)
+                VarStore(p, Lit(su._2.addrs.get(v.ident.getBase).get), e)
+            }
+          }
+        }
     }
   }
 

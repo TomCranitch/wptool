@@ -6,7 +6,7 @@ import org.sosy_lab.java_smt.api.FormulaType
 import scala.reflect.runtime.universe.{TypeTag, typeOf}
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions
 
-object SMT_ {
+object SMT {
   val solver = Solvers.CVC4
   val ctx = SolverContextFactory.createSolverContext(solver)
   val fmgr = ctx.getFormulaManager();
