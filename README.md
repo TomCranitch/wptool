@@ -123,6 +123,16 @@ _invariant: TRUE
 ### Unsupported language features
 Below is an inconclusive list of unsupported language features.
  * Pointers
+ * Dynamic allocation
+
+	
+ * Dynamic thread creation
+ * Objects
+
+### Improve Type System
+ * Nested arrays
+ * Arrays/Pointers to Bools
+ * Arrays of pointers
  
 ### Weak memory model
 The logic for the weak memory model is currently not implemented

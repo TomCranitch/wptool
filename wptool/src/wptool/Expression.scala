@@ -3,15 +3,9 @@ package wptool
 import scala.reflect.runtime.universe.{TypeTag, typeOf}
 
 sealed abstract class Type
-sealed abstract class TPointer(pointerType: Type) extends Type
-case object TBool extends Type
-case object TInt extends Type
-case object TPointerInt extends TPointer(TInt)
-
-object Type extends Enumeration {
-  type Type = Value
-  val TBool, TInt = Value
-}
+case class TPointer(pointerType: Type) extends Type
+case object TBool extends Type { def instance = this }
+case object TInt extends Type { def instance = this }
 
 trait Expression extends beaver.Symbol {
   // returns all vars in the expression, does NOT include array indices
@@ -21,7 +15,7 @@ trait Expression extends beaver.Symbol {
   def subst(su: Subst): Expression
   def arrays: Set[VarAccess]
 
-  def expType: Type.Type
+  def expType: Type
 }
 
 case class Lit(arg: Int) extends Expression {
@@ -30,7 +24,7 @@ case class Lit(arg: Int) extends Expression {
   override def ids = Set()
   override def arrays = Set()
   override def subst(su: Subst): Lit = this
-  override def expType = Type.TInt
+  override def expType = TInt
 }
 
 trait Identifier extends Expression {
@@ -50,7 +44,7 @@ trait Variable extends Expression {
 }
 
 // id parsed from input - need to convert to Var before use in predicates etc.
-case class Id(name: String, override val expType: Type.Type, prime: Boolean, gamma: Boolean, nought: Boolean) extends Identifier {
+case class Id(name: String, override val expType: Type, prime: Boolean, gamma: Boolean, nought: Boolean) extends Identifier {
   override def toString: String =
     (if (gamma) "Gamma_" else "") + name + (if (prime) "'" else "") + (if (nought) "⁰" else "")
   override def vars = throw new Error("Tried to get var from id")
@@ -60,26 +54,26 @@ case class Id(name: String, override val expType: Type.Type, prime: Boolean, gam
   def toVar(state: State) = Var(this, getIndex(state))
   def toPrime = this.copy(prime = true)
   // TODO change type
-  def toGamma = Id(name, Type.TBool, prime, true, nought)
+  def toGamma = Id(name, TBool, prime, true, nought)
 
   def getIndex(state: State) = {
     if (!gamma) state.indicies.getOrElse(this, throw new Error(s"Index not found for var $this with type $expType"))
     else
       state.indicies.getOrElse(
-        this.copy(gamma = false, expType = Type.TInt), // TODO change Type.TInt
+        this.copy(gamma = false, expType = TInt), // TODO change TInt
         throw new Error(s"Index not found for gamma var $this with type $expType")
       )
   }
 
   // TODO use actual type
-  override def getBase = Id(name, Type.TInt, false, false, false)
+  override def getBase = Id(name, TInt, false, false, false)
 }
 
 object Id {
   // TODO change to bool
-  val tmpId = Id("tmp", Type.TInt, false, false, false)
-  val indexId = Id("_i", Type.TInt, false, false, false)
-  val memId = Id("mem", Type.TInt, false, false, false)
+  val tmpId = Id("tmp", TInt, false, false, false)
+  val indexId = Id("_i", TInt, false, false, false)
+  val memId = Id("mem", TInt, false, false, false)
 
   def getAddr(id: Id, state: State): Lit = {
     Lit(state.addrs.getOrElse(id.getBase, throw new Error("Couldn't resolve memeory address")))
@@ -113,8 +107,8 @@ case class Var(ident: Id, index: Int, tmp: Boolean = false) extends Variable {
 }
 
 case class IdAccess(ident: Id, index: Expression) extends Expression with Identifier {
-  def this(name: String, index: Expression) = this(Id(name, Type.TInt, false, false, false), index)
-  def this(name: String, prime: Boolean, gamma: Boolean, index: Expression) = this(Id(name, Type.TInt, prime, gamma, false), index)
+  def this(name: String, index: Expression) = this(Id(name, TInt, false, false, false), index)
+  def this(name: String, prime: Boolean, gamma: Boolean, index: Expression) = this(Id(name, TInt, prime, gamma, false), index)
   def vars = index.vars
   def ids = index.ids
   def arrays = throw new Error("tried to get array from IdAccess")
@@ -134,6 +128,7 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
   def ids = index.ids
   def arrays = Set(this)
 
+  // TODO document/comment
   def subst(su: Subst) = {
     val updatedArr = this.copy(index = index.subst(su))
     if (name.ident.getBase != Id.memId) {
@@ -207,7 +202,7 @@ case class ArrayConstDefault(name: Var, const: Expression) extends Expression {
 }
  */
 
-case class PreOp(op: String, override val expType: Type.Type, argType: Type.Type, arg: Expression) extends Expression {
+case class PreOp(op: String, override val expType: Type, argType: Type, arg: Expression) extends Expression {
   override def toString: String = "(" + op + " " + arg + ")"
   override def vars = arg.vars
   override def ids = arg.ids
@@ -215,7 +210,7 @@ case class PreOp(op: String, override val expType: Type.Type, argType: Type.Type
   def subst(su: Subst) = this.copy(arg = arg.subst(su))
 }
 
-case class PostOp(op: String, override val expType: Type.Type, argType: Type.Type, arg: Expression) extends Expression {
+case class PostOp(op: String, override val expType: Type, argType: Type, arg: Expression) extends Expression {
   override def toString: String = "(" + arg + " " + op + ")"
   override def vars = arg.vars
   override def ids = arg.ids
@@ -223,7 +218,7 @@ case class PostOp(op: String, override val expType: Type.Type, argType: Type.Typ
   def subst(su: Subst) = this.copy(arg = arg.subst(su))
 }
 
-case class BinOp(op: String, override val expType: Type.Type, argType: Type.Type, arg1: Expression, arg2: Expression) extends Expression {
+case class BinOp(op: String, override val expType: Type, argType: Type, arg1: Expression, arg2: Expression) extends Expression {
   override def toString: String = "(" + arg1 + " " + op + " " + arg2 + ")"
   override def vars = arg1.vars ++ arg2.vars
   override def ids = arg1.ids ++ arg2.ids
@@ -232,7 +227,7 @@ case class BinOp(op: String, override val expType: Type.Type, argType: Type.Type
 }
 
 object BinOp {
-  def pred(op: String, arg1: Expression, arg2: Expression) = BinOp(op, Type.TBool, Type.TBool, arg1, arg2)
+  def pred(op: String, arg1: Expression, arg2: Expression) = BinOp(op, TBool, TBool, arg1, arg2)
 }
 
 object Const {
@@ -246,18 +241,18 @@ case class Const(name: String) extends Expression {
   override def ids = Set()
   override def arrays = Set()
   override def subst(su: Subst): Const = this
-  override def expType = Type.TBool
+  override def expType = TBool
 }
 
 // TODO change to bool expression
 case class CompareAndSwap(x: Id, e1: Expression, e2: Expression) extends Expression {
-  def this(x: String, e1: Expression, e2: Expression) = this(new Id(x, Type.TInt, false, false, false), e1, e2)
+  def this(x: String, e1: Expression, e2: Expression) = this(new Id(x, TInt, false, false, false), e1, e2)
   override def toString: String = "CAS(" + x + ", " + e1 + ", " + e2 + ")"
   override def vars = e1.vars ++ e2.vars
   override def ids = e1.ids ++ e2.ids
   def arrays = e1.arrays ++ e2.arrays
   override def subst(su: Subst) = this
-  override def expType = Type.TInt // TODO
+  override def expType = TInt // TODO
 }
 
 case class ForAll(bound: Set[_ <: Expression], body: Expression) extends Expression {
@@ -267,5 +262,28 @@ case class ForAll(bound: Set[_ <: Expression], body: Expression) extends Express
   def arrays = body.arrays -- bound.map(a => a.arrays).flatten
   override def subst(su: Subst) = ForAll(bound, body.subst(su))
   override def toString = s"∀ ${bound.mkString(", ")} : $body"
-  override def expType = Type.TBool
+  override def expType = TBool
+}
+
+case class Dereference(ident: Id) extends Expression {
+  def this(x: String) = this(Id(x, TInt, false, false, false))
+  override def vars = ident.vars
+  override def ids = ident.ids
+  override def arrays = ident.arrays
+  override def subst(su: Subst) = Dereference(ident.subst(su))
+
+  override def expType = ident.expType match {
+    case TPointer(t) => t
+    case _           => throw new Error("Invalid pointer type")
+  }
+}
+
+case class Reference(ident: Id) extends Expression {
+  def this(x: String) = this(Id(x, TInt, false, false, false))
+  override def vars = ident.vars
+  override def ids = ident.ids
+  override def arrays = ident.arrays
+  override def subst(su: Subst) = Reference(ident.subst(su))
+
+  override def expType = TPointer(ident.expType)
 }

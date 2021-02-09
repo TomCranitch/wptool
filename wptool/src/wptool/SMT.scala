@@ -27,14 +27,14 @@ object SMT {
   ) = {
     if (debug) {
       println("smt checking !(" + cond + ")")
-      println("translated as " + formula(PreOp("!", Type.TBool, Type.TBool, cond), expectIds))
+      println("translated as " + formula(PreOp("!", TBool, TBool, cond), expectIds))
     }
 
     solver.push()
     val res =
       try {
         // check that (NOT cond) AND P is unsatisfiable
-        solver.add(formula(PreOp("!", Type.TBool, Type.TBool, cond), expectIds))
+        solver.add(formula(PreOp("!", TBool, TBool, cond), expectIds))
 
         solver.check
       } catch {
@@ -144,11 +144,11 @@ object SMT {
     case x: Var =>
       if (expectIds) throw new Error("Program ids should not be resolved")
       // TODO println(s"$x is of type ${typeOf}")
-      val sort = if (x.ident.expType == Type.TBool) ctx.getBoolSort else ctx.getIntSort
+      val sort = if (x.ident.expType == TBool) ctx.getBoolSort else ctx.getIntSort
       ctx.mkConst(x.toString, sort)
     case x: Id =>
       if (expectIds) throw new Error("Unresolved id")
-      val sort = if (x.expType == Type.TBool) ctx.getBoolSort else ctx.getIntSort
+      val sort = if (x.expType == TBool) ctx.getBoolSort else ctx.getIntSort
       ctx.mkConst(x.toString, sort)
 
     // TODO can these cases be merged together
@@ -191,41 +191,41 @@ object SMT {
       else throw new Error("ArrayConstDefault is only for gamma values")
      */
 
-    case BinOp("==", _, Type.TBool, arg1, arg2) =>
+    case BinOp("==", _, TBool, arg1, arg2) =>
       ctx.mkEq(translate(arg1, expectIds), translate(arg2, expectIds))
-    case BinOp("!=", _, Type.TBool, arg1, arg2) =>
+    case BinOp("!=", _, TBool, arg1, arg2) =>
       ctx.mkNot(
         ctx.mkEq(translate(arg1, expectIds), translate(arg2, expectIds))
       )
 
-    case PreOp("!", Type.TBool, Type.TBool, arg) => ctx.mkNot(formula(arg, expectIds))
-    case BinOp("&&", Type.TBool, Type.TBool, arg1, arg2) =>
+    case PreOp("!", TBool, TBool, arg) => ctx.mkNot(formula(arg, expectIds))
+    case BinOp("&&", TBool, TBool, arg1, arg2) =>
       ctx.mkAnd(formula(arg1, expectIds), formula(arg2, expectIds))
-    case BinOp("||", Type.TBool, Type.TBool, arg1, arg2) =>
+    case BinOp("||", TBool, TBool, arg1, arg2) =>
       ctx.mkOr(formula(arg1, expectIds), formula(arg2, expectIds))
 
-    case BinOp("=>", Type.TBool, Type.TBool, arg1, arg2) =>
+    case BinOp("=>", TBool, TBool, arg1, arg2) =>
       ctx.mkImplies(formula(arg1, expectIds), formula(arg2, expectIds))
 
-    case PreOp("-", Type.TInt, Type.TInt, arg) => ctx.mkUnaryMinus(arith(arg))
-    case BinOp("+", Type.TInt, Type.TInt, arg1, arg2) =>
+    case PreOp("-", TInt, TInt, arg) => ctx.mkUnaryMinus(arith(arg))
+    case BinOp("+", TInt, TInt, arg1, arg2) =>
       ctx.mkAdd(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp("-", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp("-", TInt, TInt, arg1, arg2) =>
       ctx.mkSub(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp("*", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp("*", TInt, TInt, arg1, arg2) =>
       ctx.mkMul(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp("/", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp("/", TInt, TInt, arg1, arg2) =>
       ctx.mkDiv(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp("%", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp("%", TInt, TInt, arg1, arg2) =>
       ctx.mkMod(arith(arg1, expectIds), arith(arg2, expectIds))
 
-    case BinOp("<=", Type.TInt, Type.TBool, arg1, arg2) =>
+    case BinOp("<=", TInt, TBool, arg1, arg2) =>
       ctx.mkLe(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp("<", Type.TInt, Type.TBool, arg1, arg2) =>
+    case BinOp("<", TInt, TBool, arg1, arg2) =>
       ctx.mkLt(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp(">=", Type.TInt, Type.TBool, arg1, arg2) =>
+    case BinOp(">=", TInt, TBool, arg1, arg2) =>
       ctx.mkGe(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp(">", Type.TInt, Type.TBool, arg1, arg2) =>
+    case BinOp(">", TInt, TBool, arg1, arg2) =>
       ctx.mkGt(arith(arg1, expectIds), arith(arg2, expectIds))
 
     /*

@@ -221,7 +221,7 @@ object Exec {
         BinOp.pred(
           "&&",
           BinOp.pred("=>", BinOp.pred("&&", eval(exp, state, true), stabRB), Q),
-          BinOp.pred("=>", PreOp("!", Type.TBool, Type.TBool, stabRB), eval(exp, state, true))
+          BinOp.pred("=>", PreOp("!", TBool, TBool, stabRB), eval(exp, state, true))
         )
       case Assert(exp, checkStableR, _) =>
         Q
@@ -330,7 +330,7 @@ object Exec {
                 //  "&&",
                 BinOp.pred(
                   "=>",
-                  BinOp("==", Type.TInt, Type.TBool, v, v.toPrime(state)),
+                  BinOp("==", TInt, TBool, v, v.toPrime(state)),
                   BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                 ) // ,
                 //   BinOp("=>", primed(getL(v.ident, state), state), v.toPrime(state).toGamma(state))
@@ -338,7 +338,7 @@ object Exec {
               } else {
                 BinOp.pred(
                   "&&",
-                  BinOp("==", Type.TInt, Type.TBool, v, v.toPrime(state)),
+                  BinOp("==", TInt, TBool, v, v.toPrime(state)),
                   BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                 )
 
@@ -353,7 +353,7 @@ object Exec {
                     //    "&&",
                     BinOp.pred(
                       "=>",
-                      BinOp("==", Type.TInt, Type.TBool, v, v.toPrime(state)),
+                      BinOp("==", TInt, TBool, v, v.toPrime(state)),
                       BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                     ) //,
                     //    BinOp("=>", primed(getL(v, state), state), v.toPrime(state).toGamma(state))
@@ -361,7 +361,7 @@ object Exec {
                   } else {
                     BinOp.pred(
                       "&&",
-                      BinOp("==", Type.TInt, Type.TBool, v, v.toPrime(state)),
+                      BinOp("==", TInt, TBool, v, v.toPrime(state)),
                       BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                     )
                   }
@@ -382,7 +382,7 @@ object Exec {
                     //    "&&",
                     BinOp.pred(
                       "=>",
-                      BinOp("==", Type.TInt, Type.TBool, v, v.toPrime(state)),
+                      BinOp("==", TInt, TBool, v, v.toPrime(state)),
                       BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                     ) //,
                   //    BinOp("=>", primed(getL(v, state), state), v.toPrime(state).toGamma(state))

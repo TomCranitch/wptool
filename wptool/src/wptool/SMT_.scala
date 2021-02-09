@@ -29,7 +29,7 @@ object SMT_ {
     val res =
       try {
         // check that (NOT cond) AND P is unsatisfiable
-        prover.addConstraint(translateBool(PreOp("!", Type.TBool, Type.TBool, cond), expectIds))
+        prover.addConstraint(translateBool(PreOp("!", TBool, TBool, cond), expectIds))
 
         return prover.isUnsat();
 
@@ -91,7 +91,7 @@ object SMT_ {
 
   def getArray(store: Expression): api.ArrayFormula[api.NumeralFormula.IntegerFormula, _ <: api.Formula] = store match {
     case a: VarAccess =>
-      if (a.expType == Type.TBool) {
+      if (a.expType == TBool) {
         amgr.makeArray[api.NumeralFormula.IntegerFormula, api.BooleanFormula, api.FormulaType[
           api.NumeralFormula.IntegerFormula
         ], api.FormulaType[api.BooleanFormula]](
@@ -127,7 +127,7 @@ object SMT_ {
           translateInt(a.index, expectIds),
           // TODO  Type?
           // TODO !!!!!!!!
-          if (a.expType == Type.TInt) translateInt(a.exp, expectIds) else translateBool(a.exp, expectIds)
+          if (a.expType == TInt) translateInt(a.exp, expectIds) else translateBool(a.exp, expectIds)
         ),
         expectIds
       )
@@ -138,43 +138,43 @@ object SMT_ {
     case Const._true  => bmgr.makeTrue
     case Const._false => bmgr.makeFalse
 
-    case BinOp("==", Type.TBool, Type.TBool, arg1, arg2) =>
+    case BinOp("==", TBool, TBool, arg1, arg2) =>
       bmgr.equivalence(translateBool(arg1, expectIds), translateBool(arg2, expectIds))
-    case BinOp("!=", Type.TBool, Type.TBool, arg1, arg2) =>
+    case BinOp("!=", TBool, TBool, arg1, arg2) =>
       bmgr.not(
         bmgr.equivalence(translateBool(arg1, expectIds), translateBool(arg2, expectIds))
       )
 
-    case PreOp("!", Type.TBool, Type.TBool, arg) => bmgr.not(translateBool(arg, expectIds))
-    case BinOp("&&", Type.TBool, Type.TBool, arg1, arg2) =>
+    case PreOp("!", TBool, TBool, arg) => bmgr.not(translateBool(arg, expectIds))
+    case BinOp("&&", TBool, TBool, arg1, arg2) =>
       bmgr.and(translateBool(arg1, expectIds), translateBool(arg2, expectIds))
-    case BinOp("||", Type.TBool, Type.TBool, arg1, arg2) =>
+    case BinOp("||", TBool, TBool, arg1, arg2) =>
       bmgr.or(translateBool(arg1, expectIds), translateBool(arg2, expectIds))
-    case BinOp("=>", Type.TBool, Type.TBool, arg1, arg2) =>
+    case BinOp("=>", TBool, TBool, arg1, arg2) =>
       bmgr.implication(translateBool(arg1, expectIds), translateBool(arg2, expectIds))
 
-    case BinOp("==", Type.TInt, Type.TBool, arg1, arg2) =>
+    case BinOp("==", TInt, TBool, arg1, arg2) =>
       imgr.equal(translateInt(arg1, expectIds), translateInt(arg2, expectIds))
-    case BinOp("!=", Type.TInt, Type.TBool, arg1, arg2) =>
+    case BinOp("!=", TInt, TBool, arg1, arg2) =>
       bmgr.not(
         imgr.equal(translateInt(arg1, expectIds), translateInt(arg2, expectIds))
       )
 
-    case BinOp("<=", Type.TInt, Type.TBool, arg1, arg2) =>
+    case BinOp("<=", TInt, TBool, arg1, arg2) =>
       imgr.lessOrEquals(translateInt(arg1, expectIds), translateInt(arg2, expectIds))
-    case BinOp("<", Type.TInt, Type.TBool, arg1, arg2) =>
+    case BinOp("<", TInt, TBool, arg1, arg2) =>
       imgr.lessThan(translateInt(arg1, expectIds), translateInt(arg2, expectIds))
-    case BinOp(">=", Type.TInt, Type.TBool, arg1, arg2) =>
+    case BinOp(">=", TInt, TBool, arg1, arg2) =>
       imgr.greaterOrEquals(translateInt(arg1, expectIds), translateInt(arg2, expectIds))
-    case BinOp(">", Type.TInt, Type.TBool, arg1, arg2) =>
+    case BinOp(">", TInt, TBool, arg1, arg2) =>
       imgr.greaterThan(translateInt(arg1, expectIds), translateInt(arg2, expectIds))
 
-    case v @ Var(Id(_, Type.TBool, _, _, _), _, _) if (!expectIds) => bmgr.makeVariable(v.toString)
-    case v @ Id(_, Type.TBool, _, _, _) if (expectIds)             => bmgr.makeVariable(v.toString)
+    case v @ Var(Id(_, TBool, _, _, _), _, _) if (!expectIds) => bmgr.makeVariable(v.toString)
+    case v @ Id(_, TBool, _, _, _) if (expectIds)             => bmgr.makeVariable(v.toString)
     // TODO refactor to use Type not bool for isBoolean
-    case x: VarAccess if (!expectIds && x.expType == Type.TBool) =>
+    case x: VarAccess if (!expectIds && x.expType == TBool) =>
       makeSelect(x.name.toString, x.index, true, expectIds).asInstanceOf[api.BooleanFormula]
-    case x: IdAccess if (expectIds && x.expType == Type.TBool) =>
+    case x: IdAccess if (expectIds && x.expType == TBool) =>
       makeSelect(x.ident.toString, x.index, true, expectIds).asInstanceOf[api.BooleanFormula]
     case store: VarStore => handleStore(store, getArray(store), expectIds).asInstanceOf[api.BooleanFormula]
 
@@ -185,26 +185,26 @@ object SMT_ {
     case Lit(n: Int) => imgr.makeNumber(n)
 
     case Var(Id.indexId, _, _) => throw new Error("Unsubstituted index")
-    case BinOp("%", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp("%", TInt, TInt, arg1, arg2) =>
       imgr.modulo(translateInt(arg1, expectIds), translateInt(arg2, expectIds))
-    case BinOp("+", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp("+", TInt, TInt, arg1, arg2) =>
       imgr.add(translateInt(arg1, expectIds), translateInt(arg2, expectIds))
-    case BinOp("-", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp("-", TInt, TInt, arg1, arg2) =>
       imgr.subtract(translateInt(arg1, expectIds), translateInt(arg2, expectIds))
-    case BinOp("*", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp("*", TInt, TInt, arg1, arg2) =>
       imgr.multiply(translateInt(arg1, expectIds), translateInt(arg2, expectIds))
-    case BinOp("/", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp("/", TInt, TInt, arg1, arg2) =>
       imgr.divide(translateInt(arg1, expectIds), translateInt(arg2, expectIds))
-    case PreOp("-", Type.TInt, Type.TInt, arg) => imgr.negate(translateInt(arg, expectIds))
-    case PreOp("+", Type.TInt, Type.TInt, arg) => translateInt(arg, expectIds)
+    case PreOp("-", TInt, TInt, arg) => imgr.negate(translateInt(arg, expectIds))
+    case PreOp("+", TInt, TInt, arg) => translateInt(arg, expectIds)
 
     // TODO *+-/
 
-    case v @ Var(Id(_, Type.TInt, _, gamma, _), _, _) if (!expectIds && !gamma) => imgr.makeVariable(v.toString)
-    case v @ Id(_, Type.TInt, _, gamma, _) if (expectIds && !gamma)             => imgr.makeVariable(v.toString)
-    case x: VarAccess if (!expectIds && x.expType == Type.TInt) =>
+    case v @ Var(Id(_, TInt, _, gamma, _), _, _) if (!expectIds && !gamma) => imgr.makeVariable(v.toString)
+    case v @ Id(_, TInt, _, gamma, _) if (expectIds && !gamma)             => imgr.makeVariable(v.toString)
+    case x: VarAccess if (!expectIds && x.expType == TInt) =>
       makeSelect(x.name.toString, x.index, false, expectIds).asInstanceOf[api.NumeralFormula.IntegerFormula]
-    case x: IdAccess if (expectIds && x.expType == Type.TInt) =>
+    case x: IdAccess if (expectIds && x.expType == TInt) =>
       makeSelect(x.ident.toString, x.index, false, expectIds).asInstanceOf[api.NumeralFormula.IntegerFormula]
 
     case store: VarStore => handleStore(store, getArray(store), expectIds).asInstanceOf[api.NumeralFormula.IntegerFormula]
