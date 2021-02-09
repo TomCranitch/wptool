@@ -308,8 +308,9 @@ object Exec {
     }
 
   def getBaseVars(vars: Set[Var]): Set[Var] = vars.map(v => v.getBase.resetIndex)
-  def getBaseArrays(vars: Set[VarAccess]): Set[VarAccess] = vars.filter(v => v.name.ident != Id.memId).map(v => v.getBase.resetIndex)
-  def getBaseMems(vars: Set[VarAccess]): Set[VarAccess] = vars.filter(v => v.name.ident == Id.memId).map(v => v.getBase.resetIndex)
+  def getBaseArrays(vars: Set[VarAccess]): Set[VarAccess] =
+    vars.filter(v => v.name.ident.getBase != Id.memId).map(v => v.getBase.resetIndex)
+  def getBaseMems(vars: Set[VarAccess]): Set[VarAccess] = vars.filter(v => v.name.ident.getBase == Id.memId).map(v => v.getBase.resetIndex)
 
   def getRely(exp: Expression, state: State) = {
     val evalExp = eval(exp, state, false)

@@ -105,6 +105,7 @@ object WPTool {
     // printBlocks(PreProcess.process(statements, state))
 
     if (debug) PreProcess.printGraphvis(PreProcess.process(statements, state))
+    if (debug) println(s"Addrs: ${state.addrs}")
 
     val _state = Exec.exec(PreProcess.process(statements, state), state)
 
