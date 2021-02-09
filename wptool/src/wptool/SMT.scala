@@ -100,34 +100,33 @@ object SMT {
         throw error.InvalidProgram("not a bitwise expression", prop, e)
     }
 
-  def getArray(store: Expression): z3.ArrayExpr = store match {
+  def handleSelect(
+      store: Expression,
+      arr: z3.ArrayExpr,
+      expectIds: Boolean
+  ): z3.Expr = store match {
+    case a: VarAccess => ctx.mkSelect(arr, translate(a.index, expectIds))
+    case a: VarStore  => handleSelect(a.array, arr, expectIds)
+    case _            => throw new Error("Unexpected statement in VarStore")
+  }
+
+  // TODO i think the name should come from the inner load not from the store
+  def handleStore(
+      store: Expression,
+      expectIds: Boolean
+  ): z3.ArrayExpr = store match {
     case a: VarAccess =>
       ctx.mkArrayConst(
         a.name.toString,
         ctx.getIntSort,
         if (a.ident.gamma) ctx.getBoolSort else ctx.getIntSort
       )
-    case a: VarStore => getArray(a.array)
-    case _           => throw new Error("Unexpected statement in VarStore")
-  }
-
-  // TODO i think the name should come from the inner load not from the store
-  def handleStore(
-      store: Expression,
-      arr: z3.ArrayExpr,
-      expectIds: Boolean
-  ): z3.Expr = store match {
-    case a: VarAccess => ctx.mkSelect(arr, translate(a.index, expectIds))
     case a: VarStore =>
-      handleStore(
-        a.array,
-        ctx.mkStore(
-          arr,
-          translate(a.index, expectIds),
-          // TODO  Type?
-          translate(a.exp, expectIds)
-        ),
-        expectIds
+      ctx.mkStore(
+        handleStore(a.array, expectIds),
+        translate(a.index, expectIds),
+        // TODO  Type?
+        translate(a.exp, expectIds)
       )
     case _ => throw new Error("Unexpected statement in VarStore")
   }
@@ -171,9 +170,12 @@ object SMT {
       )
 
     case store: VarStore =>
-      handleStore(
+      handleSelect(
         store,
-        getArray(store),
+        handleStore(
+          store,
+          expectIds
+        ),
         expectIds
       )
 
