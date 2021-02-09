@@ -157,7 +157,8 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
           case (v, Left(_)) =>
             !su._2.arrayIds.contains(
               v.ident.getBase
-            ) && this.ident.gamma == v.ident.gamma && this.ident.prime == v.ident.prime && this.ident.nought == v.ident.nought
+            ) && this.ident.gamma == v.ident.gamma && this.ident.prime == v.ident.prime && this.ident.nought == v.ident.nought && su._2.globals
+              .contains(v.ident.getBase)
           case (v, Right(_)) => false
         }
         .foldLeft(memId: Expression) {

@@ -263,7 +263,7 @@ object Exec {
 
   def eval(expr: Expression, state: State, memAccess: Boolean): Expression =
     expr match {
-      case id: Id =>
+      case id: Id if (state.globals.contains(id.getBase)) =>
         val mem =
           (if (id.prime) Id.memId.toPrime.toVar(state) else if (id.nought) Id.memId.toVar(state).toNought else Id.memId.toVar(state))
         if (id == Id.indexId) id.toVar(state)
@@ -273,7 +273,8 @@ object Exec {
           VarAccess(mem.toGamma(state), Id.getAddr(id, state))
         else
           id.toVar(state)
-      case v: Var =>
+      case id: Id => id.toVar(state)
+      case v: Var if (state.globals.contains(v.ident.getBase)) =>
         val mem =
           (if (v.ident.prime) Id.memId.toPrime.toVar(state)
            else if (v.ident.nought) Id.memId.toVar(state).toNought
@@ -300,18 +301,23 @@ object Exec {
           bound = forall.bound.map(b => eval(b, state, memAccess)),
           body = eval(forall.body, state, memAccess)
         )
-      case _: Lit | _: Const => expr
+      case _: Lit | _: Const | _: Var => expr
       case expr =>
         println(s"Unhandled expression(eval): [${expr.getClass()}] $expr")
         expr
     }
 
   def getBaseVars(vars: Set[Var]): Set[Var] = vars.map(v => v.getBase.resetIndex)
-  def getBaseArrays(vars: Set[VarAccess]): Set[VarAccess] = vars.map(v => v.getBase.resetIndex)
+  def getBaseArrays(vars: Set[VarAccess]): Set[VarAccess] = vars.filter(v => v.name.ident != Id.memId).map(v => v.getBase.resetIndex)
+  def getBaseMems(vars: Set[VarAccess]): Set[VarAccess] = vars.filter(v => v.name.ident == Id.memId).map(v => v.getBase.resetIndex)
 
   def getRely(exp: Expression, state: State) = {
     val evalExp = eval(exp, state, false)
 
+    // TODO !!!!
+    // rely incorrect as using mem for rely not var itself
+    // TODO should local vars not be loaded into memeory (????)
+    // related: how will the rely work for pointers ?!??
     val p = eval(
       BinOp.pred(
         "&&",
@@ -358,6 +364,28 @@ object Exec {
                       BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                     )
                   }
+
+                  BinOp.pred(
+                    "&&",
+                    pred,
+                    eval(state.arrRelys.getOrElse(v.ident, Const._true), state, false)
+                      .subst((Map(Id.indexId.toVar(state) -> Left(eval(v.index, state, false))), state))
+                  )
+
+                })
+                .toList
+              ++ getBaseMems(evalExp.arrays)
+                .map(v => {
+                  val pred =
+                    //  BinOp(
+                    //    "&&",
+                    BinOp.pred(
+                      "=>",
+                      BinOp("==", Type.TInt, Type.TBool, v, v.toPrime(state)),
+                      BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+                    ) //,
+                  //    BinOp("=>", primed(getL(v, state), state), v.toPrime(state).toGamma(state))
+                  //  )
 
                   BinOp.pred(
                     "&&",
