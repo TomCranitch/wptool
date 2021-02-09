@@ -136,7 +136,7 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
 
   def subst(su: Subst) = {
     val updatedArr = this.copy(index = index.subst(su))
-    val s = if (name.ident.getBase != Id.memId) {
+    if (name.ident.getBase != Id.memId) {
       su._1.get(name) match {
         case Some(Right((i: Expression, e: Expression))) =>
           VarStore(updatedArr, i, e)
@@ -146,6 +146,12 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
         case None => updatedArr
       }
     } else {
+      val memId =
+        (
+          if (su._1.contains(this.name)) updatedArr.copy(name = su._1.get(this.name).get.left.get.asInstanceOf[Var])
+          else updatedArr
+        )
+
       su._1
         .filter {
           case (v, Left(_)) =>
@@ -154,22 +160,22 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
             ) && this.ident.gamma == v.ident.gamma && this.ident.prime == v.ident.prime && this.ident.nought == v.ident.nought
           case (v, Right(_)) => false
         }
-        .foldLeft(updatedArr: Expression) {
+        .foldLeft(memId: Expression) {
           case (p, (v, Left(e))) => {
-            val i = su._2.addrs.get(v.ident.getBase).get
+            // TODO handle _i
             this.index match {
-              case Lit(n) if (i != n)           => p
-              case _ if (name.index != v.index) => p
-              case _                            =>
+              case _ if v == Id.indexId.toVar(su._2)                     => p
+              case Lit(n) if (su._2.addrs.get(v.ident.getBase).get != n) => p
+              case _ if (name.index != v.index)                          => p
+              case _                                                     =>
                 // val memId = v.ident.copy(name = Id.memId.name)
                 // VarStore(p, Lit(su._2.addrs.get(v.ident.getBase).get), e)
                 VarStore(p, Lit(su._2.addrs.get(v.ident.getBase).get), e)
             }
           }
         }
+
     }
-    // println(this, s)
-    s
   }
 
   override def toString = name + "[" + index + "]"
@@ -186,10 +192,7 @@ case class VarStore(array: Expression, index: Expression, exp: Expression) exten
   def vars = array.vars ++ index.vars ++ exp.vars
   def ids = array.ids ++ index.ids ++ exp.ids
   def arrays = array.arrays ++ index.arrays ++ exp.arrays
-  def subst(su: Subst) = {
-    // println(this, VarStore(array.subst(su), index.subst(su), exp.subst(su)))
-    VarStore(array.subst(su), index.subst(su), exp.subst(su))
-  }
+  def subst(su: Subst) = VarStore(array.subst(su), index.subst(su), exp.subst(su))
   override def expType = array.expType
 }
 
