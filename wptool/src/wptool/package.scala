@@ -12,9 +12,7 @@ package object wptool {
     case class Z3Error(info: Any*) extends Error
   }
 
-  // TODO this doesnt feel like the best way to do this
-  // Either[substitution, (index, substitution)]
-  type Subst = (Map[Var, Either[Expression, (Expression, Expression)]], State)
+  type Subst = (Map[Expression, Either[Expression, (Expression, Expression)]], State)
 
   val sub = "₀₁₂₃₄₅₆₇₈₉"
   implicit class StringOps(self: String) {

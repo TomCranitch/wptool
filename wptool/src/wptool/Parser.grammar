@@ -126,6 +126,7 @@ local
     = ID.n ASG    intexpr.b SEMICOLON              {: return new Assignment(n, b); :}     // TODO boolexpr
     | ID.n ASG    ptrexpr.b SEMICOLON              {: return new Assignment(n, b); :}
     | ID.n LBRACK intexpr.i RBRACK ASG    intexpr.b SEMICOLON        {: return new ArrayAssignment(n, i, b); :}
+	| STAR ID.n ASG intexpr.b SEMICOLON				{: return new Assignment(new Dereference(n), b); :}
     | IF LPAREN boolexpr.a RPAREN block.b   {: return new If(a, b);  :}
     | IF LPAREN boolexpr.a RPAREN block.b ELSE block.c     {: return new If(a, b, c);   :}
     | WHILE LPAREN boolexpr.a RPAREN INVARIANT COLON boolexpr.i block.b      {: return new While(a, i, b);   :}

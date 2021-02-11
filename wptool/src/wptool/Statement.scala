@@ -61,9 +61,11 @@ object Block {
 
 }
 
-case class Assignment(lhs: Id, expression: Expression, line: (String, Int)) extends Stmt(line) {
+case class Assignment(lhs: Expression, expression: Expression, line: (String, Int)) extends Stmt(line) {
   def this(lhs: String, expression: Expression) =
     this(new Id(lhs, TInt, false, false, false), expression, ("", -1))
+  def this(lhs: Expression, expression: Expression) =
+    this(lhs, expression, ("", -1))
   override def toString: String = lhs + " = " + expression
 
   def incLine = this.copy(line = line.copy(_2 = line._2 + 1))

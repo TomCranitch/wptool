@@ -149,7 +149,7 @@ object WPTool {
         // TODO Low??
         i.toGamma.toVar(_state) -> Left(gamma.getOrElse(i, High).toTruth)
       }
-    }.toMap ++ Map(Id.tmpId.toGamma.toVar(_state) -> Left(Const._true))
+    }.toMap[Expression, Left[Expression, Nothing]] ++ Map(Id.tmpId.toGamma.toVar(_state) -> Left(Const._true))
 
     if (debug) println("Gamma0: " + gammaSubstr)
     if (debug) println("L: " + _state.L)

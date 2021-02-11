@@ -23,7 +23,7 @@ case class Lit(arg: Int) extends Expression {
   override def vars = Set()
   override def ids = Set()
   override def arrays = Set()
-  override def subst(su: Subst): Lit = this
+  override def subst(su: Subst) = this
   override def expType = TInt
 }
 
@@ -149,18 +149,24 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
 
       su._1
         .filter {
-          case (v, Left(_)) =>
+          case (v: Var, Left(_)) =>
             !su._2.arrayIds.contains(
               v.ident.getBase
             ) && this.ident.gamma == v.ident.gamma && this.ident.prime == v.ident.prime && this.ident.nought == v.ident.nought && su._2.globals
               .contains(v.ident.getBase)
           case (v, Right(_)) => false
+          case (d @ Dereference(v: Var), _) =>
+            !su._2.arrayIds.contains(
+              v.ident.getBase
+            ) && this.ident.gamma == v.ident.gamma && this.ident.prime == v.ident.prime && this.ident.nought == v.ident.nought && su._2.globals
+              .contains(v.ident.getBase)
+          case _ => throw new Error("Unexpected subst")
         }
         .foldLeft(memId: Expression) {
-          case (p, (v, Left(e))) => {
+          case (p, (v: Var, Left(e))) => {
             // TODO handle _i
             this.index match {
-              case _ if v == Id.indexId.toVar(su._2)                     => p
+              case _ if v.ident == Id.indexId                            => p
               case Lit(n) if (su._2.addrs.get(v.ident.getBase).get != n) => p
               case _ if (name.index != v.index)                          => p
               case _                                                     =>
@@ -169,6 +175,13 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
                 VarStore(p, Lit(su._2.addrs.get(v.ident.getBase).get), e)
             }
           }
+          case (p, (Dereference(v: Var), Left(e))) =>
+            this.index match {
+              case _ if v.ident == Id.indexId   => p
+              case _ if (name.index != v.index) => p
+              case _ =>
+                VarStore(p, VarAccess(Id.memId.toVar(su._2), Lit(su._2.addrs.get(v.ident).get)), e)
+            }
         }
 
     }
@@ -265,7 +278,7 @@ case class ForAll(bound: Set[_ <: Expression], body: Expression) extends Express
   override def expType = TBool
 }
 
-case class Dereference(ident: Id) extends Expression {
+case class Dereference(ident: Expression) extends Expression {
   def this(x: String) = this(Id(x, TInt, false, false, false))
   override def vars = ident.vars
   override def ids = ident.ids
@@ -278,7 +291,7 @@ case class Dereference(ident: Id) extends Expression {
   }
 }
 
-case class Reference(ident: Id) extends Expression {
+case class Reference(ident: Expression) extends Expression {
   def this(x: String) = this(Id(x, TInt, false, false, false))
   override def vars = ident.vars
   override def ids = ident.ids
