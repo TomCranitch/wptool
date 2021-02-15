@@ -130,7 +130,9 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
 
   // TODO document/comment
   def subst(su: Subst) = {
-    val updatedArr = this.copy(index = index.subst(su))
+    // TODO not happy with filter
+    // println(s"$index -> ${index.subst((su._1.filter { case (v, _) => v.expType == TInt }, su._2))}")
+    val updatedArr = this.copy(index = index.subst((su._1.filter { case (v, _) => v.expType == TInt }, su._2)))
     if (name.ident.getBase != Id.memId) {
       su._1.get(name) match {
         case Some(Right((i: Expression, e: Expression))) =>
@@ -172,6 +174,7 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
               case _                                                     =>
                 // val memId = v.ident.copy(name = Id.memId.name)
                 // VarStore(p, Lit(su._2.addrs.get(v.ident.getBase).get), e)
+                //
                 VarStore(p, Lit(su._2.addrs.get(v.ident.getBase).get), e)
             }
           }
@@ -180,7 +183,8 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
               case _ if v.ident == Id.indexId   => p
               case _ if (name.index != v.index) => p
               case _ =>
-                VarStore(p, VarAccess(Id.memId.toVar(su._2), Lit(su._2.addrs.get(v.ident).get)), e)
+                val memId = v.ident.copy(name = Id.memId.name).toVar(su._2)
+                VarStore(p, VarAccess(memId.copy(ident = memId.ident.copy(gamma = false)), Lit(su._2.addrs.get(v.ident.getBase).get)), e)
             }
         }
 
@@ -204,16 +208,6 @@ case class VarStore(array: Expression, index: Expression, exp: Expression) exten
   def subst(su: Subst) = VarStore(array.subst(su), index.subst(su), exp.subst(su))
   override def expType = array.expType
 }
-
-/*
-case class ArrayConstDefault(name: Var, const: Expression) extends Expression {
-  def vars = const.vars
-  def ids = const.ids ++ name.ids
-  def arrays = const.arrays ++ name.arrays
-  def subst(su: Subst) = ArrayConstDefault(name, const.subst(su))
-  override def expType = name.expType
-}
- */
 
 case class PreOp(op: String, override val expType: Type, argType: Type, arg: Expression) extends Expression {
   override def toString: String = "(" + op + " " + arg + ")"
@@ -285,9 +279,11 @@ case class Dereference(ident: Expression) extends Expression {
   override def arrays = ident.arrays
   override def subst(su: Subst) = Dereference(ident.subst(su))
 
+  // TODO
   override def expType = ident.expType match {
-    case TPointer(t) => t
-    case _           => throw new Error("Invalid pointer type")
+    case TPointer(t)  => t
+    case TInt | TBool => ident.expType
+    case _            => throw new Error("Invalid pointer type")
   }
 }
 

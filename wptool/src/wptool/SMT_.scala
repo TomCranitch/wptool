@@ -5,8 +5,10 @@ import org.sosy_lab.java_smt.SolverContextFactory._
 import org.sosy_lab.java_smt.api.FormulaType
 import scala.reflect.runtime.universe.{TypeTag, typeOf}
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions
+import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType
 
-object SMT_ {
+object SMT {
+  type array = api.ArrayFormula[api.NumeralFormula.IntegerFormula, _ <: api.Formula]
   val solver = Solvers.CVC4
   val ctx = SolverContextFactory.createSolverContext(solver)
   val fmgr = ctx.getFormulaManager();
@@ -78,17 +80,6 @@ object SMT_ {
     }
   }
 
-  def makeSelect(
-      id: String,
-      index: Expression,
-      isBool: Boolean,
-      expectIds: Boolean
-  ) =
-    amgr.select(
-      makeArray(id, isBool).asInstanceOf[api.ArrayFormula[api.Formula, _ <: api.Formula]],
-      translateInt(index, expectIds)
-    )
-
   def getArray(store: Expression): api.ArrayFormula[api.NumeralFormula.IntegerFormula, _ <: api.Formula] = store match {
     case a: VarAccess =>
       if (a.expType == TBool) {
@@ -112,26 +103,51 @@ object SMT_ {
     case _           => throw new Error("Unexpected statement in VarStore")
   }
 
-  // TODO is this necessary (i.e. do we ever actually get nested stores)
+  def makeSelect(
+      id: String,
+      index: Expression,
+      isBool: Boolean,
+      expectIds: Boolean
+  ): api.Formula = {
+    amgr
+      .select(
+        makeArray(id, isBool).asInstanceOf[array],
+        translateInt(index, expectIds)
+      )
+  }
+
+  def handleSelect(
+      store: Expression,
+      arr: array,
+      expectIds: Boolean
+  ): api.Formula = store match {
+    case a: VarAccess => makeSelect(a.ident.toString, a.index, a.expType == TBool, expectIds)
+    case a: VarStore  => handleSelect(a.array, arr, expectIds)
+    case _            => throw new Error("Unexpected statement in VarStore")
+  }
+
   def handleStore(
       store: Expression,
-      arr: api.ArrayFormula[api.NumeralFormula.IntegerFormula, _ <: api.Formula],
-      expectIds: Boolean
-  ): api.Formula = store match { // TODO type
-    case a: VarAccess => amgr.select(arr, translateInt(a.index, expectIds))
-    case a: VarStore =>
-      handleStore(
-        a.array,
+      expectIds: Boolean,
+      arrType: Type
+  ): array = {
+    store match {
+      case a: VarAccess =>
+        makeArray(a.ident.toString, a.ident.expType == TBool)
+          .asInstanceOf[array]
+      case a: VarStore =>
+        if (a.expType != arrType) throw new Error(s"Actual (${a.expType}) and expect (${arrType}) array type do not match for $a")
         amgr.store(
-          arr.asInstanceOf[api.ArrayFormula[api.NumeralFormula.IntegerFormula, api.Formula]], // TODO
+          handleStore(a.array, expectIds, arrType).asInstanceOf[api.ArrayFormula[api.NumeralFormula.IntegerFormula, api.Formula]],
           translateInt(a.index, expectIds),
-          // TODO  Type?
-          // TODO !!!!!!!!
-          if (a.expType == TInt) translateInt(a.exp, expectIds) else translateBool(a.exp, expectIds)
-        ),
-        expectIds
-      )
-    case _ => throw new Error("Unexpected statement in VarStore")
+          a.expType match {
+            case TInt  => translateInt(a.exp, expectIds)
+            case TBool => translateBool(a.exp, expectIds)
+            case _     => throw new Error("Unexpected type")
+          }
+        )
+      case _ => throw new Error("Unexpected statement in VarStore")
+    }
   }
 
   def translateBool(prop: Expression, expectIds: Boolean): api.BooleanFormula = prop match {
@@ -176,7 +192,8 @@ object SMT_ {
       makeSelect(x.name.toString, x.index, true, expectIds).asInstanceOf[api.BooleanFormula]
     case x: IdAccess if (expectIds && x.expType == TBool) =>
       makeSelect(x.ident.toString, x.index, true, expectIds).asInstanceOf[api.BooleanFormula]
-    case store: VarStore => handleStore(store, getArray(store), expectIds).asInstanceOf[api.BooleanFormula]
+    case store: VarStore =>
+      handleSelect(store.array, handleStore(store, expectIds, TBool), expectIds).asInstanceOf[api.BooleanFormula]
 
     case _ => throw new Error(s"Unexpected boolean expression $prop")
   }
@@ -202,12 +219,14 @@ object SMT_ {
 
     case v @ Var(Id(_, TInt, _, gamma, _), _, _) if (!expectIds && !gamma) => imgr.makeVariable(v.toString)
     case v @ Id(_, TInt, _, gamma, _) if (expectIds && !gamma)             => imgr.makeVariable(v.toString)
+    // TODO maybe this is the wrong type?
     case x: VarAccess if (!expectIds && x.expType == TInt) =>
       makeSelect(x.name.toString, x.index, false, expectIds).asInstanceOf[api.NumeralFormula.IntegerFormula]
     case x: IdAccess if (expectIds && x.expType == TInt) =>
       makeSelect(x.ident.toString, x.index, false, expectIds).asInstanceOf[api.NumeralFormula.IntegerFormula]
 
-    case store: VarStore => handleStore(store, getArray(store), expectIds).asInstanceOf[api.NumeralFormula.IntegerFormula]
+    case store: VarStore =>
+      handleSelect(store.array, handleStore(store, expectIds, TInt), expectIds).asInstanceOf[api.NumeralFormula.IntegerFormula]
 
     /*
 
