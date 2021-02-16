@@ -390,10 +390,16 @@ object Exec {
         expr
     }
 
-  def getBaseVars(vars: Set[Variable]): Set[Variable] = vars.map(v => v.getBase.resetIndex)
-  def getBaseArrays(vars: Set[VarAccess]): Set[VarAccess] =
-    vars.filter(v => v.name.ident.getBase != Id.memId).map(v => v.getBase.resetIndex)
-  def getBaseMems(vars: Set[VarAccess]): Set[VarAccess] = vars.filter(v => v.name.ident.getBase == Id.memId).map(v => v.getBase.resetIndex)
+  def getBaseVars(vars: Set[Variable]): Set[Variable] = vars.map(v =>
+    v.getBase.resetIndex match {
+      case v: VarAccess => v.name
+      case v @ _        => v
+    }
+  )
+  def getBaseVariables(vars: Set[Variable]): Set[Variable] = vars.map(v => v.getBase.resetIndex)
+  // def getBaseArrays(vars: Set[VarAccess]): Set[VarAccess] =
+  //  vars.filter(v => v.name.ident.getBase != Id.memId).map(v => v.getBase.resetIndex)
+  // def getBaseMems(vars: Set[VarAccess]): Set[VarAccess] = vars.filter(v => v.name.ident.getBase == Id.memId).map(v => v.getBase.resetIndex)
 
   def getRely(exp: Expression, state: State) = {
     val evalExp = eval(exp, state, false)
@@ -402,13 +408,14 @@ object Exec {
     // rely incorrect as using mem for rely not var itself
     // TODO should local vars not be loaded into memeory (????)
     // related: how will the rely work for pointers ?!??
+
     val p = eval(
       BinOp.pred(
         "&&",
         constructForall(
-          getBaseVars(evalExp.vars - Id.indexId.toVar(state))
+          getBaseVariables(evalExp.vars - Id.indexId.toVar(state))
             .map(v => {
-              if (state.globals.contains(v.ident) || v.ident.getBase == Id.memId) {
+              val pred = if (state.globals.contains(v.ident) || v.ident.getBase == Id.memId) {
                 // BinOp(
                 //  "&&",
                 BinOp.pred(
@@ -425,6 +432,19 @@ object Exec {
                   BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                 )
 
+              }
+
+              v match {
+                case m: VarAccess if (m.ident == Id.memId) => pred
+                case v: VarAccess =>
+                  BinOp.pred(
+                    "&&",
+                    pred,
+                    eval(state.arrRelys.getOrElse(v.ident, Const._true), state, false)
+                      .subst((Map(Id.indexId.toVar(state) -> Left(eval(v.index, state, false))), state))
+                  )
+
+                case _ => pred
               }
             })
             .toList

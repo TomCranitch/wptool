@@ -104,8 +104,8 @@ case class Var(ident: Id, index: Int, tmp: Boolean = false) extends Variable {
 case class IdAccess(ident: Id, index: Expression) extends Expression with Identifier {
   def this(name: String, index: Expression) = this(Id(name, TInt, false, false, false), index)
   def this(name: String, prime: Boolean, gamma: Boolean, index: Expression) = this(Id(name, TInt, prime, gamma, false), index)
-  def vars = index.vars
-  def ids = index.ids
+  def vars = index.vars // TODO throw error?
+  def ids = index.ids + this
   def subst(su: Subst) = throw new Error("tried to subst var id")
   override def toString = ident + "[" + index + "]"
   def toGamma = this.copy(ident = ident.toGamma)
@@ -118,8 +118,8 @@ case class IdAccess(ident: Id, index: Expression) extends Expression with Identi
 
 // array access with Var for use in logical predicates
 case class VarAccess(name: Var, index: Expression) extends Variable {
-  def vars = index.vars + name
-  def ids = index.ids + name.ident
+  def vars = index.vars + this
+  def ids = index.ids + this.ident
 
   // TODO document/comment
   def subst(su: Subst) = {
@@ -155,7 +155,7 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
               v.ident.getBase
             ) && this.ident.gamma == v.ident.gamma && this.ident.prime == v.ident.prime && this.ident.nought == v.ident.nought && su._2.globals
               .contains(v.ident.getBase)
-          case _ => throw new Error("Unexpected subst")
+          case s @ _ => throw new Error(s"Unexpected subst ($s)")
         }
         .foldLeft(memId: Expression) {
           case (p, (v: Var, Left(e))) => {
