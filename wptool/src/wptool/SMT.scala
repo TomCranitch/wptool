@@ -5,7 +5,7 @@ import com.microsoft.z3.BoolExpr
 import com.microsoft.z3.enumerations.Z3_decl_kind
 import scala.reflect.runtime.universe.{TypeTag, typeOf}
 
-object SMT_ {
+object SMT {
   val intSize = 32 // size of bitvectors used
   val cfg = new java.util.HashMap[String, String]()
   val ctx = new z3.Context(cfg)

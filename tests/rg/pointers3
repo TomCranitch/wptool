@@ -1,0 +1,21 @@
+global var a:
+_L: FALSE
+
+global var b:
+_L: FALSE
+
+global var c:
+_L: FALSE
+
+_Rely: a == a' && b == b' && c == c'
+_Guar: TRUE
+
+a = 1;
+b = &a;
+c =  &b;
+
+**c = 2;
+
+assert a == 2;
+assert *b == 2;
+assert **c == 2;

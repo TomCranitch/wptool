@@ -7,7 +7,7 @@ import scala.reflect.runtime.universe.{TypeTag, typeOf}
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions
 import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType
 
-object SMT {
+object SMT_ {
   type array = api.ArrayFormula[api.NumeralFormula.IntegerFormula, _ <: api.Formula]
   val solver = Solvers.CVC4
   val ctx = SolverContextFactory.createSolverContext(solver)

@@ -109,6 +109,7 @@ WS = {NL} | [ \t\f]
 //"fence"     { return newToken(Terminals.FENCE);    }
 //"cfence"     { return newToken(Terminals.CFENCE);    }
 "_L"       { return newToken(Terminals.LPRED);      }
+"_PT"       { return newToken(Terminals.PT);      }
 "_invariant" {return newToken(Terminals.INVARIANT);}
 "_Gamma" {return newToken(Terminals.GAMMA);}
 "_Gamma_0" {return newToken(Terminals.GAMMA_0);}
@@ -117,7 +118,9 @@ WS = {NL} | [ \t\f]
 "_Rely" {return newToken(Terminals.RELY);}
 "_Guar" {return newToken(Terminals.GUAR);}
 "global array"    { return newToken(Terminals.GLOBALARRAY);     }
-"local array"    { return newToken(Terminals.GLOBALARRAY);     }
+"local array"    { return newToken(Terminals.LOCALARRAY);     }
+"global obj"    { return newToken(Terminals.GLOBALOBJ);     }
+"_Fields"    { return newToken(Terminals.FIELDS);     }
 
 "TRUE" { return newToken(Terminals.TRUE);    }
 "FALSE" { return newToken(Terminals.FALSE);    }

@@ -1,0 +1,18 @@
+global object n:
+_Fields: val, level, next
+
+global object head:
+_Fields: val, level
+
+_Rely: TRUE
+_Guar: (n.level == 0) => (n'.level == 0)
+
+n.level = 1;
+n.val = v;
+
+do {
+	ss := &val;
+	n.next = ss;
+}
+while(!CAS(head, ss, n))
+

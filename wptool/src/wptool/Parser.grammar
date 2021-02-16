@@ -3,6 +3,8 @@
 
 %terminals GLOBALVAR, LOCALVAR;
 %terminals GLOBALARRAY, LOCALARRAY;
+%terminals GLOBALOBJ;
+%terminals FIELDS;
 
 //%terminals RETURN, BREAK, CONTINUE;
 %terminals IF, ELSE, WHILE, DO;
@@ -34,6 +36,7 @@
 %terminals CAS;
 %terminals INVARIANT, GAMMA, GAMMA_0, RELY, GUAR;
 %terminals LPRED;
+%terminals PT;
 %terminals MAPSTO;
 %terminals PRIMEGAMMAID;
 %terminals PRIMEID;
@@ -100,7 +103,8 @@ ptrdef
 	;
 
 vardef
-    = GLOBALVAR ID.n COLON lpred.l              {:  return new VarDef(n, l, GlobalVar.instance()); :} // TODO: does this make them appear as global (i.e. are vars without right permissions global)
+    = GLOBALVAR ID.n COLON lpred.l              {:  return new VarDef(n, l, GlobalVar.instance()); :}
+    | GLOBALVAR ID.n COLON lpred.l PT COLON id_list.p              {:  return new VarDef(n, l, p, GlobalVar.instance()); :}
     | GLOBALVAR ID.n COLON                     	{: return new VarDef(n, GlobalVar.instance()); :}
     | LOCALVAR ID.n COLON                     	{: return new VarDef(n, LocalVar.instance()); :}
     | ptrdef.n COLON					  		{: return new VarDef(n.name().name(), GlobalVar.instance()); :} // TODO
@@ -113,6 +117,7 @@ definition
     | GLOBALARRAY ID.n LBRACK intexpr.s RBRACK COLON arrrely.r arrguar.g {: return new ArrayDef(n, s, GlobalVar.instance(), r, g); :}
     | LOCALARRAY ID.n LBRACK intexpr.s RBRACK COLON lpred.l arrrely.r arrguar.g {: return new ArrayDef(n, s, l, LocalVar.instance(), r, g); :}
     | LOCALARRAY ID.n LBRACK intexpr.s RBRACK COLON arrrely.r arrguar.g {: return new ArrayDef(n, s, LocalVar.instance(), r, g); :}
+	| GLOBALOBJ ID.n COLON FIELDS COLON id_list.i 		{: return new ObjDef(n, i, GlobalVar.instance()); :}
 	;
 
 arrrely = RELY COLON boolexpr.a {: return  new Rely(a); :};
@@ -162,6 +167,8 @@ boolexpr
     | intexpr.a EQ     intexpr.b              {: return new BinOp("==", TInt.instance(), TBool.instance(),a, b); :}
     | intexpr.a NEQ    intexpr.b              {: return new BinOp("!=", TInt.instance(), TBool.instance(),a, b); :}
 	// | FORALL LPAREN exprl.l COLON boolexpr.e RPAREN        {: return new ForAll(l, e); :}
+    | ptrexpr.a EQ     ptrexpr.b              {: return new BinOp("==", new TPointer(TInt.instance()), TBool.instance(),a, b); :}
+    | ptrexpr.a NEQ    ptrexpr.b              {: return new BinOp("!=", new TPointer(TInt.instance()), TBool.instance(),a, b); :}
     | LPAREN boolexpr.e RPAREN              {: return (Symbol) e;           :}
     | TRUE                              {: return new Const("True");  :}
     | FALSE                             {: return new Const("False");  :}
@@ -184,12 +191,12 @@ intexpr
     | intexpr.a MINUS  intexpr.b              {: return new BinOp("-", TInt.instance(), TInt.instance(), a, b); :}
     | intexpr.a MOD    intexpr.b              {: return new BinOp("%", TInt.instance(), TInt.instance(),a, b); :}
     | LPAREN intexpr.e RPAREN              {: return (Symbol) e;           :}
+	| STAR ID.n                              {: return new Dereference(n);  :}
     ;
 
 ptrexpr
 	// TODO = ID.n									{: return new Id(n, new TPointer(TInt.instance()), false, false, false) :}
 	= AMP ID.n                              {: return new Reference(n);  :}
-	| STAR ID.n                              {: return new Dereference(n);  :}
 	;
 
 // for _L(x): pred construction to set predicate for variable security level
@@ -213,3 +220,7 @@ security
     = LOW {: return Low.instance(); :}
     | HIGH {: return High.instance(); :}
     ;
+
+id_list
+	= ID
+	| id_list COMMA ID;

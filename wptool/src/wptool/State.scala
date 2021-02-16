@@ -9,9 +9,9 @@ case class State(
     debug: Boolean,
     silent: Boolean,
     simplify: Boolean,
-    controls: Set[Id],
-    controlled: Set[Id],
-    controlledBy: Map[Id, Set[Id]], // TODO check
+    controls: Set[Identifier],
+    controlled: Set[Identifier],
+    controlledBy: Map[Identifier, Set[Identifier]], // TODO check
     L: Map[Id, Expression],
     ids: Set[Id],
     arrayIds: Set[Id],
@@ -22,6 +22,7 @@ case class State(
     arrGuars: Map[Id, Expression],
     indicies: Map[Id, Int],
     addrs: Map[Id, Int],
+    pointsTo: Map[Id, Set[Id]],
     error: Boolean = false
 ) {
   def incPrimeIndicies =
@@ -46,9 +47,9 @@ object State {
       rely: Option[Rely],
       guar: Option[Guar]
   ): State = {
-    var controls: Set[Id] = Set()
-    var controlled: Set[Id] = Set()
-    var controlledBy: Map[Id, Set[Id]] = Map()
+    var controls: Set[Identifier] = Set()
+    var controlled: Set[Identifier] = Set()
+    var controlledBy: Map[Identifier, Set[Identifier]] = Map()
 
     val arrayIds = {
       definitions collect { case a: ArrayDef =>
@@ -68,15 +69,17 @@ object State {
       }
       .toMap[Id, Expression]
 
+    // TODO when adding in typing will need to modify code below
     val variables: Set[VarDef] = definitions map {
       case a: ArrayDef => a.toVarDefs
       case v: VarDef   => v
+      case _           => throw new Error("Unexected def: TODO objects")
     }
 
     val ids: Set[Id] = { for (v <- variables) yield v.name }
 
     for (v <- variables) {
-      val controlling: Set[Id] = v.pred.ids
+      val controlling: Set[Identifier] = v.pred.ids
 
       if (controlling.nonEmpty) {
         controlled += v.name
@@ -89,6 +92,12 @@ object State {
         controls += i
       }
     }
+
+    val pointsTo = variables
+      .map(v => {
+        v.name -> (v.pointsTo.toSet + v.name)
+      })
+      .toMap
 
     val controlAndControlled = controls & controlled
     if (controlAndControlled.nonEmpty) {
@@ -145,7 +154,8 @@ object State {
       arrRelys,
       arrGuars,
       indicies,
-      addrs
+      addrs,
+      pointsTo
     )
   }
 }

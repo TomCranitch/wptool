@@ -1,0 +1,19 @@
+global var a:
+_L: FALSE
+
+global var b:
+_L: FALSE
+
+global var out:
+_L: a % 2 == 0
+
+global var secret:
+_L: FALSE
+
+_Rely: a == a' && b == b'
+_Guar: TRUE
+
+a = 1;
+b = &a;
+*b = 2;
+out = secret;

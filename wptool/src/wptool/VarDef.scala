@@ -92,11 +92,15 @@ case class Guar(exp: Expression) extends beaver.Symbol
 
 sealed trait Definition extends beaver.Symbol
 
-case class VarDef(name: Id, pred: Expression, access: Access) extends Definition {
+case class VarDef(name: Id, pred: Expression, pointsTo: List[Id], access: Access) extends Definition {
   def this(name: String, pred: Expression, access: Access) =
-    this(new Id(name, TInt, false, false, false), pred, access)
+    this(new Id(name, TInt, false, false, false), pred, List(), access)
+  def this(name: String, pred: Expression, pointsTo: Array[String], access: Access) =
+    this(new Id(name, TInt, false, false, false), pred, pointsTo.toList.map(v => Id(v, TInt, false, false, false)), access)
   def this(name: String, access: Access) =
-    this(new Id(name, TInt, false, false, false), Const._true, access)
+    this(new Id(name, TInt, false, false, false), Const._true, List(), access)
+  def this(name: String, pointsTo: Array[String], access: Access) =
+    this(new Id(name, TInt, false, false, false), Const._true, pointsTo.toList.map(v => Id(v, TInt, false, false, false)), access)
 }
 
 case class ArrayDef(
@@ -139,7 +143,7 @@ case class ArrayDef(
       guar: Guar
     )
 
-  def toVarDefs: VarDef = VarDef(name, pred, access)
+  def toVarDefs: VarDef = VarDef(name, pred, List(), access)
 }
 
 object ArrayDef {
@@ -147,4 +151,21 @@ object ArrayDef {
     for (i <- 0 until size)
       yield lpred
   }
+}
+
+case class ObjDef(
+    name: Id,
+    fields: List[Id],
+    access: Access
+) extends Definition {
+  def this(
+      name: String,
+      fields: Array[String],
+      access: Access
+  ) =
+    this(
+      new Id(name, TInt, false, false, false),
+      fields.map(i => new Id(i, TInt, false, false, false)).toList,
+      access
+    )
 }
