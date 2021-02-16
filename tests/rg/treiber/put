@@ -1,7 +1,7 @@
-global object n:
+global obj n:
 _Fields: val, level, next
 
-global object head:
+global obj head:
 _Fields: val, level
 
 _Rely: TRUE
@@ -10,9 +10,11 @@ _Guar: (n.level == 0) => (n'.level == 0)
 n.level = 1;
 n.val = v;
 
-do {
-	ss := &val;
+do 
+_invariant: TRUE
+{
+	ss = &val;
 	n.next = ss;
 }
-while(!CAS(head, ss, n))
+while(CAS(head, ss, n) == 0)
 

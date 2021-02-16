@@ -63,7 +63,7 @@ WS = {NL} | [ \t\f]
 "}"         { return newToken(Terminals.RBRACE);   }
 //"++"        { return newToken(Terminals.INCR);     }
 //"--"        { return newToken(Terminals.DECR);     }
-//"."         { return newToken(Terminals.DOT);      }
+"."         { return newToken(Terminals.DOT);      }
 "!"         { return newToken(Terminals.BANG);     }
 "=>"         { return newToken(Terminals.IMPLIES);     }
 // "~"         { return newToken(Terminals.TILDE);    }

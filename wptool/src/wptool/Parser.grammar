@@ -28,6 +28,7 @@
 %terminals AND;
 %terminals OR;
 %terminals COLON;
+%terminals DOT;
 %terminals ASG;
 %terminals COMMA, SEMICOLON;
 %terminals FORALL;
@@ -73,6 +74,7 @@
 %typeof boolexpr    = "Expression";
 %typeof intexpr    = "Expression";
 %typeof ptrexpr    = "Expression";
+%typeof intid    = "Id";
 
 %typeof local   = "Stmt";
 
@@ -131,6 +133,8 @@ local
     = ID.n ASG    intexpr.b SEMICOLON              {: return new Assignment(n, b); :}     // TODO boolexpr
     | ID.n ASG    ptrexpr.b SEMICOLON              {: return new Assignment(n, b); :}
     | ID.n LBRACK intexpr.i RBRACK ASG    intexpr.b SEMICOLON        {: return new ArrayAssignment(n, i, b); :}
+    | ID.n DOT ID.f ASG intexpr.b SEMICOLON              {: return new Assignment(new ObjIdAccess(n, f), b); :}
+    | ID.n DOT ID.f ASG ptrexpr.b SEMICOLON              {: return new Assignment(new ObjIdAccess(n, f), b); :}
 	| STAR ID.n ASG intexpr.b SEMICOLON				{: return new Assignment(new Dereference(n), b); :}
     | IF LPAREN boolexpr.a RPAREN block.b   {: return new If(a, b);  :}
     | IF LPAREN boolexpr.a RPAREN block.b ELSE block.c     {: return new If(a, b, c);   :}
@@ -174,10 +178,14 @@ boolexpr
     | FALSE                             {: return new Const("False");  :}
     ;
 
+intid
+	= PRIMEID.n                              {: return new Id(n, TInt.instance(), true, false, false);  :}
+    | ID.n                              {: return new Id(n, TInt.instance(), false, false, false);  :}
+	;
+
 intexpr
     = PREFIX | POSTFIX /* unused */
-    | PRIMEID.n                              {: return new Id(n, TInt.instance(), true, false, false);  :}
-    | ID.n                              {: return new Id(n, TInt.instance(), false, false, false);  :}
+	| intid
     | PRIMEID.n LBRACK intexpr.i RBRACK       {: return new IdAccess(n, true, false, i); :}
     | ID.n LBRACK intexpr.i RBRACK       {: return new IdAccess(n, i); :}
 	// TODO rm
@@ -192,6 +200,7 @@ intexpr
     | intexpr.a MOD    intexpr.b              {: return new BinOp("%", TInt.instance(), TInt.instance(),a, b); :}
     | LPAREN intexpr.e RPAREN              {: return (Symbol) e;           :}
 	| STAR ID.n                              {: return new Dereference(n);  :}
+	| intid.n DOT ID.f							{: return new ObjIdAccess(n, f); :}
     ;
 
 ptrexpr

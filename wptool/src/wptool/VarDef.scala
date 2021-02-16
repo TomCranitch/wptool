@@ -153,6 +153,7 @@ object ArrayDef {
   }
 }
 
+// TODO L!!!
 case class ObjDef(
     name: Id,
     fields: List[Id],
@@ -168,4 +169,6 @@ case class ObjDef(
       fields.map(i => new Id(i, TInt, false, false, false)).toList,
       access
     )
+
+  def toVarDefs: VarDef = VarDef(name, Const._true, List(), access)
 }

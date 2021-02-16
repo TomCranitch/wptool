@@ -356,7 +356,9 @@ object Exec {
         else if (memAccess && v.ident.gamma)
           VarAccess(mem.toGamma(state), Id.getAddr(v.ident, state))
         else v
-      case id: IdAccess => id.toVar(state).copy(index = eval(id.index, state, memAccess))
+      case id: IdAccess         => id.toVar(state).copy(index = eval(id.index, state, memAccess))
+      case idObj: ObjIdAccess   => idObj // TODO
+      case varObj: ObjVarAccess => varObj
       case deref @ Dereference(id) =>
         deref.copy(ident = eval(deref.ident, state, false)) match {
           case Dereference(v: Var) if (memAccess) =>

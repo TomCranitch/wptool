@@ -73,6 +73,7 @@ object State {
     val variables: Set[VarDef] = definitions map {
       case a: ArrayDef => a.toVarDefs
       case v: VarDef   => v
+      case v: ObjDef   => v.toVarDefs
       case _           => throw new Error("Unexected def: TODO objects")
     }
 

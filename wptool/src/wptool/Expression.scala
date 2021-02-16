@@ -202,6 +202,7 @@ case class VarStore(array: Expression, index: Expression, exp: Expression) exten
 }
 
 case class ObjIdAccess(ident: Id, field: String) extends Expression with Identifier {
+  def this(name: String, field: String) = this(Id(name, TInt, false, false, false), field)
   def vars = throw new Error("expected var")
   def ids = Set(this)
   def subst(su: Subst) = throw new Error("tried to subst var id")
