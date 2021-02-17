@@ -66,7 +66,6 @@ case class Id(name: String, override val expType: Type, prime: Boolean, gamma: B
 }
 
 object Id {
-  // TODO change to bool
   val tmpId = Id("tmp", TInt, false, false, false)
   val indexId = Id("_i", TInt, false, false, false)
   val memId = Id("mem", TInt, false, false, false)

@@ -23,7 +23,6 @@ object Exec {
         block.children.map(c => {
           val res = exec(c, state)
           if (c.atomic)
-            // TODO change this to R implies
             res.copy(Qs = res.Qs.map(q => q.copy(pred = rImplies(q.pred, state))))
           else res
         }),
@@ -102,7 +101,7 @@ object Exec {
             .map(contr => {
               BinOp.pred(
                 "=>",
-                eval(getL(contr, state).subst((Map(lhs.toVar(state) -> Left(assign.expression)), state)), state, true), // TODO
+                eval(getL(contr, state).subst((Map(lhs.toVar(state) -> Left(assign.expression)), state)), state, true),
                 BinOp.pred("||", eval(contr.toGamma, state, true), getL(contr, state))
               )
             })
@@ -131,7 +130,6 @@ object Exec {
           .incPrimeIndicies
       }
     case assign @ Assignment(Dereference(id), _, _) =>
-      // TODO preds
       var globalPred: Expression = null
       var controlPred: Expression = null
       id match {
@@ -144,7 +142,6 @@ object Exec {
           )
 
           // Check if anything that b points to is a control variable
-          // TODO move check to inside map (i.e. only check secUpd if necessary
           controlPred = constructForall(
             state.pointsTo
               .get(id)
@@ -156,7 +153,7 @@ object Exec {
                   .map(contr =>
                     BinOp.pred(
                       "=>",
-                      eval(getL(contr, state).subst((Map(i.toVar(state) -> Left(assign.expression)), state)), state, true), // TODO
+                      eval(getL(contr, state).subst((Map(i.toVar(state) -> Left(assign.expression)), state)), state, true),
                       BinOp.pred("||", eval(contr.toGamma, state, true), getL(contr, state))
                     )
                   )
@@ -211,12 +208,12 @@ object Exec {
                   getL(contr, state).subst((Map(assign.lhs.ident.toVar(state) -> Right((assign.lhs.index, assign.expression))), state)),
                   state,
                   true
-                ), // TODO
+                ),
                 BinOp.pred(
                   "||",
                   eval(contr.toGamma, state, true),
                   getL(contr, state).subst((Map(Id.indexId.toVar(state) -> Left(assign.lhs.index)), state))
-                ) // TODO check subst is correct
+                )
               )
             })
             .toList
@@ -304,11 +301,6 @@ object Exec {
           case _                   => throw new Error("Unexpected dereference")
         }
 
-        // TODO this is broken
-        // could make subst exp -> Either
-        // and then pass in Deref(id) and handle in subst
-        // this may be better as it is more general
-        // current approach doesnt work for multiple ***id
         Q.subst(
           (
             Map(
@@ -415,11 +407,6 @@ object Exec {
   def getRely(exp: Expression, state: State) = {
     val evalExp = eval(exp, state, false)
 
-    // TODO !!!!
-    // rely incorrect as using mem for rely not var itself
-    // TODO should local vars not be loaded into memeory (????)
-    // related: how will the rely work for pointers ?!??
-
     val p = eval(
       BinOp.pred(
         "&&",
@@ -490,7 +477,6 @@ object Exec {
   }
 
   def primed(p: Expression, state: State) =
-    // TODO handle memId
     eval(p, state, false).subst(
       (
         (state.arrayIds + Id.memId)
@@ -500,7 +486,6 @@ object Exec {
       )
     )
 
-  // TODO take havoc statements into account
   def stableR(p: Expression, state: State) =
     eval(
       BinOp.pred("=>", BinOp.pred("&&", getRely(p, state), p), primed(p, state)),
