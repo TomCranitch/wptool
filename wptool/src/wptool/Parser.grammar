@@ -105,12 +105,11 @@ ptrdef
 	;
 
 vardef
-    = GLOBALVAR ID.n COLON lpred.l              {:  return new VarDef(n, l, GlobalVar.instance()); :}
-    | GLOBALVAR ID.n COLON lpred.l PT COLON id_list.p              {:  return new VarDef(n, l, p, GlobalVar.instance()); :}
-    | GLOBALVAR ID.n COLON                     	{: return new VarDef(n, GlobalVar.instance()); :}
-    | LOCALVAR ID.n COLON                     	{: return new VarDef(n, LocalVar.instance()); :}
-    | ptrdef.n COLON					  		{: return new VarDef(n.name().name(), GlobalVar.instance()); :} // TODO
-    | ptrdef.n COLON lpred.l			  		{: return new VarDef(n.name().name(), l, GlobalVar.instance()); :} // TODO
+    = GLOBALVAR ID.n COLON lpred.l					{: return new VarDef(n, l, GlobalVar.instance()); :}
+    | GLOBALVAR ID.n COLON        					{: return new VarDef(n, GlobalVar.instance()); :}
+    | LOCALVAR ID.n COLON         					{: return new VarDef(n, LocalVar.instance()); :}
+    | GLOBALVAR ptrdef.n COLON PT COLON id_list.p				{: return new VarDef(n.name().name(), p, GlobalVar.instance()); :} // TODO
+    | GLOBALVAR ptrdef.n COLON lpred.l PT COLON id_list.p		{: return new VarDef(n.name().name(), l, p, GlobalVar.instance()); :} // TODO
     ;
 
 definition

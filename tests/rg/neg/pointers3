@@ -1,9 +1,9 @@
 global var a:
 _L: FALSE
-_PT: b
 
-global var b:
+global var *b:
 _L: FALSE
+_PT: a
 
 global var out:
 _L: a == 2

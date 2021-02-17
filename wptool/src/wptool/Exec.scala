@@ -132,32 +132,41 @@ object Exec {
       }
     case assign @ Assignment(Dereference(id), _, _) =>
       // TODO preds
-      /*
-      val globalPred =
-        if (state.globals.contains(id))
-          BinOp.pred(
+      var globalPred: Expression = null
+      var controlPred: Expression = null
+      id match {
+        case id: Id =>
+          // Must be global
+          globalPred = BinOp.pred(
             "=>",
             getL(id, state),
             computeGamma(assign.expression, state)
           )
-        else Const._true
-       */
-      /*
-      val controlPred = if (state.controls.contains(id)) {
-        constructForall(
-          state.controlledBy
-            .getOrElse(id, Set())
-            .map(contr => {
-              BinOp.pred(
-                "=>",
-                eval(getL(contr, state).subst((Map(id.toVar(state) -> Left(assign.expression)), state)), state, true), // TODO
-                BinOp.pred("||", eval(contr.toGamma, state, true), getL(contr, state))
-              )
-            })
-            .toList
-        )
-      } else Const._true
-       */
+
+          // Check if anything that b points to is a control variable
+          // TODO move check to inside map (i.e. only check secUpd if necessary
+          controlPred = constructForall(
+            state.pointsTo
+              .get(id)
+              .get
+              .filter(i => state.controls.contains(i))
+              .map(i => {
+                state.controlledBy
+                  .getOrElse(i, Set())
+                  .map(contr =>
+                    BinOp.pred(
+                      "=>",
+                      eval(getL(contr, state).subst((Map(i.toVar(state) -> Left(assign.expression)), state)), state, true), // TODO
+                      BinOp.pred("||", eval(contr.toGamma, state, true), getL(contr, state))
+                    )
+                  )
+              })
+              .flatten
+              .toList
+          )
+        case _ => throw new Error("Expected id")
+
+      }
 
       val _state = evalWp(assign, state, RG)
 
@@ -166,16 +175,16 @@ object Exec {
 
         _state
           .addQs(
-            // new PredInfo(rImplies(guarantee, state), assign, "Guarantee"),
-            // new PredInfo(rImplies(globalPred, state), assign, "Global"),
-            // new PredInfo(rImplies(controlPred, state), assign, "Control")
+            new PredInfo(rImplies(guarantee, state), assign, "Guarantee"),
+            new PredInfo(rImplies(globalPred, state), assign, "L => G"),
+            new PredInfo(rImplies(controlPred, state), assign, "secUpd")
           )
           .incPrimeIndicies
       } else {
         _state
           .addQs(
-            // new PredInfo(globalPred, assign, "Global"),
-            // new PredInfo(controlPred, assign, "Control")
+            new PredInfo(globalPred, assign, "L => G"),
+            new PredInfo(controlPred, assign, "secUpd")
           )
           .incPrimeIndicies
       }

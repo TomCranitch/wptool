@@ -290,6 +290,7 @@ case class ForAll(bound: Set[_ <: Expression], body: Expression) extends Express
 
 case class Dereference(ident: Expression) extends Expression {
   def this(x: String) = this(Id(x, TInt, false, false, false))
+  override def toString = s"*$ident"
   override def vars = ident.vars
   override def ids = ident.ids
   override def subst(su: Subst) = Dereference(ident.subst(su))
@@ -304,9 +305,9 @@ case class Dereference(ident: Expression) extends Expression {
 
 case class Reference(ident: Expression) extends Expression {
   def this(x: String) = this(Id(x, TInt, false, false, false))
+  override def toString = s"&$ident"
   override def vars = ident.vars
   override def ids = ident.ids
   override def subst(su: Subst) = Reference(ident.subst(su))
-
   override def expType = TPointer(ident.expType)
 }
