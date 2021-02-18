@@ -14,10 +14,16 @@ global var *ss:
 _L: TRUE
 _PT: head, n
 
-_Rely: TRUE
-_Guar: (n.level == 0) => (n'.level == 0)
+global var v:
+_L: l == 1
 
-n.level = 1;
+global var l:
+_L: TRUE
+
+_Rely: TRUE
+_Guar: TRUE // (n.level == 0) => (n'.level == 0)
+
+n.level = l;
 n.val = v;
 
 do 

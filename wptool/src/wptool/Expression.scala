@@ -124,8 +124,6 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
 
   // TODO document/comment
   def subst(su: Subst) = {
-    // TODO not happy with filter
-    // println(s"$index -> ${index.subst((su._1.filter { case (v, _) => v.expType == TInt }, su._2))}")
     val updatedArr = this.copy(index = index.subst((su._1.filter { case (v, _) => v.expType == TInt }, su._2)))
     if (name.ident.getBase != Id.memId) {
       su._1.get(name) match {
@@ -167,10 +165,10 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
           case (p, (v: Var, Left(e))) => {
             // TODO handle _i
             this.index match {
-              case _ if v.ident == Id.indexId                            => p
-              case v: Var if (su._2.addrs.get(v.ident.getBase).get != v) => p
-              case _ if (name.index != v.index)                          => p
-              case _                                                     => VarStore(p, su._2.addrs.get(v.ident.getBase).get, e)
+              case _ if v.ident == Id.indexId                                  => p
+              case v: Var if (su._2.addrs.get(v.ident.getBase).get != v.ident) => p
+              case _ if (name.index != v.index)                                => p
+              case _                                                           => VarStore(p, su._2.addrs.get(v.ident.getBase).get, e)
             }
           }
           case (p, (Dereference(v: Var), Left(e))) =>
