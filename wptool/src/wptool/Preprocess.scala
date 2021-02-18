@@ -86,10 +86,13 @@ object PreProcess {
         head
       case doWhile: DoWhile =>
         val after = currBlock.prepend(Assume(PreOp("!", TBool, TBool, evalExp(doWhile.test))))
-        val repeat = Block(
-          "do-while repeat",
-          List(Guard(doWhile.test), Assert(doWhile.invariant, true)),
-          List()
+        val repeat = evalBlock(
+          doWhile.test,
+          Block(
+            "do-while repeat",
+            List(Assert(doWhile.invariant, true)),
+            List()
+          )
         )
         val block = Block("do-while block", List(), List(after, repeat))
         exec(doWhile.body, state, block)

@@ -185,8 +185,8 @@ object SMT_ {
     case BinOp(">", TInt, TBool, arg1, arg2) =>
       imgr.greaterThan(translateInt(arg1, expectIds), translateInt(arg2, expectIds))
 
-    case v @ Var(Id(_, TBool, _, _, _), _, _) if (!expectIds) => bmgr.makeVariable(v.toString)
-    case v @ Id(_, TBool, _, _, _) if (expectIds)             => bmgr.makeVariable(v.toString)
+    case v @ Var(Id(_, TBool, _, _, _, _), _, _) if (!expectIds) => bmgr.makeVariable(v.toString)
+    case v @ Id(_, TBool, _, _, _, _) if (expectIds)             => bmgr.makeVariable(v.toString)
     // TODO refactor to use Type not bool for isBoolean
     case x: VarAccess if (!expectIds && x.expType == TBool) =>
       makeSelect(x.name.toString, x.index, true, expectIds).asInstanceOf[api.BooleanFormula]
@@ -217,8 +217,8 @@ object SMT_ {
 
     // TODO *+-/
 
-    case v @ Var(Id(_, TInt, _, gamma, _), _, _) if (!expectIds && !gamma) => imgr.makeVariable(v.toString)
-    case v @ Id(_, TInt, _, gamma, _) if (expectIds && !gamma)             => imgr.makeVariable(v.toString)
+    case v @ Var(Id(_, TInt, _, gamma, _, _), _, _) if (!expectIds && !gamma) => imgr.makeVariable(v.toString)
+    case v @ Id(_, TInt, _, gamma, _, _) if (expectIds && !gamma)             => imgr.makeVariable(v.toString)
     // TODO maybe this is the wrong type?
     case x: VarAccess if (!expectIds && x.expType == TInt) =>
       makeSelect(x.name.toString, x.index, false, expectIds).asInstanceOf[api.NumeralFormula.IntegerFormula]

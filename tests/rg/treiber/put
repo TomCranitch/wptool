@@ -1,8 +1,18 @@
 global obj n:
-_Fields: val, level, next
+_Field: val
+    _L: n.level == 1
+_Field: level
+    _L: TRUE
+_Field: next
+	_L: TRUE
 
-global obj head:
-_Fields: val, level
+global var *head:
+_L: TRUE
+_PT: n
+
+global var *ss:
+_L: TRUE
+_PT: head, n
 
 _Rely: TRUE
 _Guar: (n.level == 0) => (n'.level == 0)
@@ -13,8 +23,8 @@ n.val = v;
 do 
 _invariant: TRUE
 {
-	ss = &val;
+	ss = head;
 	n.next = ss;
 }
-while(CAS(head, ss, n) == 0)
+while(CAS(head, ss, &n) == 0)
 

@@ -4,7 +4,7 @@
 %terminals GLOBALVAR, LOCALVAR;
 %terminals GLOBALARRAY, LOCALARRAY;
 %terminals GLOBALOBJ;
-%terminals FIELDS;
+%terminals FIELD;
 
 //%terminals RETURN, BREAK, CONTINUE;
 %terminals IF, ELSE, WHILE, DO;
@@ -89,6 +89,7 @@
 %typeof arrrely = "Rely";
 %typeof arrguar = "Guar";
 %typeof security = "Security";
+%typeof fielddef = "Field";
 
 %goal unit;
 
@@ -102,6 +103,17 @@ unit = defs.v locals.s {: return new Global(v, s); :}
 ptrdef
 	= STAR ID.n 				{: return new VarDef(n, GlobalVar.instance()); :}
 	| STAR ptrdef.n			{: return new VarDef(n.name().name(), GlobalVar.instance()); :}
+	;
+
+
+
+fielddef
+	= FIELD COLON ID.i lpred.l {: return new Field(i, l); :}
+	;
+
+fielddefs
+	= fielddef
+	| fielddefs fielddef
 	;
 
 vardef
@@ -118,7 +130,7 @@ definition
     | GLOBALARRAY ID.n LBRACK intexpr.s RBRACK COLON arrrely.r arrguar.g {: return new ArrayDef(n, s, GlobalVar.instance(), r, g); :}
     | LOCALARRAY ID.n LBRACK intexpr.s RBRACK COLON lpred.l arrrely.r arrguar.g {: return new ArrayDef(n, s, l, LocalVar.instance(), r, g); :}
     | LOCALARRAY ID.n LBRACK intexpr.s RBRACK COLON arrrely.r arrguar.g {: return new ArrayDef(n, s, LocalVar.instance(), r, g); :}
-	| GLOBALOBJ ID.n COLON FIELDS COLON id_list.i 		{: return new ObjDef(n, i, GlobalVar.instance()); :}
+	| GLOBALOBJ ID.n COLON fielddefs.f 		{: return new ObjDef(n, f, GlobalVar.instance()); :}
 	;
 
 arrrely = RELY COLON boolexpr.a {: return  new Rely(a); :};
@@ -148,9 +160,9 @@ local
 locals  = local *;
 
 boolexpr
-    = PRIMEGAMMAID.n                              {: return new Id(n, TBool.instance(), true, true, false);  :}
-	| GAMMAID.n                        {: return new Id(n, TBool.instance(), false, true, false);  :}
-    // | PRIMEID.n                              {: return new Id(n, TBool.instance(), true, false, false);  :}
+    = PRIMEGAMMAID.n                              {: return new Id(n, TBool.instance(), true, true, false, false);  :}
+	| GAMMAID.n                        {: return new Id(n, TBool.instance(), false, true, false, false);  :}
+    // | PRIMEID.n                              {: return new Id(n, TBool.instance(), true, false, false, false);  :}
     // TODO | ID.n                              {: return new Id(n, TBool.instance(), false, false, false);  :}
     // | PRIMEID.n LBRACK intexpr.i RBRACK       {: return new IdAccess(n, true, false, i); :}
     | GAMMAID.n LBRACK intexpr.i RBRACK       {: return new IdAccess(n, false, true, i); :}
@@ -178,8 +190,8 @@ boolexpr
     ;
 
 intid
-	= PRIMEID.n                              {: return new Id(n, TInt.instance(), true, false, false);  :}
-    | ID.n                              {: return new Id(n, TInt.instance(), false, false, false);  :}
+	= PRIMEID.n                              {: return new Id(n, TInt.instance(), true, false, false, false);  :}
+    | ID.n                              {: return new Id(n, TInt.instance(), false, false, false, false);  :}
 	;
 
 intexpr
@@ -189,6 +201,7 @@ intexpr
     | ID.n LBRACK intexpr.i RBRACK       {: return new IdAccess(n, i); :}
 	// TODO rm
 	| CAS LPAREN ID.x COMMA intexpr.y COMMA intexpr.z RPAREN {: return new CompareAndSwap(x, y, z); :}
+	| CAS LPAREN ID.x COMMA intexpr.y COMMA ptrexpr.z RPAREN {: return new CompareAndSwap(x, y, z); :}
     | NUM.n                             {: return new Lit(n); :}
     | PLUS  intexpr.a @ PREFIX             {: return new PreOp("+", TInt.instance(), TInt.instance(), a);    :}
     | MINUS intexpr.a @ PREFIX             {: return new PreOp("-", TInt.instance(), TInt.instance(), a);    :}

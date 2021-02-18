@@ -63,7 +63,7 @@ object Block {
 
 case class Assignment(lhs: Expression, expression: Expression, line: (String, Int)) extends Stmt(line) {
   def this(lhs: String, expression: Expression) =
-    this(new Id(lhs, TInt, false, false, false), expression, ("", -1))
+    this(new Id(lhs, TInt, false, false, false, false), expression, ("", -1))
   def this(lhs: Expression, expression: Expression) =
     this(lhs, expression, ("", -1))
   override def toString: String = lhs + " = " + expression
@@ -78,7 +78,7 @@ object Assignment {
 
 case class ArrayAssignment(lhs: IdAccess, expression: Expression, line: (String, Int)) extends Stmt(line) {
   def this(name: String, index: Expression, expression: Expression) =
-    this(new IdAccess(new Id(name, TInt, false, false, false), index), expression, ("", -1))
+    this(new IdAccess(new Id(name, TInt, false, false, false, false), index), expression, ("", -1))
   override def toString: String =
     lhs.ident + "[" + lhs.index + "]" + " = " + expression
 

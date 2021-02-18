@@ -120,7 +120,7 @@ WS = {NL} | [ \t\f]
 "global array"    { return newToken(Terminals.GLOBALARRAY);     }
 "local array"    { return newToken(Terminals.LOCALARRAY);     }
 "global obj"    { return newToken(Terminals.GLOBALOBJ);     }
-"_Fields"    { return newToken(Terminals.FIELDS);     }
+"_Field"    { return newToken(Terminals.FIELD);     }
 
 "TRUE" { return newToken(Terminals.TRUE);    }
 "FALSE" { return newToken(Terminals.FALSE);    }

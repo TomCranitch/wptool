@@ -140,4 +140,7 @@ The logic for the weak memory model is currently not implemented
 ## Optimisations
 ### Passification
 
+### General Improvemens
+ * Implement a standard interface for identifiers and remove specific logic where possible
+
 

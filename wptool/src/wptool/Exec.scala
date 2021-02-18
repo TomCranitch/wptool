@@ -85,9 +85,9 @@ object Exec {
       } else {
         _state.incPrimeIndicies
       }
-    case assign @ Assignment(lhs: Id, _, _) =>
+    case assign @ Assignment(lhs: Identifier, _, _) =>
       val globalPred =
-        if (state.globals.contains(lhs))
+        if (state.globals.contains(lhs.ident))
           BinOp.pred(
             "=>",
             getL(lhs, state),
@@ -310,6 +310,20 @@ object Exec {
             state
           )
         )
+      case assign @ Assignment(o @ ObjIdAccess(id, field), _, _) =>
+        val rhsGamma = computeGamma(assign.expression, state)
+        val lhs = eval(o, state, false) match {
+          case lhs: ObjVarAccess => lhs
+          case lhs               => throw new Error(s"Unexpected object $lhs (${lhs.getClass})")
+        }
+
+        Q.subst(
+          Map(
+            (o.toVar(state) -> Left(eval(assign.expression, state, true))),
+            (o.toGamma.toVar(state) -> Left(rhsGamma))
+          ),
+          state
+        )
       case assign: ArrayAssignment =>
         val rhsGamma = computeGamma(assign.expression, state)
 
@@ -328,7 +342,7 @@ object Exec {
           )
         )
       case stmt =>
-        println("Unhandled statement(wp exec): " + stmt)
+        println(s"Unhandled statement(wp exec): $stmt (${stmt.getClass})")
         Q
     }
   }
@@ -339,10 +353,11 @@ object Exec {
         val mem =
           (if (id.prime) Id.memId.toPrime.toVar(state) else if (id.nought) Id.memId.toVar(state).toNought else Id.memId.toVar(state))
         if (id == Id.indexId) id.toVar(state)
+        else if (id.memLoc) id.toVar(state)
         else if (memAccess && !id.gamma)
-          VarAccess(mem, Id.getAddr(id, state))
+          VarAccess(mem, eval(Id.getAddr(id, state), state, true))
         else if (memAccess && id.gamma)
-          VarAccess(mem.toGamma(state), Id.getAddr(id, state))
+          VarAccess(mem.toGamma(state), eval(Id.getAddr(id, state), state, true))
         else
           id.toVar(state)
       case id: Id => id.toVar(state)
@@ -353,23 +368,35 @@ object Exec {
            else Id.memId.toVar(state))
         if (v.ident == Id.indexId) v
         else if (memAccess && !v.ident.gamma)
-          VarAccess(mem, Id.getAddr(v.ident, state))
+          VarAccess(mem, eval(Id.getAddr(v.ident, state), state, true))
         else if (memAccess && v.ident.gamma)
-          VarAccess(mem.toGamma(state), Id.getAddr(v.ident, state))
+          VarAccess(mem.toGamma(state), eval(Id.getAddr(v.ident, state), state, true))
         else v
-      case id: IdAccess         => id.toVar(state).copy(index = eval(id.index, state, memAccess))
-      case idObj: ObjIdAccess   => idObj // TODO
-      case varObj: ObjVarAccess => varObj
+      case id: IdAccess => id.toVar(state).copy(index = eval(id.index, state, memAccess))
+      case idObj: ObjIdAccess =>
+        val mem =
+          (if (idObj.ident.prime) Id.memId.toPrime.toVar(state)
+           else if (idObj.ident.nought) Id.memId.toVar(state).toNought
+           else Id.memId.toVar(state))
+        if (memAccess) VarAccess(mem, eval(idObj.getAddr(state), state, true))
+        else idObj.toVar(state)
+      case varObj: ObjVarAccess =>
+        val mem =
+          (if (varObj.ident.prime) Id.memId.toPrime.toVar(state)
+           else if (varObj.ident.nought) Id.memId.toVar(state).toNought
+           else Id.memId.toVar(state))
+        if (memAccess) VarAccess(mem, eval(varObj.getAddr(state), state, true))
+        else varObj
       case deref @ Dereference(id) =>
         deref.copy(ident = eval(deref.ident, state, false)) match {
           case Dereference(v: Var) if (memAccess) =>
             val memId = v.copy(ident = v.ident.copy(name = Id.memId.name))
-            VarAccess(memId, VarAccess(memId, Lit(state.addrs.get(v.ident).get)))
+            VarAccess(memId, eval(VarAccess(memId, state.addrs.get(v.ident).get), state, true))
           case d @ _ => d
         }
       case r @ Reference(id) =>
         r.copy(ident = eval(r.ident, state, false)) match {
-          case Reference(v: Var) => Lit(state.addrs.get(v.ident).get)
+          case Reference(v: Var) => eval(state.addrs.get(v.ident).get, state, true)
           case r @ _             => r
         }
       case BinOp(op, t1, t2, arg1, arg2) =>
@@ -393,12 +420,17 @@ object Exec {
         expr
     }
 
-  def getBaseVars(vars: Set[Variable]): Set[Variable] = vars.map(v =>
-    v.getBase.resetIndex match {
-      case v: VarAccess => v.name
-      case v @ _        => v
+  def getBaseVars(vars: Set[Variable]): Set[Variable] = vars
+    .filter {
+      case v: Var if (v.ident.memLoc) => false
+      case _                          => true
     }
-  )
+    .map(v =>
+      v.getBase.resetIndex match {
+        case v: VarAccess => v.name
+        case v @ _        => v
+      }
+    )
   def getBaseVariables(vars: Set[Variable]): Set[Variable] = vars.map(v => v.getBase.resetIndex)
   // def getBaseArrays(vars: Set[VarAccess]): Set[VarAccess] =
   //  vars.filter(v => v.name.ident.getBase != Id.memId).map(v => v.getBase.resetIndex)
@@ -456,7 +488,8 @@ object Exec {
   }
 
   def getL(id: Identifier, state: State): Expression = id match {
-    case Id.tmpId => Const._true
+    case Id.tmpId              => Const._true
+    case id: Id if (id.memLoc) => Const._true
     case _: IdAccess | _: VarAccess =>
       id match {
         case id: IdAccess =>
@@ -468,7 +501,7 @@ object Exec {
             (Map(Id.indexId.toVar(state) -> Left(eval(id.index, state, true))), state)
           )
       }
-    case id: Id =>
+    case id: Identifier =>
       eval(
         state.L.getOrElse(id, throw new Error("L not defined for " + id)),
         state,
@@ -537,6 +570,7 @@ object Exec {
     val _subst = Map[Expression, Left[Expression, Nothing]](Id.memId.toVar(state).toNought -> Left(Id.memId.toVar(state)))
     // val _subst = vars.map(v => v.toNought -> Left(v)).toMap
     // val _subst = Map(Id.memId.toVar(state).toNought -> Left(Id.memId.toVar(state)))
+    println(wp(eval(gPrime, state, true), a, state))
     wp(eval(gPrime, state, true), a, state).subst((_subst, state))
   }
 

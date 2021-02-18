@@ -12,7 +12,7 @@ case class State(
     controls: Set[Identifier],
     controlled: Set[Identifier],
     controlledBy: Map[Identifier, Set[Identifier]], // TODO check
-    L: Map[Id, Expression],
+    L: Map[Identifier, Expression],
     ids: Set[Id],
     arrayIds: Set[Id],
     globals: Set[Id],
@@ -21,7 +21,8 @@ case class State(
     arrRelys: Map[Id, Expression],
     arrGuars: Map[Id, Expression],
     indicies: Map[Id, Int],
-    addrs: Map[Id, Int],
+    addrs: Map[Id, Expression],
+    fieldIndicies: Map[ObjIdAccess, Int],
     pointsTo: Map[Id, Set[Id]],
     error: Boolean = false
 ) {
@@ -56,6 +57,14 @@ object State {
         a.toVarDefs.name
       }
     } + Id.memId
+
+    val objDefs = {
+      definitions collect { case a: ObjDef =>
+        a
+      }
+    }
+
+    val objVarDefs = objDefs.map(o => o.toVarDefs)
 
     val arrRelys = definitions
       .collect { case a: ArrayDef =>
@@ -109,12 +118,15 @@ object State {
     }
 
     // init L - map variables to their L predicates
-    val L: Map[Id, Expression] = {
-      for (v <- variables) yield {
+    val L: Map[Identifier, Expression] = {
+      for (v <- (variables)) yield {
         if (v.access == GlobalVar) v.name -> v.pred
         else v.name -> Const._false
       }
-    }.toMap
+    }.toMap[Identifier, Expression] ++ objDefs
+      .map(o => o.fields.map(f => ObjIdAccess(o.name, f.ident) -> f.lpred))
+      .flatten
+      .toMap[Identifier, Expression]
 
     val globals = variables.filter(v => v.access == GlobalVar).map(v => v.name)
     val locals = variables.filter(v => v.access == LocalVar).map(v => v.name)
@@ -135,7 +147,10 @@ object State {
 
     // TODO add support for arrays
     // TODO tmpId could remain a var as it cant be aliased
-    val addrs = (ids + Id.tmpId).zipWithIndex.map { case (x, i) => (x -> i) }.toMap
+    val addrs = (ids + Id.tmpId).zipWithIndex.map { case (x, i) => (x -> x.copy(memLoc = true)) }.toMap
+
+    val fieldIndicies =
+      objDefs.map(o => o.fields.zipWithIndex.map { case (f, i) => ObjIdAccess(o.name, f.ident.toString) -> i }).flatten.toMap
 
     // TODO malformed probs insto the best
     State(
@@ -156,6 +171,7 @@ object State {
       arrGuars,
       indicies,
       addrs,
+      fieldIndicies,
       pointsTo
     )
   }
