@@ -69,11 +69,18 @@ package object wptool {
   def checkVcs(
       preds: List[PredInfo],
       debug: Boolean,
-      simplify: Boolean
+      simplify: Boolean,
+      state: State
   ): Option[List[PredInfo]] =
     preds.filter(p => {
+      val disjoint = constructForall((for {
+        (x, idxX) <- state.ids.zipWithIndex
+        (y, idxY) <- state.ids.zipWithIndex
+        if idxX < idxY
+      } yield BinOp("!=", TInt, TBool, x, y)).toList)
+      val _p = BinOp("=>", TBool, TBool, disjoint, p.pred)
       if (debug) println(s"passing ${p.stmt.toStringWLine} ${p.label} along path ${p.path.mkString(", ")} to SMT")
-      !SMT.prove(p.pred, debug, simplify)
+      !SMT.prove(_p, debug, simplify)
     }) match {
       case List() => None
       case l      => Some(l)
@@ -83,16 +90,19 @@ package object wptool {
       preds: List[PredInfo],
       gammas: Subst,
       debug: Boolean,
-      simplify: Boolean
+      simplify: Boolean,
+      state: State
   ): Option[List[PredInfo]] =
     checkVcs(
       preds.map(p => {
         p.copy(pred = p.pred.subst(gammas))
       }),
       debug,
-      simplify
+      simplify,
+      state
     )
 
+  /*
   def checkVcs(
       preds: List[PredInfo],
       gammas: Subst,
@@ -107,6 +117,7 @@ package object wptool {
       debug,
       simplify
     )
+   */
 
   def printFalseVcs(preds: List[PredInfo]) = {
     println("Failing VCs")

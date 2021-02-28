@@ -189,7 +189,7 @@ case class Assume(expression: Expression, line: (String, Int)) extends Stmt(line
   def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
   def setLine(line: (String, Int)) = this.copy(line = line)
 
-  override def toString = s"assume ${expression.toString})"
+  override def toString = s"assume ${expression.toString}"
 }
 
 object Assume {
@@ -210,6 +210,7 @@ object Assert {
 case class Havoc(line: (String, Int)) extends Stmt(line) {
   def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
   def setLine(line: (String, Int)) = this.copy(line = line)
+  override def toString = "Havoc"
 }
 
 object Havoc {

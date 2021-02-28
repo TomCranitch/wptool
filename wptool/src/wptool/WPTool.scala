@@ -155,7 +155,7 @@ object WPTool {
     if (debug) println("L: " + _state.L)
     if (debug) println("Indicies: " + _state.indicies)
 
-    checkVcs(_state.Qs, (gammaSubstr, state), debug, simplify) match {
+    checkVcs(_state.Qs, (gammaSubstr, state), debug, simplify, state) match {
       case Some(s) =>
         if (!silent) printFalseVcs(s)
         false

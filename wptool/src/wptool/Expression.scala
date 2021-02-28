@@ -166,9 +166,10 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
             // TODO handle _i
             this.index match {
               case _ if v.ident == Id.indexId                                  => p
-              case v: Var if (su._2.addrs.get(v.ident.getBase).get != v.ident) => p
+              case i: Var if (su._2.addrs.get(v.ident.getBase).get != i.ident) => p
               case _ if (name.index != v.index)                                => p
-              case _                                                           => VarStore(p, su._2.addrs.get(v.ident.getBase).get, e)
+              case _ =>
+                VarStore(p, eval(su._2.addrs.get(v.ident.getBase).get, su._2), e)
             }
           }
           case (p, (Dereference(v: Var), Left(e))) =>
@@ -177,7 +178,11 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
               case _ if (name.index != v.index) => p
               case _ =>
                 val memId = v.ident.copy(name = Id.memId.name).toVar(su._2)
-                VarStore(p, VarAccess(memId.copy(ident = memId.ident.copy(gamma = false)), su._2.addrs.get(v.ident.getBase).get), e)
+                VarStore(
+                  p,
+                  VarAccess(memId.copy(ident = memId.ident.copy(gamma = false)), eval(su._2.addrs.get(v.ident.getBase).get, su._2)),
+                  e
+                )
             }
           case (p, (o: ObjVarAccess, Left(e))) =>
             this.index match {
@@ -187,6 +192,11 @@ case class VarAccess(name: Var, index: Expression) extends Variable {
         }
 
     }
+  }
+
+  private def eval(exp: Expression, state: State) = exp match {
+    case i: Id => i.toVar(state)
+    case _     => exp // TODO
   }
 
   override def toString = name + "[" + index + "]"

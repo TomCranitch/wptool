@@ -63,6 +63,7 @@ object SMT {
       println(res)
       if (res == z3.Status.SATISFIABLE) {
         val model = solver.getModel
+        println(s"COND VARS: ${cond}")
         println(
           "Model: [" + cond.vars.toList
             .sortWith((x, y) => x.toString < y.toString)

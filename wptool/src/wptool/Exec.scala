@@ -23,6 +23,7 @@ object Exec {
         block.children.map(c => {
           val res = exec(c, state)
           if (c.atomic)
+            // TODO should there be a guaranttee check?
             res.copy(Qs = res.Qs.map(q => q.copy(pred = rImplies(q.pred, state))))
           else res
         }),
@@ -59,7 +60,7 @@ object Exec {
           )
           .incPrimeIndicies
     case havoc: Havoc =>
-      val _state = checkVcs(state.Qs, state.debug, state.simplify) match {
+      val _state = checkVcs(state.Qs, state.debug, state.simplify, state) match {
         case Some(p) =>
           if (!state.silent) printFalseVcs(p)
           if (state.debug) println("error found at havoc")
@@ -442,21 +443,20 @@ object Exec {
         expr
     }
 
+  private def skipMemLocs(v: Variable) = v match {
+    case v: Var if (v.ident.memLoc) => false
+    case v                          => true
+  }
+
   def getBaseVars(vars: Set[Variable]): Set[Variable] = vars
-    .filter {
-      case v: Var if (v.ident.memLoc) => false
-      case _                          => true
-    }
+    .filter(skipMemLocs)
     .map(v =>
       v.getBase.resetIndex match {
         case v: VarAccess => v.name
         case v @ _        => v
       }
     )
-  def getBaseVariables(vars: Set[Variable]): Set[Variable] = vars.map(v => v.getBase.resetIndex)
-  // def getBaseArrays(vars: Set[VarAccess]): Set[VarAccess] =
-  //  vars.filter(v => v.name.ident.getBase != Id.memId).map(v => v.getBase.resetIndex)
-  // def getBaseMems(vars: Set[VarAccess]): Set[VarAccess] = vars.filter(v => v.name.ident.getBase == Id.memId).map(v => v.getBase.resetIndex)
+  def getBaseVariables(vars: Set[Variable]): Set[Variable] = vars.filter(skipMemLocs).map(v => v.getBase.resetIndex)
 
   def getRely(exp: Expression, state: State) = {
     val evalExp = eval(exp, state, false)
@@ -638,7 +638,6 @@ object Exec {
     val subst = vars.map(v => List(v -> Left(v.toNought), v.toPrime(state) -> Left(v))).flatten.toMap[Expression, Left[Expression, Nothing]]
     val gPrime = guar.subst((subst, state))
     val _subst = Map[Expression, Left[Expression, Nothing]](Id.memId.toVar(state).toNought -> Left(Id.memId.toVar(state)))
-    println(wp(eval(gPrime, state, true), a, state))
     eval(wp(eval(gPrime, state, true), a, state).subst((_subst, state)), state, true)
   }
 
