@@ -1,3 +1,5 @@
+A tool for performing weakest precondition analysis on concurrent programs written in a while language, for which the syntax is detailed below. The tool builds up predicates which are given to an SMT solver (usually z3 or CVC4) for processing.
+
 ## Requirements
 * Java 11
 * Scala (tested with 2.13.3)
