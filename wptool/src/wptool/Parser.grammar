@@ -35,6 +35,8 @@
 %terminals ASSERT;
 
 %terminals CAS;
+%terminals DECLASSIFY;
+
 %terminals INVARIANT, GAMMA, GAMMA_0, RELY, GUAR;
 %terminals LPRED;
 %terminals PT;
@@ -169,6 +171,7 @@ boolexpr
     | PRIMEGAMMAID.n LBRACK intexpr.i RBRACK       {: return new IdAccess(n, true, true, i); :}
     // | ID.n LBRACK intexpr.i RBRACK       {: return new IdAccess(n, i); :}
 	// | CAS LPAREN ID.x COMMA intexpr.y COMMA intexpr.z RPAREN {: return new CompareAndSwap(x, y, z); :}
+	| DECLASSIFY LPAREN boolexpr.e COMMA boolexpr.b RPAREN {: return new Declassify(e, b); :}
     | BANG  boolexpr.a @ PREFIX             {: return new PreOp("!", TBool.instance(), TBool.instance(), a);    :}
     | boolexpr.a IMPLIES   boolexpr.b           {: return new BinOp("=>", TBool.instance(), TBool.instance(), a, b); :}
     | boolexpr.a EQ     boolexpr.b              {: return new BinOp("==", TBool.instance(), TBool.instance(),a, b); :} // TODO this is incorrect
@@ -202,6 +205,7 @@ intexpr
 	// TODO rm
 	| CAS LPAREN ID.x COMMA intexpr.y COMMA intexpr.z RPAREN {: return new CompareAndSwap(x, y, z); :}
 	| CAS LPAREN ID.x COMMA intexpr.y COMMA ptrexpr.z RPAREN {: return new CompareAndSwap(x, y, z); :}
+	| DECLASSIFY LPAREN intexpr.e COMMA boolexpr.b RPAREN {: return new Declassify(e, b); :}
     | NUM.n                             {: return new Lit(n); :}
     | PLUS  intexpr.a @ PREFIX             {: return new PreOp("+", TInt.instance(), TInt.instance(), a);    :}
     | MINUS intexpr.a @ PREFIX             {: return new PreOp("-", TInt.instance(), TInt.instance(), a);    :}

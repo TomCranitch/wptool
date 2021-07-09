@@ -1,0 +1,16 @@
+local var pass:
+
+local var ans:
+
+global var out:
+_L: TRUE
+
+_Gamma_0: pass -> HIGH
+_Rely: TRUE
+_Guar: TRUE
+
+if (pass == ans) {
+  out = 1;
+} else {
+  out = 0;
+}

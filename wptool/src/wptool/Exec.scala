@@ -425,6 +425,7 @@ object Exec {
       case BinOp(op, t1, t2, arg1, arg2) =>
         BinOp(op, t1, t2, eval(arg1, state, memAccess), eval(arg2, state, memAccess))
       case PreOp(op, t1, t2, arg) => PreOp(op, t1, t2, eval(arg, state, memAccess))
+      case Declassify(e, d)       => eval(e, state, memAccess)
       case s: VarStore =>
         s.copy(
           array = eval(s.array, state, memAccess),
@@ -662,18 +663,25 @@ object Exec {
 
   def computeGamma(exp: Expression, state: State): Expression = {
     val expEval = eval(exp, state, false)
-    constructForall(
+    val basePred = constructForall(
       expEval.vars
-        .map(v =>
+        .map(v => {
           eval(
             BinOp.pred("||", v.toGamma(state), getL(v.ident, state)),
             // BinOp.pred("||", VarAccess(Id.memId.toGamma.toVar(state), Id.getAddr(v.ident, state)), getL(v.ident, state)),
             state,
             true
           ) // Default to high
-        )
+
+        })
         .toList
     )
+
+    exp match {
+      case Declassify(_, d)                           => BinOp.pred("||", d, basePred)
+      case PreOp("!", TBool, TBool, Declassify(_, d)) => BinOp.pred("||", d, basePred) // TODO there should be a better way to do this
+      case _                                          => basePred
+    }
   }
 
   def joinStates(states: List[State], state: State, blockName: String) = {

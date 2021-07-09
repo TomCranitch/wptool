@@ -95,6 +95,7 @@ WS = {NL} | [ \t\f]
 ";"         { return newToken(Terminals.SEMICOLON);}
 
 "CAS"       { return newToken(Terminals.CAS);     }
+"d"       { return newToken(Terminals.DECLASSIFY);     }
 
 //"break"     { return newToken(Terminals.BREAK);    }
 //"return"    { return newToken(Terminals.RETURN);   }

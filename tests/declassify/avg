@@ -1,0 +1,16 @@
+global var sum:
+_L: FALSE
+
+global var cnt:
+_L: TRUE
+
+global var out:
+_L: TRUE
+
+_Gamma_0: sum -> HIGH
+_Rely: TRUE
+_Guar: TRUE
+
+if (cnt > 5) {
+	out = d(sum/cnt, cnt > 5);
+}

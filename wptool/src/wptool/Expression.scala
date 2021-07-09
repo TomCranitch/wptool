@@ -299,6 +299,14 @@ case class CompareAndSwap(x: Id, e1: Expression, e2: Expression) extends Express
   override def expType = TInt // TODO
 }
 
+case class Declassify(e: Expression, d: Expression) extends Expression {
+  override def toString: String = "d(" + e + ", " + d + ")"
+  override def vars = e.vars
+  override def ids = e.ids
+  override def subst(su: Subst) = this.copy(e.subst(su))
+  override def expType = TInt // TODO
+}
+
 case class ForAll(bound: Set[_ <: Expression], body: Expression) extends Expression {
   def this(bound: Array[Expression], body: Expression) = this(bound.toSet, body)
   override def ids = body.ids -- (bound.map(id => id.ids).flatten)
