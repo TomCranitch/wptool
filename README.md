@@ -100,6 +100,16 @@ _invariant: TRUE
 } while ((r1 % 2) != 0)
 ```
 
+### Declassificaton
+
+To specify the declassification of a predicate it is necessary to specify both the expression being declassified and under what conditions this can happen. For example,
+
+```
+out = d(sum/cnt, cnt > min)
+```
+
+specifies that at this particular line the expression `sum/cnt` can be declassified if `cnt > min`.
+
 ### Supported operations
 * `=` assignment
 * `==` equal to
@@ -124,10 +134,6 @@ _invariant: TRUE
 ## TODOs
 ### Unsupported language features
 Below is an inconclusive list of unsupported language features.
- * Pointers
- * Dynamic allocation
-
-	
  * Dynamic thread creation
  * Objects
 
