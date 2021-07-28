@@ -3,7 +3,6 @@ package wptool
 import scala.reflect.runtime.universe.{TypeTag, typeOf}
 
 sealed abstract class Type
-case class TPointer(pointerType: Type) extends Type
 case object TBool extends Type { def instance = this }
 case object TInt extends Type { def instance = this }
 

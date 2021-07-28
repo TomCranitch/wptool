@@ -1,3 +1,8 @@
+/** An alternative to the SMT class that uses Java SMT to support a wider range of solvers.
+  *
+  * Note: not currently used.
+  */
+
 package wptool
 
 import org.sosy_lab.java_smt._
