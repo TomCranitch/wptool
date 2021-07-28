@@ -9,10 +9,10 @@ case class State(
     debug: Boolean,
     silent: Boolean,
     simplify: Boolean,
-    controls: Set[Id],
-    controlled: Set[Id],
-    controlledBy: Map[Id, Set[Id]], // TODO check
-    L: Map[Id, Expression],
+    controls: Set[Identifier],
+    controlled: Set[Identifier],
+    controlledBy: Map[Identifier, Set[Identifier]], // TODO check
+    L: Map[Identifier, Expression],
     ids: Set[Id],
     arrayIds: Set[Id],
     globals: Set[Id],
@@ -21,6 +21,9 @@ case class State(
     arrRelys: Map[Id, Expression],
     arrGuars: Map[Id, Expression],
     indicies: Map[Id, Int],
+    addrs: Map[Id, Expression],
+    fieldIndicies: Map[ObjIdAccess, Int],
+    pointsTo: Map[Id, Set[Id]],
     error: Boolean = false
 ) {
   def incPrimeIndicies =
@@ -30,8 +33,7 @@ case class State(
         .map(x => (x._1, x._2 + 1))
         .toMap
     )
-  def incGamma(id: Id) =
-    this.copy(indicies = indicies + (id -> (indicies.getOrElse(id, -1) + 1)))
+  def incGamma(id: Id) = this.copy(indicies = indicies + (id -> (indicies.getOrElse(id, throw new Error("index not found")) + 1)))
   def addQs(Qss: PredInfo*) = this.copy(Qs = Qs ::: Qss.toList)
   def addQs(Qss: List[PredInfo]) = this.copy(Qs = Qs ::: Qss)
 }
@@ -46,13 +48,23 @@ object State {
       rely: Option[Rely],
       guar: Option[Guar]
   ): State = {
-    var controls: Set[Id] = Set()
-    var controlled: Set[Id] = Set()
-    var controlledBy: Map[Id, Set[Id]] = Map()
+    var controls: Set[Identifier] = Set()
+    var controlled: Set[Identifier] = Set()
+    var controlledBy: Map[Identifier, Set[Identifier]] = Map()
 
-    val arrayIds = definitions collect { case a: ArrayDef =>
-      a.toVarDefs.name
+    val arrayIds = {
+      definitions collect { case a: ArrayDef =>
+        a.toVarDefs.name
+      }
+    } + Id.memId
+
+    val objDefs = {
+      definitions collect { case a: ObjDef =>
+        a
+      }
     }
+
+    val objVarDefs = objDefs.map(o => o.toVarDefs)
 
     val arrRelys = definitions
       .collect { case a: ArrayDef =>
@@ -66,15 +78,18 @@ object State {
       }
       .toMap[Id, Expression]
 
+    // TODO when adding in typing will need to modify code below
     val variables: Set[VarDef] = definitions map {
       case a: ArrayDef => a.toVarDefs
       case v: VarDef   => v
+      case v: ObjDef   => v.toVarDefs
+      case _           => throw new Error("Unexected def: TODO objects")
     }
 
     val ids: Set[Id] = { for (v <- variables) yield v.name }
 
     for (v <- variables) {
-      val controlling: Set[Id] = v.pred.ids
+      val controlling: Set[Identifier] = v.pred.ids
 
       if (controlling.nonEmpty) {
         controlled += v.name
@@ -88,6 +103,12 @@ object State {
       }
     }
 
+    val pointsTo = variables
+      .map(v => {
+        v.name -> (v.pointsTo.toSet + v.name)
+      })
+      .toMap
+
     val controlAndControlled = controls & controlled
     if (controlAndControlled.nonEmpty) {
       throw error.InvalidProgram(
@@ -97,12 +118,15 @@ object State {
     }
 
     // init L - map variables to their L predicates
-    val L: Map[Id, Expression] = {
-      for (v <- variables) yield {
+    val L: Map[Identifier, Expression] = {
+      for (v <- (variables)) yield {
         if (v.access == GlobalVar) v.name -> v.pred
         else v.name -> Const._false
       }
-    }.toMap
+    }.toMap[Identifier, Expression] ++ objDefs
+      .map(o => o.fields.map(f => ObjIdAccess(o.name, f.ident) -> f.lpred))
+      .flatten
+      .toMap[Identifier, Expression]
 
     val globals = variables.filter(v => v.access == GlobalVar).map(v => v.name)
     val locals = variables.filter(v => v.access == LocalVar).map(v => v.name)
@@ -116,10 +140,17 @@ object State {
     val _guar = guar.getOrElse(Guar(Const._true)).exp
     val _rely = rely.getOrElse(Rely(Const._true)).exp
 
-    val primeIndicies =
-      ((ids ++ arrayIds).map(x => x.toPrime -> 0) ++ (ids ++ arrayIds).map(x =>
-        x -> 0
-      )).toMap + (Id.indexId -> 0) + (Id.tmpId -> 0) + (Id.tmpId.toPrime -> 0)
+    // TODO rm ids
+    val indicies =
+      ((ids ++ arrayIds).map(x => x.toPrime -> 0) ++ (ids ++ arrayIds).map(x => x -> 0)).toMap +
+        (Id.indexId -> 0) + (Id.tmpId -> 0) + (Id.tmpId.toPrime -> 0) + (Id.memId -> 0) + (Id.memId.toPrime -> 0)
+
+    // TODO add support for arrays
+    // TODO tmpId could remain a var as it cant be aliased
+    val addrs = (ids + Id.tmpId).zipWithIndex.map { case (x, i) => (x -> x.copy(memLoc = true)) }.toMap
+
+    val fieldIndicies =
+      objDefs.map(o => o.fields.zipWithIndex.map { case (f, i) => ObjIdAccess(o.name, f.ident.toString) -> i }).flatten.toMap
 
     // TODO malformed probs insto the best
     State(
@@ -138,7 +169,10 @@ object State {
       _guar,
       arrRelys,
       arrGuars,
-      primeIndicies
+      indicies,
+      addrs,
+      fieldIndicies,
+      pointsTo
     )
   }
 }

@@ -61,9 +61,11 @@ object Block {
 
 }
 
-case class Assignment(lhs: Id, expression: Expression, line: (String, Int)) extends Stmt(line) {
+case class Assignment(lhs: Expression, expression: Expression, line: (String, Int)) extends Stmt(line) {
   def this(lhs: String, expression: Expression) =
-    this(new Id(lhs, Type.TInt, false, false, false), expression, ("", -1))
+    this(new Id(lhs, TInt, false, false, false, false), expression, ("", -1))
+  def this(lhs: Expression, expression: Expression) =
+    this(lhs, expression, ("", -1))
   override def toString: String = lhs + " = " + expression
 
   def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
@@ -76,7 +78,7 @@ object Assignment {
 
 case class ArrayAssignment(lhs: IdAccess, expression: Expression, line: (String, Int)) extends Stmt(line) {
   def this(name: String, index: Expression, expression: Expression) =
-    this(new IdAccess(new Id(name, Type.TInt, false, false, false), index), expression, ("", -1))
+    this(new IdAccess(new Id(name, TInt, false, false, false, false), index), expression, ("", -1))
   override def toString: String =
     lhs.ident + "[" + lhs.index + "]" + " = " + expression
 
@@ -187,7 +189,7 @@ case class Assume(expression: Expression, line: (String, Int)) extends Stmt(line
   def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
   def setLine(line: (String, Int)) = this.copy(line = line)
 
-  override def toString = s"assume ${expression.toString})"
+  override def toString = s"assume ${expression.toString}"
 }
 
 object Assume {
@@ -208,6 +210,7 @@ object Assert {
 case class Havoc(line: (String, Int)) extends Stmt(line) {
   def incLine = this.copy(line = line.copy(_2 = line._2 + 1))
   def setLine(line: (String, Int)) = this.copy(line = line)
+  override def toString = "Havoc"
 }
 
 object Havoc {

@@ -105,6 +105,7 @@ object WPTool {
     // printBlocks(PreProcess.process(statements, state))
 
     if (debug) PreProcess.printGraphvis(PreProcess.process(statements, state))
+    if (debug) println(s"Addrs: ${state.addrs}")
 
     val _state = Exec.exec(PreProcess.process(statements, state), state)
 
@@ -143,15 +144,18 @@ object WPTool {
 
     val gammaSubstr = {
       for (i <- gammaDom) yield {
+        // i.toGamma.toVar(_state) -> Left(gamma.getOrElse(i, High).toTruth)
+        // TODO TO TRUTH
+        // TODO Low??
         i.toGamma.toVar(_state) -> Left(gamma.getOrElse(i, High).toTruth)
       }
-    }.toMap.toMap[Var, Left[Expression, Nothing]] ++ Map(Id.tmpId.toGamma.toVar(_state) -> Left(Const._true))
+    }.toMap[Expression, Left[Expression, Nothing]] ++ Map(Id.tmpId.toGamma.toVar(_state) -> Left(Const._true))
 
     if (debug) println("Gamma0: " + gammaSubstr)
     if (debug) println("L: " + _state.L)
     if (debug) println("Indicies: " + _state.indicies)
 
-    checkVcs(_state.Qs, gammaSubstr, debug, simplify) match {
+    checkVcs(_state.Qs, (gammaSubstr, state), debug, simplify, state) match {
       case Some(s) =>
         if (!silent) printFalseVcs(s)
         false

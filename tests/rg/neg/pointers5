@@ -1,0 +1,21 @@
+global var a:
+_L: FALSE
+_PT: b
+
+global var b:
+_L: FALSE
+
+global var c:
+_L: *b == 1
+
+global var secret:
+_L: FALSE
+
+_Rely: a == a' && b == b' && c == c'
+_Guar: TRUE
+
+b = &a;
+a = 0; // SAFE
+c = secret;
+a = 1; // UNSAFE
+

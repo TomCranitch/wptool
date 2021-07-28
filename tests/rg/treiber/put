@@ -1,0 +1,39 @@
+// TODO this example fails
+
+global obj n:
+_Field: val
+    _L: n.level == 1
+_Field: level
+    _L: TRUE
+_Field: next
+	_L: TRUE
+
+global var *head:
+_L: TRUE
+_PT: n
+
+global var *ss:
+_L: TRUE
+_PT: head, n
+
+global var v:
+_L: l == 1
+
+global var l:
+_L: TRUE
+
+// _Gamma_0: n.val -> HIGH
+_Rely: n.level == n'.level && n.val == n'.val && n.next == n'.next
+_Guar: (n.level == 1) => (n'.level == 1)
+
+n.level = l;
+n.val = v;
+
+do 
+_invariant: TRUE
+{
+	ss = head;
+	n.next = ss;
+}
+while(CAS(head, ss, &n) == 0)
+

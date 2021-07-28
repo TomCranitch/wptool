@@ -63,7 +63,7 @@ WS = {NL} | [ \t\f]
 "}"         { return newToken(Terminals.RBRACE);   }
 //"++"        { return newToken(Terminals.INCR);     }
 //"--"        { return newToken(Terminals.DECR);     }
-//"."         { return newToken(Terminals.DOT);      }
+"."         { return newToken(Terminals.DOT);      }
 "!"         { return newToken(Terminals.BANG);     }
 "=>"         { return newToken(Terminals.IMPLIES);     }
 // "~"         { return newToken(Terminals.TILDE);    }
@@ -82,7 +82,7 @@ WS = {NL} | [ \t\f]
 ">"         { return newToken(Terminals.GT);       }
 "=="        { return newToken(Terminals.EQ);       }
 "!="        { return newToken(Terminals.NEQ);      }
-// "&"         { return newToken(Terminals.AMP);      }
+"&"         { return newToken(Terminals.AMP);      }
 // "^"         { return newToken(Terminals.CARET);    }
 // "|"         { return newToken(Terminals.PIPE);     }
 "&&"        { return newToken(Terminals.AND);      }
@@ -95,6 +95,7 @@ WS = {NL} | [ \t\f]
 ";"         { return newToken(Terminals.SEMICOLON);}
 
 "CAS"       { return newToken(Terminals.CAS);     }
+"d"       { return newToken(Terminals.DECLASSIFY);     }
 
 //"break"     { return newToken(Terminals.BREAK);    }
 //"return"    { return newToken(Terminals.RETURN);   }
@@ -109,6 +110,7 @@ WS = {NL} | [ \t\f]
 //"fence"     { return newToken(Terminals.FENCE);    }
 //"cfence"     { return newToken(Terminals.CFENCE);    }
 "_L"       { return newToken(Terminals.LPRED);      }
+"_PT"       { return newToken(Terminals.PT);      }
 "_invariant" {return newToken(Terminals.INVARIANT);}
 "_Gamma" {return newToken(Terminals.GAMMA);}
 "_Gamma_0" {return newToken(Terminals.GAMMA_0);}
@@ -117,7 +119,9 @@ WS = {NL} | [ \t\f]
 "_Rely" {return newToken(Terminals.RELY);}
 "_Guar" {return newToken(Terminals.GUAR);}
 "global array"    { return newToken(Terminals.GLOBALARRAY);     }
-"local array"    { return newToken(Terminals.GLOBALARRAY);     }
+"local array"    { return newToken(Terminals.LOCALARRAY);     }
+"global obj"    { return newToken(Terminals.GLOBALOBJ);     }
+"_Field"    { return newToken(Terminals.FIELD);     }
 
 "TRUE" { return newToken(Terminals.TRUE);    }
 "FALSE" { return newToken(Terminals.FALSE);    }

@@ -23,7 +23,6 @@ _Guar: levels[_i] == levels'[_i]
 local var t:
 local var h:
 local var r:
-local var index:
 local var level:
 local var task:
 
@@ -47,10 +46,9 @@ if (h < t) {
 			r = z;
 		} while (r % 2 == 1)
 
-		index = h % L;
-		level = levels[index];
+		level = levels[h % L];
 		if (level == 1) {
-			task = tasks[index];
+			task = tasks[h % L];
 		} else {
 			task = -1; // fail
 		}

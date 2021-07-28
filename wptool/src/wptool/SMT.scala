@@ -25,13 +25,16 @@ object SMT {
       simplify: Boolean,
       expectIds: Boolean = false
   ) = {
-    if (debug)
+    if (debug) {
       println("smt checking !(" + cond + ")")
+      println("translated as " + formula(PreOp("!", TBool, TBool, cond), expectIds))
+    }
+
     solver.push()
     val res =
       try {
         // check that (NOT cond) AND P is unsatisfiable
-        solver.add(formula(PreOp("!", Type.TBool, Type.TBool, cond), expectIds))
+        solver.add(formula(PreOp("!", TBool, TBool, cond), expectIds))
 
         solver.check
       } catch {
@@ -47,7 +50,7 @@ object SMT {
             "incorrect z3 expression type, probably involving ForAll/Exists"
           )
         case e: Throwable =>
-          // throw error.Z3Error("Z3 failed", cond, given.PStr, e)
+          // throw error.Z3Error("Z3 failed", cond, e)
           throw e
       } finally {
         solver.pop()
@@ -60,6 +63,7 @@ object SMT {
       println(res)
       if (res == z3.Status.SATISFIABLE) {
         val model = solver.getModel
+        println(s"COND VARS: ${cond}")
         println(
           "Model: [" + cond.vars.toList
             .sortWith((x, y) => x.toString < y.toString)
@@ -97,34 +101,33 @@ object SMT {
         throw error.InvalidProgram("not a bitwise expression", prop, e)
     }
 
-  def getArray(store: Expression): z3.ArrayExpr = store match {
+  def handleSelect(
+      store: Expression,
+      arr: z3.ArrayExpr,
+      expectIds: Boolean
+  ): z3.Expr = store match {
+    case a: VarAccess => ctx.mkSelect(arr, translate(a.index, expectIds))
+    case a: VarStore  => handleSelect(a.array, arr, expectIds)
+    case _            => throw new Error("Unexpected statement in VarStore")
+  }
+
+  // TODO i think the name should come from the inner load not from the store
+  def handleStore(
+      store: Expression,
+      expectIds: Boolean
+  ): z3.ArrayExpr = store match {
     case a: VarAccess =>
       ctx.mkArrayConst(
         a.name.toString,
         ctx.getIntSort,
         if (a.ident.gamma) ctx.getBoolSort else ctx.getIntSort
       )
-    case a: VarStore => getArray(a.array)
-    case _           => throw new Error("Unexpected statement in VarStore")
-  }
-
-  // TODO i think the name should come from the inner load not from the store
-  def handleStore(
-      store: Expression,
-      arr: z3.ArrayExpr,
-      expectIds: Boolean
-  ): z3.Expr = store match {
-    case a: VarAccess => ctx.mkSelect(arr, translate(a.index, expectIds))
     case a: VarStore =>
-      handleStore(
-        a.array,
-        ctx.mkStore(
-          arr,
-          translate(a.index, expectIds),
-          // TODO  Type?
-          translate(a.exp, expectIds)
-        ),
-        expectIds
+      ctx.mkStore(
+        handleStore(a.array, expectIds),
+        translate(a.index, expectIds),
+        // TODO  Type?
+        translate(a.exp, expectIds)
       )
     case _ => throw new Error("Unexpected statement in VarStore")
   }
@@ -142,11 +145,11 @@ object SMT {
     case x: Var =>
       if (expectIds) throw new Error("Program ids should not be resolved")
       // TODO println(s"$x is of type ${typeOf}")
-      val sort = if (x.ident.expType == Type.TBool) ctx.getBoolSort else ctx.getIntSort
+      val sort = if (x.ident.expType == TBool) ctx.getBoolSort else ctx.getIntSort
       ctx.mkConst(x.toString, sort)
     case x: Id =>
       if (expectIds) throw new Error("Unresolved id")
-      val sort = if (x.expType == Type.TBool) ctx.getBoolSort else ctx.getIntSort
+      val sort = if (x.expType == TBool) ctx.getBoolSort else ctx.getIntSort
       ctx.mkConst(x.toString, sort)
 
     // TODO can these cases be merged together
@@ -168,9 +171,12 @@ object SMT {
       )
 
     case store: VarStore =>
-      handleStore(
+      handleSelect(
         store,
-        getArray(store),
+        handleStore(
+          store,
+          expectIds
+        ),
         expectIds
       )
 
@@ -186,41 +192,41 @@ object SMT {
       else throw new Error("ArrayConstDefault is only for gamma values")
      */
 
-    case BinOp("==", _, Type.TBool, arg1, arg2) =>
+    case BinOp("==", _, TBool, arg1, arg2) =>
       ctx.mkEq(translate(arg1, expectIds), translate(arg2, expectIds))
-    case BinOp("!=", _, Type.TBool, arg1, arg2) =>
+    case BinOp("!=", _, TBool, arg1, arg2) =>
       ctx.mkNot(
         ctx.mkEq(translate(arg1, expectIds), translate(arg2, expectIds))
       )
 
-    case PreOp("!", Type.TBool, Type.TBool, arg) => ctx.mkNot(formula(arg, expectIds))
-    case BinOp("&&", Type.TBool, Type.TBool, arg1, arg2) =>
+    case PreOp("!", TBool, TBool, arg) => ctx.mkNot(formula(arg, expectIds))
+    case BinOp("&&", TBool, TBool, arg1, arg2) =>
       ctx.mkAnd(formula(arg1, expectIds), formula(arg2, expectIds))
-    case BinOp("||", Type.TBool, Type.TBool, arg1, arg2) =>
+    case BinOp("||", TBool, TBool, arg1, arg2) =>
       ctx.mkOr(formula(arg1, expectIds), formula(arg2, expectIds))
 
-    case BinOp("=>", Type.TBool, Type.TBool, arg1, arg2) =>
+    case BinOp("=>", TBool, TBool, arg1, arg2) =>
       ctx.mkImplies(formula(arg1, expectIds), formula(arg2, expectIds))
 
-    case PreOp("-", Type.TInt, Type.TInt, arg) => ctx.mkUnaryMinus(arith(arg))
-    case BinOp("+", Type.TInt, Type.TInt, arg1, arg2) =>
+    case PreOp("-", TInt, TInt, arg) => ctx.mkUnaryMinus(arith(arg))
+    case BinOp("+", TInt, TInt, arg1, arg2) =>
       ctx.mkAdd(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp("-", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp("-", TInt, TInt, arg1, arg2) =>
       ctx.mkSub(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp("*", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp("*", TInt, TInt, arg1, arg2) =>
       ctx.mkMul(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp("/", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp("/", TInt, TInt, arg1, arg2) =>
       ctx.mkDiv(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp("%", Type.TInt, Type.TInt, arg1, arg2) =>
+    case BinOp("%", TInt, TInt, arg1, arg2) =>
       ctx.mkMod(arith(arg1, expectIds), arith(arg2, expectIds))
 
-    case BinOp("<=", Type.TInt, Type.TBool, arg1, arg2) =>
+    case BinOp("<=", TInt, TBool, arg1, arg2) =>
       ctx.mkLe(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp("<", Type.TInt, Type.TBool, arg1, arg2) =>
+    case BinOp("<", TInt, TBool, arg1, arg2) =>
       ctx.mkLt(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp(">=", Type.TInt, Type.TBool, arg1, arg2) =>
+    case BinOp(">=", TInt, TBool, arg1, arg2) =>
       ctx.mkGe(arith(arg1, expectIds), arith(arg2, expectIds))
-    case BinOp(">", Type.TInt, Type.TBool, arg1, arg2) =>
+    case BinOp(">", TInt, TBool, arg1, arg2) =>
       ctx.mkGt(arith(arg1, expectIds), arith(arg2, expectIds))
 
     /*

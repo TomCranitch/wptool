@@ -23,7 +23,7 @@ object Exec {
         block.children.map(c => {
           val res = exec(c, state)
           if (c.atomic)
-            // TODO change this to R implies
+            // TODO should there be a guaranttee check?
             res.copy(Qs = res.Qs.map(q => q.copy(pred = rImplies(q.pred, state))))
           else res
         }),
@@ -45,7 +45,7 @@ object Exec {
             new PredInfo(
               stableR(assert.expression, state),
               assert,
-              "StableR"
+              "Assert"
             )
           )
           .incPrimeIndicies
@@ -53,14 +53,14 @@ object Exec {
         _state
           .addQs(
             new PredInfo(
-              eval(assert.expression, state),
+              eval(assert.expression, state, true),
               assert,
               "Assert"
             )
           )
           .incPrimeIndicies
     case havoc: Havoc =>
-      val _state = checkVcs(state.Qs, state.debug, state.simplify) match {
+      val _state = checkVcs(state.Qs, state.debug, state.simplify, state) match {
         case Some(p) =>
           if (!state.silent) printFalseVcs(p)
           if (state.debug) println("error found at havoc")
@@ -76,6 +76,7 @@ object Exec {
       if (RG) {
         val gamma = computeGamma(guard.test, state)
         val stabR = stableR(gamma, state)
+
         _state
           .addQs(
             new PredInfo(gamma, guard, "Gamma"),
@@ -85,25 +86,24 @@ object Exec {
       } else {
         _state.incPrimeIndicies
       }
-    case ass: Assignment =>
-      val assign = ass.asInstanceOf[Assignment]
+    case assign @ Assignment(lhs: Identifier, _, _) =>
       val globalPred =
-        if (state.globals.contains(assign.lhs))
+        if (state.globals.contains(lhs.ident))
           BinOp.pred(
             "=>",
-            getL(assign.lhs, state),
+            getL(lhs, state),
             computeGamma(assign.expression, state)
           )
         else Const._true
-      val controlPred = if (state.controls.contains(assign.lhs)) {
+      val controlPred = if (state.controls.contains(lhs)) {
         constructForall(
           state.controlledBy
-            .getOrElse(assign.lhs, Set())
+            .getOrElse(lhs, Set())
             .map(contr => {
               BinOp.pred(
                 "=>",
-                eval(getL(contr, state).subst(Map(assign.lhs.toVar(state) -> Left(assign.expression))), state), // TODO
-                BinOp.pred("||", eval(contr.toGamma, state), getL(contr, state))
+                eval(getL(contr, state).subst((Map(lhs.toVar(state) -> Left(assign.expression)), state)), state, true),
+                BinOp.pred("||", eval(contr.toGamma, state, true), getL(contr, state))
               )
             })
             .toList
@@ -118,20 +118,76 @@ object Exec {
         _state
           .addQs(
             new PredInfo(rImplies(guarantee, state), assign, "Guarantee"),
-            new PredInfo(rImplies(globalPred, state), assign, "Global"),
-            new PredInfo(rImplies(controlPred, state), assign, "Control")
+            new PredInfo(rImplies(globalPred, state), assign, "L => G"),
+            new PredInfo(rImplies(controlPred, state), assign, "secUpd")
           )
           .incPrimeIndicies
       } else {
         _state
           .addQs(
-            new PredInfo(globalPred, assign, "Global"),
-            new PredInfo(controlPred, assign, "Control")
+            new PredInfo(globalPred, assign, "L => G"),
+            new PredInfo(controlPred, assign, "secUpd")
           )
           .incPrimeIndicies
       }
-    case ass: ArrayAssignment =>
-      val assign = ass.asInstanceOf[ArrayAssignment]
+    case assign @ Assignment(Dereference(id), _, _) =>
+      var globalPred: Expression = null
+      var controlPred: Expression = null
+      id match {
+        case id: Id =>
+          // Must be global
+          globalPred = BinOp.pred(
+            "=>",
+            getL(id, state),
+            computeGamma(assign.expression, state)
+          )
+
+          // Check if anything that b points to is a control variable
+          controlPred = constructForall(
+            state.pointsTo
+              .get(id)
+              .get
+              .filter(i => state.controls.contains(i))
+              .map(i => {
+                state.controlledBy
+                  .getOrElse(i, Set())
+                  .map(contr =>
+                    BinOp.pred(
+                      "=>",
+                      eval(getL(contr, state).subst((Map(i.toVar(state) -> Left(assign.expression)), state)), state, true),
+                      BinOp.pred("||", eval(contr.toGamma, state, true), getL(contr, state))
+                    )
+                  )
+              })
+              .flatten
+              .toList
+          )
+        case _ => throw new Error("Expected id")
+
+      }
+
+      val _state = evalWp(assign, state, RG)
+
+      if (RG) {
+        val guarantee = guar(assign, state)
+
+        _state
+          .addQs(
+            new PredInfo(rImplies(guarantee, state), assign, "Guarantee"),
+            new PredInfo(rImplies(globalPred, state), assign, "L => G"),
+            new PredInfo(rImplies(controlPred, state), assign, "secUpd")
+          )
+          .incPrimeIndicies
+      } else {
+        _state
+          .addQs(
+            new PredInfo(globalPred, assign, "L => G"),
+            new PredInfo(controlPred, assign, "secUpd")
+          )
+          .incPrimeIndicies
+      }
+
+    case assign: ArrayAssignment =>
       val indexSub =
         Map(Id.indexId.toVar(state) -> assign.lhs.ident)
       val globalPred =
@@ -150,14 +206,19 @@ object Exec {
               BinOp.pred(
                 "=>",
                 eval(
-                  getL(contr, state).subst(Map(assign.lhs.ident.toVar(state) -> Right((assign.lhs.index, assign.expression)))),
-                  state
-                ), // TODO
+                  eval(
+                    getL(contr, state).subst((Map(assign.lhs.ident.toVar(state) -> Right((assign.lhs.index, assign.expression))), state)),
+                    state,
+                    true
+                  ),
+                  state,
+                  true
+                ),
                 BinOp.pred(
                   "||",
-                  eval(contr.toGamma, state),
-                  getL(contr, state).subst(Map(Id.indexId.toVar(state) -> Left(assign.lhs.index)))
-                ) // TODO check subst is correct
+                  eval(contr.toGamma, state, true),
+                  eval(getL(contr, state).subst((Map(Id.indexId.toVar(state) -> Left(assign.lhs.index)), state)), state, true)
+                )
               )
             })
             .toList
@@ -209,106 +270,253 @@ object Exec {
   }
 
   def evalWp(stmt: Stmt, state: State, RG: Boolean) = {
-    // if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = BinOp("&&", wp(Q.pred, stmt, state), stableR(wp(Q.pred, stmt, state), state)))))
-    // TODO should use rImplies
-    // is this even possible? if the rely is false then the whole expression becomes true
     if (RG) state.copy(Qs = state.Qs.map(Q => Q.copy(pred = rImplies(wp(Q.pred, stmt, state), state))))
     else state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
-    // state.copy(Qs = state.Qs.map(Q => Q.copy(pred = wp(Q.pred, stmt, state))))
   }
 
   def wp(Q: Expression, stmt: Stmt, state: State): Expression = {
     stmt match {
-      case Assume(exp, _) => BinOp.pred("=>", eval(exp, state), Q)
+      case Assume(exp, _) => BinOp.pred("=>", eval(exp, state, true), Q)
       case Guard(exp, _) =>
         val stabRB = stableR(exp, state)
         BinOp.pred(
           "&&",
-          BinOp.pred("=>", BinOp.pred("&&", eval(exp, state), stabRB), Q),
-          BinOp.pred("=>", PreOp("!", Type.TBool, Type.TBool, stabRB), eval(exp, state))
+          BinOp.pred("=>", BinOp.pred("&&", eval(exp, state, true), stabRB), Q),
+          BinOp.pred("=>", PreOp("!", TBool, TBool, stabRB), eval(exp, state, true))
         )
       case Assert(exp, checkStableR, _) =>
-        /* BinOp(
-          "&&",
-          eval(exp, state),
-          Q
-        ) // Potentially move to exec to evaluate separately
-         */
         Q
       case havoc: Havoc => Q
-      case ass: Assignment =>
-        val assign = ass.asInstanceOf[Assignment]
+      case assign @ Assignment(lhs: Id, _, _) =>
         val rhsGamma = computeGamma(assign.expression, state)
 
-        Q.subst(
-          Map(
-            (assign.lhs.toGamma.toVar(state) -> Left(rhsGamma)),
-            (assign.lhs.toVar(state) -> Left(eval(assign.expression, state)))
-          )
+        eval(
+          Q.subst(
+            (
+              Map(
+                (lhs.toGamma.toVar(state) -> Left(rhsGamma)),
+                (lhs.toVar(state) -> Left(eval(assign.expression, state, false)))
+              ),
+              state
+            )
+          ),
+          state,
+          false
         )
-      case ass: ArrayAssignment =>
-        val assign = ass.asInstanceOf[ArrayAssignment]
+      case assign @ Assignment(Dereference(id), _, _) =>
+        val rhsGamma = computeGamma(assign.expression, state)
+        val lhs = eval(assign.lhs, state, false) match {
+          case Dereference(v: Var) => v
+          case _                   => throw new Error("Unexpected dereference")
+        }
+
+        eval(
+          Q.subst(
+            (
+              Map(
+                (Dereference(lhs) -> Left(eval(assign.expression, state, true))),
+                (Dereference(lhs.toGamma(state)) -> Left(rhsGamma))
+              ),
+              state
+            )
+          ),
+          state,
+          false
+        )
+      case assign @ Assignment(o @ ObjIdAccess(id, field), _, _) =>
+        val rhsGamma = computeGamma(assign.expression, state)
+        val lhs = eval(o, state, false) match {
+          case lhs: ObjVarAccess => lhs
+          case lhs               => throw new Error(s"Unexpected object $lhs (${lhs.getClass})")
+        }
+
+        eval(
+          Q.subst(
+            Map(
+              (o.toVar(state) -> Left(eval(assign.expression, state, true))),
+              (o.toGamma.toVar(state) -> Left(rhsGamma))
+            ),
+            state
+          ),
+          state,
+          false
+        )
+      case assign: ArrayAssignment =>
         val rhsGamma = computeGamma(assign.expression, state)
 
-        Q.subst(
-          Map(
-            (assign.lhs.ident.toGamma.toVar(state) -> Right(
-              (eval(assign.lhs.index, state), rhsGamma)
-            )),
-            (assign.lhs.ident.toVar(state) -> Right(
-              eval(assign.lhs.index, state),
-              eval(assign.expression, state)
-            ))
-          )
+        eval(
+          Q.subst(
+            (
+              Map(
+                (assign.lhs.ident.toGamma.toVar(state) -> Right(
+                  (eval(assign.lhs.index, state, true), rhsGamma)
+                )),
+                (assign.lhs.ident.toVar(state) -> Right(
+                  eval(assign.lhs.index, state, true),
+                  eval(assign.expression, state, true)
+                ))
+              ),
+              state
+            )
+          ),
+          state,
+          false
         )
       case stmt =>
-        println("Unhandled statement(wp exec): " + stmt)
+        println(s"Unhandled statement(wp exec): $stmt (${stmt.getClass})")
         Q
     }
   }
 
-  def eval(expr: Expression, state: State): Expression = expr match {
-    case id: Id       => id.toVar(state)
-    case id: IdAccess => id.toVar(state).copy(index = eval(id.index, state))
-    case BinOp(op, t1, t2, arg1, arg2) =>
-      BinOp(op, t1, t2, eval(arg1, state), eval(arg2, state))
-    case PreOp(op, t1, t2, arg) => PreOp(op, t1, t2, eval(arg, state))
-    case s: VarStore =>
-      s.copy(
-        array = eval(s.array, state),
-        index = eval(s.index, state),
-        exp = eval(s.exp, state)
-      )
-    case a: VarAccess => a.copy(index = eval(a.index, state))
-    case forall: ForAll =>
-      forall.copy(
-        bound = forall.bound.map(b => eval(b, state)),
-        body = eval(forall.body, state)
-      )
-    case _: Lit | _: Const | _: Var => expr
-    case expr =>
-      println(s"Unhandled expression(eval): [${expr.getClass()}] $expr")
-      expr
+  def eval(expr: Expression, state: State, memAccess: Boolean): Expression =
+    expr match {
+      case id: Id if (id.memLoc)        => id.toVar(state)
+      case va: Var if (va.ident.memLoc) => va
+      case id: Id if (state.globals.contains(id.getBase)) =>
+        val mem =
+          (if (id.prime) Id.memId.toPrime.toVar(state) else if (id.nought) Id.memId.toVar(state).toNought else Id.memId.toVar(state))
+        if (id == Id.indexId) id.toVar(state)
+        else if (id.memLoc) id.toVar(state)
+        else if (memAccess && !id.gamma)
+          VarAccess(mem, eval(Id.getAddr(id, state), state, true))
+        else if (memAccess && id.gamma)
+          VarAccess(mem.toGamma(state), eval(Id.getAddr(id, state), state, true))
+        else
+          id.toVar(state)
+      case id: Id => id.toVar(state)
+      case v: Var if (state.globals.contains(v.ident.getBase)) =>
+        val mem =
+          (if (v.ident.prime) Id.memId.toPrime.toVar(state)
+           else if (v.ident.nought) Id.memId.toVar(state).toNought
+           else Id.memId.toVar(state))
+        if (v.ident == Id.indexId) v
+        else if (memAccess && !v.ident.gamma)
+          VarAccess(mem, eval(Id.getAddr(v.ident, state), state, true))
+        else if (memAccess && v.ident.gamma)
+          VarAccess(mem.toGamma(state), eval(Id.getAddr(v.ident, state), state, true))
+        else v
+      case id: IdAccess => id.toVar(state).copy(index = eval(id.index, state, memAccess))
+      case idObj: ObjIdAccess =>
+        val mem =
+          (if (idObj.ident.prime) Id.memId.toPrime.toVar(state)
+           else if (idObj.ident.nought) Id.memId.toVar(state).toNought
+           else Id.memId.toVar(state))
+        if (memAccess) VarAccess(mem, eval(idObj.getAddr(state), state, true))
+        else idObj.toVar(state)
+      case varObj: ObjVarAccess =>
+        val mem =
+          (if (varObj.ident.prime) Id.memId.toPrime.toVar(state)
+           else if (varObj.ident.nought) Id.memId.toVar(state).toNought
+           else Id.memId.toVar(state))
+        if (memAccess) VarAccess(mem, eval(varObj.getAddr(state), state, true))
+        else varObj
+      case deref @ Dereference(id) =>
+        deref.copy(ident = eval(deref.ident, state, false)) match {
+          case Dereference(v: Var) if (memAccess) =>
+            val memId = v.copy(ident = v.ident.copy(name = Id.memId.name))
+            VarAccess(memId, eval(VarAccess(memId, state.addrs.get(v.ident).get), state, true))
+          case d @ _ => d
+        }
+      case r @ Reference(id) =>
+        r.copy(ident = eval(r.ident, state, false)) match {
+          case Reference(v: Var) => eval(state.addrs.get(v.ident).get, state, true)
+          case r @ _             => r
+        }
+      case BinOp(op, t1, t2, arg1, arg2) =>
+        BinOp(op, t1, t2, eval(arg1, state, memAccess), eval(arg2, state, memAccess))
+      case PreOp(op, t1, t2, arg) => PreOp(op, t1, t2, eval(arg, state, memAccess))
+      case Declassify(e, d)       => eval(e, state, memAccess)
+      case s: VarStore =>
+        s.copy(
+          array = eval(s.array, state, memAccess),
+          index = eval(s.index, state, memAccess),
+          exp = eval(s.exp, state, memAccess)
+        )
+      case a: VarAccess => a.copy(index = eval(a.index, state, memAccess))
+      case forall: ForAll =>
+        forall.copy(
+          bound = forall.bound.map(b => eval(b, state, memAccess)),
+          body = eval(forall.body, state, memAccess)
+        )
+      case _: Lit | _: Const | _: Var => expr
+      case expr =>
+        println(s"Unhandled expression(eval): [${expr.getClass()}] $expr")
+        expr
+    }
+
+  private def skipMemLocs(v: Variable) = v match {
+    case v: Var if (v.ident.memLoc) => false
+    case v                          => true
   }
 
-  def getBaseVars(vars: Set[Var]): Set[Var] = vars.map(v => v.getBase.resetIndex)
-  def getBaseArrays(vars: Set[VarAccess]): Set[VarAccess] = vars.map(v => v.getBase.resetIndex)
+  def getBaseVars(vars: Set[Variable]): Set[Variable] = vars
+    .filter(skipMemLocs)
+    .map(v =>
+      v.getBase.resetIndex match {
+        case v: VarAccess => v.name
+        case v @ _        => v
+      }
+    )
+  def getBaseVariables(vars: Set[Variable]): Set[Variable] = vars.filter(skipMemLocs).map(v => v.getBase.resetIndex)
 
   def getRely(exp: Expression, state: State) = {
-    val evalExp = eval(exp, state)
+    val evalExp = eval(exp, state, false)
+
+    val p =
+      constructForall(
+        getBaseVariables(evalExp.vars - Id.indexId.toVar(state))
+          .map(v => {
+            val pred = if (state.globals.contains(v.ident) || v.ident.getBase == Id.memId) {
+              // BinOp(
+              //  "&&",
+              BinOp.pred(
+                "=>",
+                BinOp("==", TInt, TBool, v, v.toPrime(state)),
+                BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+              ) // ,
+              //   BinOp("=>", primed(getL(v.ident, state), state), v.toPrime(state).toGamma(state))
+              // )
+            } else {
+              BinOp.pred(
+                "&&",
+                BinOp("==", TInt, TBool, v, v.toPrime(state)),
+                BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
+              )
+
+            }
+
+            v match {
+              case m: VarAccess if (m.ident == Id.memId) => pred
+              case v: VarAccess =>
+                BinOp.pred(
+                  "&&",
+                  pred,
+                  eval(
+                    eval(state.arrRelys.getOrElse(v.ident, Const._true), state, false)
+                      .subst((Map(Id.indexId.toVar(state) -> Left(eval(v.index, state, false))), state)),
+                    state,
+                    false
+                  )
+                )
+
+              case _ => pred
+            }
+          })
+          .toList
+      )
 
     eval(
       BinOp.pred(
         "&&",
         constructForall(
-          getBaseVars(evalExp.vars - Id.indexId.toVar(state))
+          getBaseVariables(evalExp.vars - Id.indexId.toVar(state))
             .map(v => {
-              if (state.globals.contains(v.ident)) {
+              val pred = if (state.globals.contains(v.ident) || v.ident.getBase == Id.memId) {
                 // BinOp(
                 //  "&&",
                 BinOp.pred(
                   "=>",
-                  BinOp("==", Type.TInt, Type.TBool, v, v.toPrime(state)),
+                  BinOp("==", TInt, TBool, v, v.toPrime(state)),
                   BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                 ) // ,
                 //   BinOp("=>", primed(getL(v.ident, state), state), v.toPrime(state).toGamma(state))
@@ -316,83 +524,87 @@ object Exec {
               } else {
                 BinOp.pred(
                   "&&",
-                  BinOp("==", Type.TInt, Type.TBool, v, v.toPrime(state)),
+                  BinOp("==", TInt, TBool, v, v.toPrime(state)),
                   BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
                 )
 
               }
-            })
-            .toList
-            ++
-              getBaseArrays(evalExp.arrays)
-                .map(v => {
-                  val pred = if (state.globals.contains(v.ident)) {
-                    //  BinOp(
-                    //    "&&",
-                    BinOp.pred(
-                      "=>",
-                      BinOp("==", Type.TInt, Type.TBool, v, v.toPrime(state)),
-                      BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
-                    ) //,
-                    //    BinOp("=>", primed(getL(v, state), state), v.toPrime(state).toGamma(state))
-                    //  )
-                  } else {
-                    BinOp.pred(
-                      "&&",
-                      BinOp("==", Type.TInt, Type.TBool, v, v.toPrime(state)),
-                      BinOp.pred("==", v.toGamma(state), v.toPrime(state).toGamma(state))
-                    )
-                  }
 
+              v match {
+                case m: VarAccess if (m.ident == Id.memId) => pred
+                case v: VarAccess =>
                   BinOp.pred(
                     "&&",
                     pred,
-                    eval(state.arrRelys.getOrElse(v.ident, Const._true), state)
-                      .subst(Map(Id.indexId.toVar(state) -> Left(eval(v.index, state))))
+                    eval(state.arrRelys.getOrElse(v.ident, Const._true), state, false)
+                      .subst((Map(Id.indexId.toVar(state) -> Left(eval(v.index, state, false))), state))
                   )
 
-                })
-                .toList
+                case _ => pred
+              }
+            })
+            .toList
         ),
-        eval(state.rely, state)
+        eval(state.rely, state, false)
       ),
-      state
+      state,
+      true
     )
   }
 
-  def getL(id: Id, state: State): Expression = {
-    if (id == Id.tmpId) Const._true
-    else
+  def getL(id: Identifier, state: State): Expression = id match {
+    case Id.tmpId              => Const._true
+    case id: Id if (id.memLoc) => Const._true
+    case _: IdAccess | _: VarAccess =>
+      id match {
+        case id: IdAccess =>
+          eval(
+            getL(id.ident, state).subst(
+              (Map(Id.indexId.toVar(state) -> Left(eval(id.index, state, true))), state)
+            ),
+            state,
+            true
+          )
+        case id: VarAccess =>
+          eval(
+            getL(id.ident, state).subst(
+              (Map(Id.indexId.toVar(state) -> Left(eval(id.index, state, true))), state)
+            ),
+            state,
+            true
+          )
+      }
+    case id: Identifier =>
       eval(
         state.L.getOrElse(id, throw new Error("L not defined for " + id)),
-        state
+        state,
+        true
       )
   }
 
-  def getL(id: IdAccess, state: State): Expression =
-    getL(id.ident, state)
-      .subst(Map(Id.indexId.toVar(state) -> Left(eval(id.index, state))))
-
-  def getL(v: VarAccess, state: State): Expression =
-    getL(v.ident, state)
-      .subst(Map(Id.indexId.toVar(state) -> Left(eval(v.index, state))))
-
   def primed(p: Expression, state: State) =
-    eval(p, state).subst(
-      (state.ids ++ state.arrayIds)
-        .map(id => id.toVar(state) -> Left(id.toPrime.toVar(state)))
-        .toMap
+    eval(
+      eval(p, state, false).subst(
+        (
+          (state.arrayIds + Id.memId)
+            .map(id => id.toVar(state) -> Left(id.toPrime.toVar(state)))
+            .toMap,
+          state
+        )
+      ),
+      state,
+      false
     )
 
-  // TODO take havoc statements into account
   def stableR(p: Expression, state: State) =
     eval(
       BinOp.pred("=>", BinOp.pred("&&", getRely(p, state), p), primed(p, state)),
-      state
+      state,
+      true
     )
 
   def rImplies(p: Expression, state: State) = {
-    eval(BinOp.pred("=>", getRely(p, state), primed(p, state)), state)
+    eval(BinOp.pred("=>", getRely(p, state), primed(p, state)), state, true)
   }
 
   def stableR(p: Expression, index: Expression, state: State) =
@@ -401,31 +613,33 @@ object Exec {
         "=>",
         BinOp.pred(
           "&&",
-          getRely(p, state).subst(Map(Id.indexId.toVar(state) -> Left(index))),
+          getRely(p, state).subst((Map(Id.indexId.toVar(state) -> Left(index)), state)),
           p
         ),
         primed(p, state)
       ),
-      state
+      state,
+      true
     )
 
   def rImplies(p: Expression, index: Expression, state: State) =
     eval(
       BinOp.pred(
         "=>",
-        getRely(p, state).subst(Map(Id.indexId.toVar(state) -> Left(index))),
+        getRely(p, state).subst((Map(Id.indexId.toVar(state) -> Left(index)), state)),
         primed(p, state)
       ),
-      state
+      state,
+      true
     )
 
   def guar(a: Assignment, state: State) = {
-    val guar = eval(state.guar, state)
-    val vars = getBaseVars(guar.vars ++ guar.arrays.map(a => a.name))
-    val subst = vars.map(v => List(v -> Left(v.toNought), v.toPrime(state) -> Left(v))).flatten.toMap
-    val gPrime = guar.subst(subst)
-    val _subst = vars.map(v => v.toNought.asInstanceOf[Var] -> Left(v)).toMap
-    wp(gPrime, a, state).subst(_subst)
+    val guar = eval(state.guar, state, false)
+    val vars = getBaseVars(guar.vars)
+    val subst = vars.map(v => List(v -> Left(v.toNought), v.toPrime(state) -> Left(v))).flatten.toMap[Expression, Left[Expression, Nothing]]
+    val gPrime = guar.subst((subst, state))
+    val _subst = Map[Expression, Left[Expression, Nothing]](Id.memId.toVar(state).toNought -> Left(Id.memId.toVar(state)))
+    eval(wp(eval(gPrime, state, true), a, state).subst((_subst, state)), state, true)
   }
 
   def guar(a: ArrayAssignment, state: State) = {
@@ -434,38 +648,40 @@ object Exec {
         BinOp.pred(
           "&&",
           state.guar,
-          eval(state.arrGuars.getOrElse(a.lhs.ident, Const._true), state).subst(Map(Id.indexId.toVar(state) -> Left(a.lhs.index)))
+          eval(state.arrGuars.getOrElse(a.lhs.ident, Const._true), state, true)
+            .subst((Map(Id.indexId.toVar(state) -> Left(a.lhs.index)), state))
         ),
-        state
+        state,
+        true
       )
-    val vars = getBaseVars(guar.vars ++ guar.arrays.map(a => a.name))
-    val subst = vars.map(v => List(v -> Left(v.toNought), v.toPrime(state) -> Left(v))).flatten.toMap
-    val gPrime = guar.subst(subst)
-    val _subst = vars.map(v => v.toNought.asInstanceOf[Var] -> Left(v)).toMap
-    wp(gPrime, a, state).subst(_subst)
+    val vars = getBaseVars(guar.vars)
+    val subst = vars.map(v => List(v -> Left(v.toNought), v.toPrime(state) -> Left(v))).flatten.toMap[Expression, Left[Expression, Nothing]]
+    val gPrime = eval(guar.subst((subst, state)), state, true)
+    val _subst = vars.map(v => v.toNought.asInstanceOf[Var] -> Left(v)).toMap[Expression, Left[Expression, Nothing]]
+    eval(wp(gPrime, a, state).subst((_subst, state)), state, true)
   }
 
   def computeGamma(exp: Expression, state: State): Expression = {
-    val expEval = eval(exp, state)
-    constructForall(
+    val expEval = eval(exp, state, false)
+    val basePred = constructForall(
       expEval.vars
-        .map(v =>
+        .map(v => {
           eval(
             BinOp.pred("||", v.toGamma(state), getL(v.ident, state)),
-            state
+            // BinOp.pred("||", VarAccess(Id.memId.toGamma.toVar(state), Id.getAddr(v.ident, state)), getL(v.ident, state)),
+            state,
+            true
           ) // Default to high
-        )
-        .toList ++
-        expEval.arrays
-          .map(a => {
-            val subst = Map[Var, Left[Expression, Nothing]](Id.indexId.toVar(state) -> Left(eval(a.index, state)))
-            eval(
-              BinOp.pred("||", a.toGamma(state), getL(a.ident, state)).subst(subst),
-              state
-            ) // Default to high
-          })
-          .toList
+
+        })
+        .toList
     )
+
+    exp match {
+      case Declassify(_, d)                           => BinOp.pred("||", d, basePred)
+      case PreOp("!", TBool, TBool, Declassify(_, d)) => BinOp.pred("||", d, basePred) // TODO there should be a better way to do this
+      case _                                          => basePred
+    }
   }
 
   def joinStates(states: List[State], state: State, blockName: String) = {

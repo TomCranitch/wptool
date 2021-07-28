@@ -3,6 +3,8 @@
 
 %terminals GLOBALVAR, LOCALVAR;
 %terminals GLOBALARRAY, LOCALARRAY;
+%terminals GLOBALOBJ;
+%terminals FIELD;
 
 //%terminals RETURN, BREAK, CONTINUE;
 %terminals IF, ELSE, WHILE, DO;
@@ -26,14 +28,18 @@
 %terminals AND;
 %terminals OR;
 %terminals COLON;
+%terminals DOT;
 %terminals ASG;
 %terminals COMMA, SEMICOLON;
 %terminals FORALL;
 %terminals ASSERT;
 
 %terminals CAS;
+%terminals DECLASSIFY;
+
 %terminals INVARIANT, GAMMA, GAMMA_0, RELY, GUAR;
 %terminals LPRED;
+%terminals PT;
 %terminals MAPSTO;
 %terminals PRIMEGAMMAID;
 %terminals PRIMEID;
@@ -65,8 +71,12 @@
 
 %typeof NUM     = "Integer";
 
+%typeof ptrdef    = "VarDef";
+
 %typeof boolexpr    = "Expression";
 %typeof intexpr    = "Expression";
+%typeof ptrexpr    = "Expression";
+%typeof intid    = "Id";
 
 %typeof local   = "Stmt";
 
@@ -81,6 +91,7 @@
 %typeof arrrely = "Rely";
 %typeof arrguar = "Guar";
 %typeof security = "Security";
+%typeof fielddef = "Field";
 
 %goal unit;
 
@@ -90,16 +101,38 @@ unit = defs.v locals.s {: return new Global(v, s); :}
      | defs.v GAMMA_0 COLON gamma_mappings.f rely.r guar.g locals.s {: return new Global(v, f, r, g, s); :};
 
 
+// TODO typing
+ptrdef
+	= STAR ID.n 				{: return new VarDef(n, GlobalVar.instance()); :}
+	| STAR ptrdef.n			{: return new VarDef(n.name().name(), GlobalVar.instance()); :}
+	;
 
+
+
+fielddef
+	= FIELD COLON ID.i lpred.l {: return new Field(i, l); :}
+	;
+
+fielddefs
+	= fielddef
+	| fielddefs fielddef
+	;
+
+vardef
+    = GLOBALVAR ID.n COLON lpred.l					{: return new VarDef(n, l, GlobalVar.instance()); :}
+    | GLOBALVAR ID.n COLON        					{: return new VarDef(n, GlobalVar.instance()); :}
+    | LOCALVAR ID.n COLON         					{: return new VarDef(n, LocalVar.instance()); :}
+    | GLOBALVAR ptrdef.n COLON PT COLON id_list.p				{: return new VarDef(n.name().name(), p, GlobalVar.instance()); :} // TODO
+    | GLOBALVAR ptrdef.n COLON lpred.l PT COLON id_list.p		{: return new VarDef(n.name().name(), l, p, GlobalVar.instance()); :} // TODO
+    ;
 
 definition
-    = GLOBALVAR ID.n COLON lpred.l              {:  return new VarDef(n, l, GlobalVar.instance()); :} // TODO: does this make them appear as global (i.e. are vars without right permissions global)
-    | GLOBALVAR ID.n COLON                     {: return new VarDef(n, GlobalVar.instance()); :}
-    | LOCALVAR ID.n COLON                     {: return new VarDef(n, LocalVar.instance()); :}
+	= vardef
     | GLOBALARRAY ID.n LBRACK intexpr.s RBRACK COLON lpred.l arrrely.r arrguar.g {: return new ArrayDef(n, s, l, GlobalVar.instance(), r, g); :}
     | GLOBALARRAY ID.n LBRACK intexpr.s RBRACK COLON arrrely.r arrguar.g {: return new ArrayDef(n, s, GlobalVar.instance(), r, g); :}
     | LOCALARRAY ID.n LBRACK intexpr.s RBRACK COLON lpred.l arrrely.r arrguar.g {: return new ArrayDef(n, s, l, LocalVar.instance(), r, g); :}
     | LOCALARRAY ID.n LBRACK intexpr.s RBRACK COLON arrrely.r arrguar.g {: return new ArrayDef(n, s, LocalVar.instance(), r, g); :}
+	| GLOBALOBJ ID.n COLON fielddefs.f 		{: return new ObjDef(n, f, GlobalVar.instance()); :}
 	;
 
 arrrely = RELY COLON boolexpr.a {: return  new Rely(a); :};
@@ -111,7 +144,11 @@ block = LBRACE locals.ss RBRACE {: return new Block("unprocessed", ss); :};
 
 local
     = ID.n ASG    intexpr.b SEMICOLON              {: return new Assignment(n, b); :}     // TODO boolexpr
+    | ID.n ASG    ptrexpr.b SEMICOLON              {: return new Assignment(n, b); :}
     | ID.n LBRACK intexpr.i RBRACK ASG    intexpr.b SEMICOLON        {: return new ArrayAssignment(n, i, b); :}
+    | ID.n DOT ID.f ASG intexpr.b SEMICOLON              {: return new Assignment(new ObjIdAccess(n, f), b); :}
+    | ID.n DOT ID.f ASG ptrexpr.b SEMICOLON              {: return new Assignment(new ObjIdAccess(n, f), b); :}
+	| STAR ID.n ASG intexpr.b SEMICOLON				{: return new Assignment(new Dereference(n), b); :}
     | IF LPAREN boolexpr.a RPAREN block.b   {: return new If(a, b);  :}
     | IF LPAREN boolexpr.a RPAREN block.b ELSE block.c     {: return new If(a, b, c);   :}
     | WHILE LPAREN boolexpr.a RPAREN INVARIANT COLON boolexpr.i block.b      {: return new While(a, i, b);   :}
@@ -125,51 +162,67 @@ local
 locals  = local *;
 
 boolexpr
-    = PRIMEGAMMAID.n                              {: return new Id(n, Type.TBool(), true, true, false);  :}
-	| GAMMAID.n                        {: return new Id(n, Type.TBool(), false, true, false);  :}
-    // | PRIMEID.n                              {: return new Id(n, Type.TBool(), true, false, false);  :}
-    // TODO | ID.n                              {: return new Id(n, Type.TBool(), false, false, false);  :}
+    = PRIMEGAMMAID.n                              {: return new Id(n, TBool.instance(), true, true, false, false);  :}
+	| GAMMAID.n                        {: return new Id(n, TBool.instance(), false, true, false, false);  :}
+    // | PRIMEID.n                              {: return new Id(n, TBool.instance(), true, false, false, false);  :}
+    // TODO | ID.n                              {: return new Id(n, TBool.instance(), false, false, false);  :}
     // | PRIMEID.n LBRACK intexpr.i RBRACK       {: return new IdAccess(n, true, false, i); :}
     | GAMMAID.n LBRACK intexpr.i RBRACK       {: return new IdAccess(n, false, true, i); :}
     | PRIMEGAMMAID.n LBRACK intexpr.i RBRACK       {: return new IdAccess(n, true, true, i); :}
     // | ID.n LBRACK intexpr.i RBRACK       {: return new IdAccess(n, i); :}
 	// | CAS LPAREN ID.x COMMA intexpr.y COMMA intexpr.z RPAREN {: return new CompareAndSwap(x, y, z); :}
-    | BANG  boolexpr.a @ PREFIX             {: return new PreOp("!", Type.TBool(), Type.TBool(), a);    :}
-    | boolexpr.a IMPLIES   boolexpr.b           {: return new BinOp("=>", Type.TBool(), Type.TBool(), a, b); :}
-    | boolexpr.a EQ     boolexpr.b              {: return new BinOp("==", Type.TBool(), Type.TBool(),a, b); :} // TODO this is incorrect
-    | boolexpr.a NEQ    boolexpr.b              {: return new BinOp("!=", Type.TBool(), Type.TBool(),a, b); :}
-    | boolexpr.a AND    boolexpr.b              {: return new BinOp("&&", Type.TBool(), Type.TBool(),a, b); :}
-    | boolexpr.a OR     boolexpr.b              {: return new BinOp("||", Type.TBool(), Type.TBool(),a, b); :}
-    | intexpr.a LT     intexpr.b              {: return new BinOp("<", Type.TInt(), Type.TBool(), a, b); :}
-    | intexpr.a LE     intexpr.b              {: return new BinOp("<=",Type.TInt(), Type.TBool(),a, b); :}
-    | intexpr.a GE     intexpr.b              {: return new BinOp(">=",Type.TInt(), Type.TBool(),a, b); :}
-    | intexpr.a GT     intexpr.b              {: return new BinOp(">", Type.TInt(), Type.TBool(), a, b); :}
-    | intexpr.a EQ     intexpr.b              {: return new BinOp("==", Type.TInt(), Type.TBool(),a, b); :}
-    | intexpr.a NEQ    intexpr.b              {: return new BinOp("!=", Type.TInt(), Type.TBool(),a, b); :}
+	| DECLASSIFY LPAREN boolexpr.e COMMA boolexpr.b RPAREN {: return new Declassify(e, b); :}
+    | BANG  boolexpr.a @ PREFIX             {: return new PreOp("!", TBool.instance(), TBool.instance(), a);    :}
+    | boolexpr.a IMPLIES   boolexpr.b           {: return new BinOp("=>", TBool.instance(), TBool.instance(), a, b); :}
+    | boolexpr.a EQ     boolexpr.b              {: return new BinOp("==", TBool.instance(), TBool.instance(),a, b); :} // TODO this is incorrect
+    | boolexpr.a NEQ    boolexpr.b              {: return new BinOp("!=", TBool.instance(), TBool.instance(),a, b); :}
+    | boolexpr.a AND    boolexpr.b              {: return new BinOp("&&", TBool.instance(), TBool.instance(),a, b); :}
+    | boolexpr.a OR     boolexpr.b              {: return new BinOp("||", TBool.instance(), TBool.instance(),a, b); :}
+    | intexpr.a LT     intexpr.b              {: return new BinOp("<", TInt.instance(), TBool.instance(), a, b); :}
+    | intexpr.a LE     intexpr.b              {: return new BinOp("<=",TInt.instance(), TBool.instance(),a, b); :}
+    | intexpr.a GE     intexpr.b              {: return new BinOp(">=",TInt.instance(), TBool.instance(),a, b); :}
+    | intexpr.a GT     intexpr.b              {: return new BinOp(">", TInt.instance(), TBool.instance(), a, b); :}
+    | intexpr.a EQ     intexpr.b              {: return new BinOp("==", TInt.instance(), TBool.instance(),a, b); :}
+    | intexpr.a NEQ    intexpr.b              {: return new BinOp("!=", TInt.instance(), TBool.instance(),a, b); :}
 	// | FORALL LPAREN exprl.l COLON boolexpr.e RPAREN        {: return new ForAll(l, e); :}
+    | ptrexpr.a EQ     ptrexpr.b              {: return new BinOp("==", new TPointer(TInt.instance()), TBool.instance(),a, b); :}
+    | ptrexpr.a NEQ    ptrexpr.b              {: return new BinOp("!=", new TPointer(TInt.instance()), TBool.instance(),a, b); :}
     | LPAREN boolexpr.e RPAREN              {: return (Symbol) e;           :}
     | TRUE                              {: return new Const("True");  :}
     | FALSE                             {: return new Const("False");  :}
     ;
 
+intid
+	= PRIMEID.n                              {: return new Id(n, TInt.instance(), true, false, false, false);  :}
+    | ID.n                              {: return new Id(n, TInt.instance(), false, false, false, false);  :}
+	;
+
 intexpr
     = PREFIX | POSTFIX /* unused */
-    | PRIMEID.n                              {: return new Id(n, Type.TInt(), true, false, false);  :}
-    | ID.n                              {: return new Id(n, Type.TInt(), false, false, false);  :}
+	| intid
     | PRIMEID.n LBRACK intexpr.i RBRACK       {: return new IdAccess(n, true, false, i); :}
     | ID.n LBRACK intexpr.i RBRACK       {: return new IdAccess(n, i); :}
 	// TODO rm
 	| CAS LPAREN ID.x COMMA intexpr.y COMMA intexpr.z RPAREN {: return new CompareAndSwap(x, y, z); :}
+	| CAS LPAREN ID.x COMMA intexpr.y COMMA ptrexpr.z RPAREN {: return new CompareAndSwap(x, y, z); :}
+	| DECLASSIFY LPAREN intexpr.e COMMA boolexpr.b RPAREN {: return new Declassify(e, b); :}
     | NUM.n                             {: return new Lit(n); :}
-    | PLUS  intexpr.a @ PREFIX             {: return new PreOp("+", Type.TInt(), Type.TInt(), a);    :}
-    | MINUS intexpr.a @ PREFIX             {: return new PreOp("-", Type.TInt(), Type.TInt(), a);    :}
-    | intexpr.a STAR   intexpr.b              {: return new BinOp("*", Type.TInt(), Type.TInt(), a, b); :}
-    | intexpr.a DIV    intexpr.b              {: return new BinOp("/", Type.TInt(), Type.TInt(), a, b); :}
-    | intexpr.a PLUS   intexpr.b              {: return new BinOp("+", Type.TInt(), Type.TInt(), a, b); :}
-    | intexpr.a MINUS  intexpr.b              {: return new BinOp("-", Type.TInt(), Type.TInt(), a, b); :}
-    | intexpr.a MOD    intexpr.b              {: return new BinOp("%", Type.TInt(), Type.TInt(),a, b); :}
+    | PLUS  intexpr.a @ PREFIX             {: return new PreOp("+", TInt.instance(), TInt.instance(), a);    :}
+    | MINUS intexpr.a @ PREFIX             {: return new PreOp("-", TInt.instance(), TInt.instance(), a);    :}
+    | intexpr.a STAR   intexpr.b              {: return new BinOp("*", TInt.instance(), TInt.instance(), a, b); :}
+    | intexpr.a DIV    intexpr.b              {: return new BinOp("/", TInt.instance(), TInt.instance(), a, b); :}
+    | intexpr.a PLUS   intexpr.b              {: return new BinOp("+", TInt.instance(), TInt.instance(), a, b); :}
+    | intexpr.a MINUS  intexpr.b              {: return new BinOp("-", TInt.instance(), TInt.instance(), a, b); :}
+    | intexpr.a MOD    intexpr.b              {: return new BinOp("%", TInt.instance(), TInt.instance(),a, b); :}
     | LPAREN intexpr.e RPAREN              {: return (Symbol) e;           :}
+	| STAR ID.n                              {: return new Dereference(n);  :}
+	| intid.n DOT ID.f							{: return new ObjIdAccess(n, f); :}
     ;
+
+ptrexpr
+	// TODO = ID.n									{: return new Id(n, new TPointer(TInt.instance()), false, false, false) :}
+	= AMP ID.n                              {: return new Reference(n);  :}
+	;
 
 // for _L(x): pred construction to set predicate for variable security level
 lpred = LPRED COLON boolexpr.a {: return (Symbol) a; :};
@@ -192,3 +245,7 @@ security
     = LOW {: return Low.instance(); :}
     | HIGH {: return High.instance(); :}
     ;
+
+id_list
+	= ID
+	| id_list COMMA ID;
