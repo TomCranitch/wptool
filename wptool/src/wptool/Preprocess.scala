@@ -57,18 +57,18 @@ object PreProcess {
         val right = ifStmt.right match {
           case Some(s) =>
             exec(s, state, Block("if right", List(), List(currBlock)))
-              .prepend(Guard(PreOp("!", Type.TBool, Type.TBool, test)))
+              .prepend(Guard(PreOp("!", TBool, TBool, test)))
           case None =>
             Block(
               "if empty",
-              List(Guard(PreOp("!", Type.TBool, Type.TBool, test))),
+              List(Guard(PreOp("!", TBool, TBool, test))),
               List(currBlock)
             )
         }
         evalBlock(ifStmt.test, Block("pre if", List(), List(left, right)))
       case whileStmt: While =>
         val after =
-          currBlock.prepend(Assume(PreOp("!", Type.TBool, Type.TBool, evalExp(whileStmt.test))))
+          currBlock.prepend(Assume(PreOp("!", TBool, TBool, evalExp(whileStmt.test))))
         // TODO why does the body not go to after ?? (as per paper/PASTE05)
         val body =
           Block("while body", List(Assert(whileStmt.invariant)), List())
@@ -85,7 +85,7 @@ object PreProcess {
         // Assert(branchGamma)
         head
       case doWhile: DoWhile =>
-        val after = currBlock.prepend(Assume(PreOp("!", Type.TBool, Type.TBool, evalExp(doWhile.test))))
+        val after = currBlock.prepend(Assume(PreOp("!", TBool, TBool, evalExp(doWhile.test))))
         val repeat = Block(
           "do-while repeat",
           List(Guard(doWhile.test), Assert(doWhile.invariant, true)),
@@ -106,7 +106,7 @@ object PreProcess {
       val left = Block(
         "cas left",
         List(
-          Guard(BinOp("==", Type.TInt, Type.TBool, cas.x, cas.e1)),
+          Guard(BinOp("==", TInt, TBool, cas.x, cas.e1)),
           Assignment(cas.x, cas.e2),
           Assignment(Id.tmpId, Lit(1))
         ),
@@ -116,7 +116,7 @@ object PreProcess {
       val right = Block(
         "cas right",
         List(
-          Guard(BinOp("!=", Type.TInt, Type.TBool, cas.x, cas.e1)),
+          Guard(BinOp("!=", TInt, TBool, cas.x, cas.e1)),
           Assignment(Id.tmpId, Lit(0))
         ),
         List(currBlock),
